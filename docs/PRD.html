@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OneTake - PRD</title>
+<style>
+  :root{
+    --bg:#0e0f17; --panel:#161823; --panel2:#1d2030; --ink:#e9eaf2;
+    --muted:#9a9db3; --line:#2a2d3d; --accent:#8a7fff; --accent2:#39d3c0;
+    --perfect:#1fc99a; --keep:#e7b53e; --dud:#ff5d77; --code:#0a0b12;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth;scroll-padding-top:16px}
+  body{background:var(--bg);color:var(--ink);
+    font:14px/1.62 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;display:flex}
+  a{color:var(--accent2);text-decoration:none}
+  code,pre,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+  /* sidebar */
+  aside{width:236px;flex:0 0 236px;height:100vh;position:sticky;top:0;
+    border-right:1px solid var(--line);padding:22px 16px;overflow-y:auto;background:#0c0d14}
+  aside .ttl{font-weight:800;font-size:15px;margin-bottom:2px}
+  aside .ttl b{color:var(--accent)}
+  aside .meta{color:var(--muted);font-size:11px;margin-bottom:18px;line-height:1.5}
+  aside nav{display:flex;flex-direction:column;gap:1px}
+  aside nav a{color:var(--muted);font-size:12.5px;padding:5px 9px;border-radius:6px}
+  aside nav a:hover{color:var(--ink);background:var(--panel)}
+  aside nav .grp{color:#6b6e85;font-size:10px;letter-spacing:.12em;
+    text-transform:uppercase;margin:14px 0 4px;padding:0 9px}
+  /* content */
+  main{flex:1;min-width:0;padding:34px 46px 90px;max-width:1000px}
+  section{padding:26px 0;border-top:1px solid var(--line)}
+  section:first-of-type{border-top:0;padding-top:6px}
+  h1{font-size:24px;font-weight:800;letter-spacing:-.01em;margin-bottom:4px}
+  h2{font-size:12px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--accent);margin-bottom:14px;font-weight:700}
+  h3{font-size:15px;font-weight:700;margin:18px 0 8px}
+  p{margin-bottom:10px;max-width:78ch}
+  p.note{color:var(--muted);font-size:13px}
+  ul{margin:0 0 10px 18px}li{margin-bottom:4px}
+  strong{color:#fff}
+  .lede{color:var(--muted);font-size:13px;margin:-2px 0 16px}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:26px}
+  .kv{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:13px}
+  .kv b{color:var(--muted);font-weight:600;white-space:nowrap}
+  /* tables */
+  table{width:100%;border-collapse:collapse;font-size:13px;margin:6px 0 4px}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.07em;font-weight:600}
+  td.id{font-family:ui-monospace,Menlo,monospace;color:var(--accent2);white-space:nowrap;font-size:12px}
+  tr td:last-child{color:var(--muted)}
+  .vtag{font-size:10px;font-weight:700;padding:2px 7px;border-radius:5px;
+    background:var(--panel2);color:var(--muted);white-space:nowrap}
+  .vtag.v2{color:var(--keep)}.vtag.v3{color:var(--accent)}
+  /* code block */
+  pre{background:var(--code);border:1px solid var(--line);border-radius:8px;
+    padding:14px 16px;font-size:12.5px;color:#cdd0e6;overflow-x:auto;margin:8px 0}
+  pre .c{color:#6b6e85}
+  /* diagrams */
+  .flow{display:flex;align-items:stretch;flex-wrap:wrap;gap:0;margin:6px 0}
+  .node{flex:1;min-width:120px;background:var(--panel);border:1px solid var(--line);
+    border-radius:9px;padding:11px 12px;text-align:center}
+  .node .n{font-size:10px;color:var(--accent);font-weight:800}
+  .node h4{font-size:13px;margin:3px 0 2px}
+  .node p{font-size:11.5px;color:var(--muted);margin:0}
+  .node.moat{border-color:var(--accent)}
+  .arrow{display:flex;align-items:center;justify-content:center;color:var(--accent);width:30px;flex:0 0 30px}
+  .arch{display:grid;grid-template-columns:1fr 50px 1fr;gap:14px;align-items:center;margin-top:6px}
+  .stack{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px}
+  .stack .hd{font-weight:700;font-size:13px;margin-bottom:10px}
+  .stack .hd em{font-style:normal;font-size:10px;color:var(--accent2);
+    border:1px solid var(--line);padding:2px 7px;border-radius:999px;margin-left:6px}
+  .layer{background:var(--panel2);border:1px solid var(--line);border-radius:7px;
+    padding:8px 11px;margin-bottom:7px;font-size:12.5px}
+  .layer span{color:var(--muted);font-size:11.5px;display:block}
+  .vbar{text-align:center;color:var(--accent);font-size:11px;font-weight:700}
+  .vbar .ln{font-size:20px}
+  /* mockups */
+  .phones{display:flex;gap:16px;flex-wrap:wrap;margin-top:8px}
+  .phone{width:172px;height:358px;background:#05060c;border:6px solid #24273a;
+    border-radius:26px;position:relative;overflow:hidden;flex:0 0 auto}
+  .phone .notch{position:absolute;top:0;left:50%;transform:translateX(-50%);
+    width:64px;height:14px;background:#24273a;border-radius:0 0 10px 10px;z-index:3}
+  .scr{position:absolute;inset:0;display:flex;flex-direction:column}
+  .vf{flex:1;background:linear-gradient(160deg,#322a5c,#181a2c);
+    position:relative;display:flex;align-items:center;justify-content:center}
+  .face{width:64px;height:64px;border-radius:50%;
+    background:radial-gradient(circle at 50% 38%,#c9bcff,#6c5cff);opacity:.5}
+  .chip{position:absolute;top:24px;left:10px;font-size:9px;font-weight:800;
+    padding:4px 8px;border-radius:999px;background:rgba(31,201,154,.16);
+    color:var(--perfect);border:1px solid var(--perfect)}
+  .pilltag{position:absolute;top:24px;right:10px;font-size:8.5px;padding:3px 7px;
+    border-radius:999px;background:rgba(255,255,255,.1);color:#fff}
+  .ctrls{height:66px;background:#05060c;display:flex;align-items:center;
+    justify-content:center;gap:18px}
+  .rec{width:38px;height:38px;border-radius:50%;background:var(--dud);border:3px solid #fff}
+  .mini{width:20px;height:20px;border-radius:6px;background:#24273a}
+  .bar{height:34px;background:var(--panel2);display:flex;align-items:center;
+    padding:0 12px;font-size:10.5px;font-weight:700;color:#fff;border-bottom:1px solid var(--line)}
+  .pbody{flex:1;padding:10px;display:flex;flex-direction:column;gap:7px;background:#0a0b12}
+  .li{background:var(--panel);border:1px solid var(--line);border-radius:8px;
+    padding:7px 9px;display:flex;align-items:center;gap:7px;font-size:9.5px;color:var(--muted)}
+  .sw{width:7px;height:7px;border-radius:50%;flex:0 0 7px}
+  .sw.p{background:var(--perfect)}.sw.k{background:var(--keep)}.sw.d{background:var(--dud)}
+  .deck{flex:1;background:#0a0b12;display:flex;align-items:center;justify-content:center;position:relative}
+  .reel{width:108px;height:188px;border-radius:14px;
+    background:linear-gradient(180deg,#6c5cff,#39d3c0);transform:rotate(-5deg)}
+  .yes,.no{position:absolute;top:46%;font-size:9px;font-weight:800;
+    padding:4px 7px;border-radius:6px}
+  .yes{right:12px;color:var(--perfect);border:2px solid var(--perfect)}
+  .no{left:12px;color:var(--dud);border:2px solid var(--dud)}
+  .player{flex:1;background:linear-gradient(180deg,#221d40,#000);
+    display:flex;align-items:center;justify-content:center;position:relative}
+  .play{width:0;height:0;border-left:16px solid #fff;
+    border-top:10px solid transparent;border-bottom:10px solid transparent}
+  .cap2{position:absolute;bottom:54px;left:50%;transform:translateX(-50%);
+    background:rgba(0,0,0,.55);padding:3px 8px;border-radius:5px;font-size:9px}
+  .cap2 b{color:var(--accent2)}
+  .styrow{height:40px;background:#05060c;display:flex;gap:6px;align-items:center;padding:0 10px}
+  .styrow .s{font-size:8.5px;padding:4px 7px;border-radius:999px;
+    border:1px solid var(--line);color:var(--muted)}
+  .styrow .s.on{border-color:var(--accent);color:var(--accent)}
+  .plabel{font-size:11px;color:var(--muted);margin-top:7px;text-align:center;width:172px}
+  .pcap{display:flex;flex-direction:column;align-items:center}
+  /* roadmap */
+  .ph{display:grid;grid-template-columns:96px 1fr 70px;gap:14px;align-items:center;
+    padding:9px 0;border-bottom:1px solid var(--line)}
+  .ph:last-child{border-bottom:0}
+  .ph .lbl{font-weight:700;font-size:12.5px}
+  .ph .lbl span{display:block;color:var(--muted);font-size:10.5px;font-weight:500}
+  .ph .desc b{font-size:13px}.ph .desc p{margin:1px 0 0;font-size:12px;color:var(--muted)}
+  .ph .d{font-size:10px;font-weight:800;letter-spacing:.06em;text-align:right;color:var(--muted)}
+  .ph.moat .desc b{color:var(--accent)}
+  /* legend + callout */
+  .legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:8px}
+  .legend i{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:5px}
+  .call{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--accent);
+    border-radius:0 8px 8px 0;padding:12px 16px;margin:12px 0;font-size:13px}
+  .call b{color:#fff}
+  .sev{font-size:10px;font-weight:800;padding:2px 8px;border-radius:999px}
+  .sev.h{background:rgba(255,93,119,.16);color:var(--dud)}
+  .sev.m{background:rgba(231,181,62,.16);color:var(--keep)}
+  @media(max-width:860px){body{flex-direction:column}aside{width:100%;height:auto;
+    position:static;border-right:0;border-bottom:1px solid var(--line)}
+    aside nav{flex-flow:row wrap}main{padding:20px}.two,.arch{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<aside>
+  <div class="ttl">One<b>Take</b></div>
+  <div class="meta">Product Requirements Document<br>Draft v1 &middot; 2026-05-17<br>
+    Companion to ONETAKE_PRD.md</div>
+  <nav>
+    <a href="#summary">1. Summary</a>
+    <a href="#problem">2. Problem</a>
+    <a href="#goals">3. Goals / non-goals</a>
+    <a href="#users">4. Target users</a>
+    <a href="#platform">5. Platform &amp; constraints</a>
+    <a href="#loop">6. Core loop</a>
+    <a href="#journeys">7. User journeys</a>
+    <a href="#screens">8. Screens</a>
+    <div class="grp">Requirements</div>
+    <a href="#fr">9. Functional</a>
+    <a href="#nfr">10. Non-functional</a>
+    <div class="grp">Technical</div>
+    <a href="#arch">11. Architecture</a>
+    <a href="#edl">12. EDL contract</a>
+    <a href="#pipeline">13. Auto-edit pipeline</a>
+    <a href="#data">14. Data model</a>
+    <a href="#ml">15. AI / ML</a>
+    <div class="grp">Plan</div>
+    <a href="#roadmap">16. Roadmap</a>
+    <a href="#mvp">17. MVP definition</a>
+    <a href="#risks">18. Risks</a>
+    <a href="#metrics">19. Success metrics</a>
+    <a href="#open">20. Open questions</a>
+  </nav>
+</aside>
+
+<main>
+
+  <section id="summary">
+    <h1>OneTake (working title)</h1>
+    <p class="lede">Mobile app that collapses filming, reviewing, and editing of
+      short-form video into one loop.</p>
+    <p>The creator records clips; the app returns an instant verdict on each take
+      (dud / keep / perfect) and auto-tags it (talking vs b-roll). On Finish, the
+      app auto-edits a publish-ready vertical video: bad takes and dead air
+      removed, captions burned in, relevant b-roll cut in automatically. A
+      separate prompt mode generates a video from the existing footage library on
+      request. An Inspiration section lets the creator swipe-collect reels into
+      named collections and later reuse a collection as the editing-style
+      reference for a finished video.</p>
+    <div class="call"><b>Core bet (the moat):</b> the talking-head auto-edit.
+      Instant rating/tagging earns trust during the shoot; the one-tap auto-edit
+      is the premium payoff. Everything else feeds or frames that output.</div>
+    <h3>Decisions locked (2026-05-17)</h3>
+    <div class="kv">
+      <b>Platform</b><span>Expo with prebuild (dev client / EAS Build). Not Expo Go.</span>
+      <b>Wedge</b><span>Talking-head auto-edit is the differentiator the product lives or dies on.</span>
+      <b>Compute</b><span>App captures/rates/tags; all editing and rendering is server-side.</span>
+      <b>Build order</b><span>Easiest to hardest, editor last; optional throwaway editor spike first.</span>
+    </div>
+  </section>
+
+  <section id="problem">
+    <h2>2. Problem</h2>
+    <p>Creators spend far more time reviewing footage and editing than filming.</p>
+    <table>
+      <tr><th>Pain</th><th>Detail</th></tr>
+      <tr><td>Review is post-hoc</td><td>Sorting usable takes happens after the shoot, when context is lost.</td></tr>
+      <tr><td>Editing is repetitive</td><td>Cut silences, remove fumbles, add captions, find and place b-roll, every time.</td></tr>
+      <tr><td>Style drifts</td><td>Consistency across videos requires re-deriving the same editing choices by hand.</td></tr>
+    </table>
+  </section>
+
+  <section id="goals">
+    <h2>3. Goals and non-goals</h2>
+    <div class="two">
+      <div>
+        <h3>Goals</h3>
+        <ul>
+          <li>Tell the creator within ~1s of stopping a take whether it is usable.</li>
+          <li>Eliminate manual cutting of silences, filler, and bad takes for talking-head projects.</li>
+          <li>Produce a publish-ready vertical video with captions and auto-placed b-roll in one tap.</li>
+          <li>Make collecting and reusing inspiration frictionless.</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Non-goals (out of product scope)</h3>
+        <ul>
+          <li>Full manual timeline editor competing with CapCut/Premiere. Manual override is for corrections only.</li>
+          <li>Long-form / horizontal / multi-speaker production.</li>
+          <li>Music licensing marketplace.</li>
+          <li>Social feed or in-app distribution. OS share sheet is the publishing path.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section id="users">
+    <h2>4. Target users</h2>
+    <div class="kv">
+      <b>Primary</b><span>Solo short-form creators (TikTok / Reels / Shorts) who film talking-head content with b-roll and edit on their phone.</span>
+      <b>Secondary</b><span>Founders / marketers producing regular talking-head clips who want consistency without an editor.</span>
+      <b>Persona traits</b><span>Films in bursts, redoes lines multiple times, low patience for editing, judges quality by "would I post this".</span>
+    </div>
+  </section>
+
+  <section id="platform">
+    <h2>5. Platform and key constraints (verified)</h2>
+    <table>
+      <tr><th>Area</th><th>Decision and reason</th></tr>
+      <tr><td>App runtime</td><td>Expo with prebuild (dev client + EAS Build). Not Expo Go, because the camera library needs native modules.</td></tr>
+      <tr><td>Camera</td><td>react-native-vision-camera. Works with Expo via config plugin + dev client, <strong>not supported in Expo Go</strong>; requires prebuild / EAS.</td></tr>
+      <tr><td>No on-device compositing</td><td>FFmpegKit (main RN FFmpeg binding) retired 2025-01-06; native binaries removed from npm / CocoaPods / Maven 2025-04-01; no maintained successor. Therefore all editing and rendering is server-side.</td></tr>
+    </table>
+    <p class="note">These constraints are load-bearing for the architecture in section 11.</p>
+  </section>
+
+  <section id="loop">
+    <h2>6. Core loop</h2>
+    <div class="flow">
+      <div class="node"><div class="n">01</div><h4>Record</h4><p>Tap record on a clip</p></div>
+      <div class="arrow">&rarr;</div>
+      <div class="node"><div class="n">02</div><h4>Verdict</h4><p>Dud/keep/perfect ~1s</p></div>
+      <div class="arrow">&rarr;</div>
+      <div class="node"><div class="n">03</div><h4>Auto-tag</h4><p>Talking vs b-roll</p></div>
+      <div class="arrow">&rarr;</div>
+      <div class="node"><div class="n">04</div><h4>Finish</h4><p>Mark project done</p></div>
+      <div class="arrow">&rarr;</div>
+      <div class="node moat"><div class="n">05</div><h4>Auto-edit</h4><p>Cut, caption, b-roll</p></div>
+      <div class="arrow">&rarr;</div>
+      <div class="node"><div class="n">06</div><h4>Export</h4><p>Share-ready vertical</p></div>
+    </div>
+  </section>
+
+  <section id="journeys">
+    <h2>7. User journeys</h2>
+    <h3>7.1 Talking-head project (primary)</h3>
+    <p class="note">Start Talking-Head project &rarr; record clip, stop &rarr;
+      within ~1s: verdict chip + tag, both overridable &rarr; re-record lines as
+      needed, duds de-emphasized &rarr; Finish &rarr; upload kept clips +
+      manifest, backend transcribes/edits/renders &rarr; preview screen with the
+      finished video, optionally re-render with a chosen inspiration style,
+      export/share.</p>
+    <h3>7.2 Prompt project</h3>
+    <p class="note">Start Prompt project, type prompt &rarr; backend semantically
+      selects and orders matching library clips, assembles, captions, renders
+      &rarr; same preview/export screen. Selects existing footage, never invents
+      footage that does not exist.</p>
+    <h3>7.3 Inspiration</h3>
+    <p class="note">Open Inspiration, import reels by URL or share sheet &rarr;
+      swipe right into a chosen named collection, left to discard &rarr;
+      collections are named &rarr; on any finished video, pick a collection so
+      the re-render approximates that style.</p>
+  </section>
+
+  <section id="screens">
+    <h2>8. Key screens</h2>
+    <p class="note">Indicative layouts defining behavior and information
+      hierarchy, not final visual design. Color motif:</p>
+    <div class="legend">
+      <span><i style="background:var(--perfect)"></i>Perfect</span>
+      <span><i style="background:var(--keep)"></i>Keep</span>
+      <span><i style="background:var(--dud)"></i>Dud</span>
+      <span><i style="background:var(--accent)"></i>Moat / differentiator</span>
+    </div>
+    <div class="phones">
+      <div class="pcap">
+        <div class="phone"><div class="notch"></div><div class="scr">
+          <div class="vf"><div class="chip">PERFECT</div>
+            <div class="pilltag">Talking</div><div class="face"></div></div>
+          <div class="ctrls"><div class="mini"></div><div class="rec"></div><div class="mini"></div></div>
+        </div></div>
+        <div class="plabel">Capture: instant verdict + tag overlaid live</div>
+      </div>
+      <div class="pcap">
+        <div class="phone"><div class="notch"></div><div class="scr">
+          <div class="bar">Launch video &middot; 7 clips</div>
+          <div class="pbody">
+            <div class="li"><span class="sw p"></span>Take 3 &middot; Talking &middot; 0:18</div>
+            <div class="li"><span class="sw k"></span>Take 2 &middot; Talking &middot; 0:21</div>
+            <div class="li"><span class="sw d"></span>Take 1 &middot; Talking &middot; 0:09</div>
+            <div class="li"><span class="sw p"></span>B-roll &middot; desk &middot; 0:06</div>
+            <div class="li"><span class="sw k"></span>B-roll &middot; window &middot; 0:05</div>
+          </div>
+        </div></div>
+        <div class="plabel">Project library: clips rated + tagged</div>
+      </div>
+      <div class="pcap">
+        <div class="phone"><div class="notch"></div><div class="scr">
+          <div class="bar">Inspiration &middot; "punchy hooks"</div>
+          <div class="deck"><div class="no">NOPE</div><div class="reel"></div><div class="yes">SAVE</div></div>
+        </div></div>
+        <div class="plabel">Inspiration: swipe into collections</div>
+      </div>
+      <div class="pcap">
+        <div class="phone"><div class="notch"></div><div class="scr">
+          <div class="player"><div class="play"></div>
+            <div class="cap2">we just <b>launched</b> the thing</div></div>
+          <div class="styrow"><div class="s on">Punchy hooks</div>
+            <div class="s">Calm vlog</div><div class="s">Default</div></div>
+        </div></div>
+        <div class="plabel">Preview: pick style, export</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="fr">
+    <h2>9. Functional requirements</h2>
+    <h3>Capture</h3>
+    <table>
+      <tr><th>ID</th><th>Requirement</th><th></th></tr>
+      <tr><td class="id">FR-CAP-1</td><td>Record multiple discrete clips within one project, in order.</td><td></td></tr>
+      <tr><td class="id">FR-CAP-2</td><td>Front/back camera, tap-to-focus, exposure lock, basic timer.</td><td></td></tr>
+      <tr><td class="id">FR-CAP-3</td><td>Each clip stored locally with metadata (project id, order index, duration, created at, orientation, resolution).</td><td></td></tr>
+      <tr><td class="id">FR-CAP-4</td><td>Vertical 1080x1920 capture target.</td><td></td></tr>
+    </table>
+    <h3>Instant rating</h3>
+    <table>
+      <tr><td class="id">FR-RATE-1</td><td>Verdict in {dud, keep, perfect} within ~1s of recording end (analysis of just-recorded file; not required to be live during recording).</td><td></td></tr>
+      <tr><td class="id">FR-RATE-2</td><td>Inputs: face presence/centering and eyes-open (talking), blur (Laplacian variance), audio level + clipping, clip length sanity, speech presence.</td><td></td></tr>
+      <tr><td class="id">FR-RATE-3</td><td>Verdict overridable; override stored.</td><td></td></tr>
+      <tr><td class="id">FR-RATE-4</td><td>Duds excluded from auto-edit by default but retained on device until deleted.</td><td></td></tr>
+    </table>
+    <h3>Auto-tagging</h3>
+    <table>
+      <tr><td class="id">FR-TAG-1</td><td>Auto-classify each clip talking vs b-roll (speech + talking-face =&gt; talking; else b-roll).</td><td></td></tr>
+      <tr><td class="id">FR-TAG-2</td><td>Tags overridable and stored.</td><td></td></tr>
+      <tr><td class="id">FR-TAG-3</td><td>Free-form / additional clip tags.</td><td><span class="vtag v2">v2</span></td></tr>
+    </table>
+    <h3>B-roll library</h3>
+    <table>
+      <tr><td class="id">FR-BROLL-1</td><td>Ship a bundled, pre-tagged b-roll set in the app.</td><td></td></tr>
+      <tr><td class="id">FR-BROLL-2</td><td>Each b-roll item has a text description used for matching.</td><td></td></tr>
+      <tr><td class="id">FR-BROLL-3</td><td>Creator-added b-roll; description auto-generated by a vision model, editable.</td><td><span class="vtag v2">v2</span></td></tr>
+    </table>
+    <h3>Auto-edit (talking-head)</h3>
+    <table>
+      <tr><td class="id">FR-EDIT-1</td><td>Concatenate kept clips in record order.</td><td></td></tr>
+      <tr><td class="id">FR-EDIT-2</td><td>Transcribe with word-level timestamps.</td><td></td></tr>
+      <tr><td class="id">FR-EDIT-3</td><td>Remove silences over a configurable threshold and filler words from a maintained list.</td><td></td></tr>
+      <tr><td class="id">FR-EDIT-4</td><td>Generate a caption track from word timings (highlight style).</td><td></td></tr>
+      <tr><td class="id">FR-EDIT-5</td><td>Match transcript spans to b-roll by embedding similarity; overlay matched b-roll as a cutaway while keeping the talking audio.</td><td></td></tr>
+      <tr><td class="id">FR-EDIT-6</td><td>Render vertical 1080x1920 H.264 MP4.</td><td></td></tr>
+      <tr><td class="id">FR-EDIT-7</td><td>Retake dedup: when a line is repeated, an LLM selects the best take and drops the rest.</td><td><span class="vtag v2">v2</span></td></tr>
+      <tr><td class="id">FR-EDIT-8</td><td>Manual corrections on the result: toggle a cut, remove a b-roll overlay, edit a caption; re-render applies them. Correction, not a timeline.</td><td></td></tr>
+    </table>
+    <h3>Prompt mode</h3>
+    <table>
+      <tr><td class="id">FR-PROMPT-1</td><td>Free-text prompt input on a Prompt project.</td><td></td></tr>
+      <tr><td class="id">FR-PROMPT-2</td><td>Semantic selection and ordering of library clips (transcript + tag + description embeddings).</td><td></td></tr>
+      <tr><td class="id">FR-PROMPT-3</td><td>Same caption + render pipeline as auto-edit.</td><td></td></tr>
+      <tr><td class="id">FR-PROMPT-4</td><td>Scope guard: selects/orders/edits existing footage; does not generate footage that does not exist.</td><td></td></tr>
+    </table>
+    <h3>Inspiration</h3>
+    <table>
+      <tr><td class="id">FR-INSP-1</td><td>Add reels/TikToks by URL or OS share sheet.</td><td></td></tr>
+      <tr><td class="id">FR-INSP-2</td><td>Swipe right to file into a chosen named collection, left to discard.</td><td></td></tr>
+      <tr><td class="id">FR-INSP-3</td><td>Create / rename / delete collections.</td><td></td></tr>
+      <tr><td class="id">FR-INSP-4</td><td>View a collection as a moodboard grid.</td><td></td></tr>
+      <tr><td class="id">FR-INSP-5</td><td>Style-match: derive measurable traits (mean shot length, caption density, music energy, hook pattern) and apply as render parameters for a re-render.</td><td><span class="vtag v3">v3</span></td></tr>
+    </table>
+    <h3>Library, projects, export</h3>
+    <table>
+      <tr><td class="id">FR-LIB-1</td><td>List projects with status (recording, processing, ready).</td><td></td></tr>
+      <tr><td class="id">FR-LIB-2</td><td>Per project: clips with verdict/tag, finished video(s).</td><td></td></tr>
+      <tr><td class="id">FR-LIB-3</td><td>Delete clips/projects; deleting reclaims local storage.</td><td></td></tr>
+      <tr><td class="id">FR-EXP-1</td><td>Export the finished MP4 via the OS share sheet and save to camera roll.</td><td></td></tr>
+    </table>
+  </section>
+
+  <section id="nfr">
+    <h2>10. Non-functional requirements</h2>
+    <table>
+      <tr><th>ID</th><th>Requirement</th></tr>
+      <tr><td class="id">NFR-PERF-1</td><td>Verdict latency ~1s after stop (P50), 2s (P95).</td></tr>
+      <tr><td class="id">NFR-PERF-2</td><td>Auto-edit round trip (upload + transcribe + edit + render) under 1.5x source footage duration for MVP-capped projects.</td></tr>
+      <tr><td class="id">NFR-LIMIT-1</td><td>MVP caps a talking-head project at ~2 minutes total footage to bound latency and cost.</td></tr>
+      <tr><td class="id">NFR-OFFLINE-1</td><td>Capture, rating, tagging, and library work fully offline. Auto-edit and prompt mode require connectivity.</td></tr>
+      <tr><td class="id">NFR-PRIV-1</td><td>Clips leave the device only on Finish. State clearly in UI; provide a way to delete server-side copies after render.</td></tr>
+      <tr><td class="id">NFR-COST-1</td><td>Track per-render cost (transcription + render compute) as a product KPI; it gates pricing.</td></tr>
+      <tr><td class="id">NFR-PLAT-1</td><td>iOS first. Codebase stays cross-platform; Android is a later hardening pass, not a rewrite.</td></tr>
+    </table>
+  </section>
+
+  <section id="arch">
+    <h2>11. System architecture</h2>
+    <p class="note">App captures, rates, tags, and emits a manifest. All editing
+      and rendering is server-side (forced by the FFmpegKit retirement, section
+      5). Remotion chosen as renderer because the EDL maps directly to React
+      component props and it is the same language as the app. Tradeoff accepted:
+      render latency roughly proportional to video length, plus per-render
+      compute cost (tracked via NFR-COST-1).</p>
+    <div class="arch">
+      <div class="stack">
+        <div class="hd">App <em>Expo prebuild, not Expo Go</em></div>
+        <div class="layer">react-native-vision-camera<span>multi-clip capture</span></div>
+        <div class="layer">On-device analysis<span>verdict + tag within ~1s of stop</span></div>
+        <div class="layer">expo-sqlite<span>projects, clips, tags, collections</span></div>
+        <div class="layer">expo-file-system<span>local clip storage</span></div>
+      </div>
+      <div class="vbar"><div class="ln">&rarr;</div>upload<br>manifest</div>
+      <div class="stack">
+        <div class="hd">Backend <em>TypeScript + job queue</em></div>
+        <div class="layer">Transcribe<span>Deepgram / Whisper, word timestamps</span></div>
+        <div class="layer">Build EDL<span>cut, dedup, b-roll match, captions</span></div>
+        <div class="layer">Render<span>Remotion; FFmpeg server binary for pre-step</span></div>
+        <div class="layer">Return MP4<span>vertical 1080x1920 to app preview</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="edl">
+    <h2>12. EDL contract (core data structure)</h2>
+    <p class="note">The app never edits video. It emits a manifest (clips +
+      verdicts + tags). The backend turns manifest + transcript into an Edit
+      Decision List. The renderer turns the EDL into a file. This isolation makes
+      the moat testable before any UI exists.</p>
+<pre>EDL {
+  output: { width, height, fps }
+  tracks: [
+    { type: "video",    segments: [ { clipId, sourceIn, sourceOut, timelineStart } ] }
+    { type: "broll",    overlays: [ { brollId, timelineStart, timelineEnd } ] }
+    { type: "captions", cues:     [ { text, start, end, words:[{w,start,end}] } ] }
+  ]
+  style?: { meanShotLen, captionStyle, musicEnergy }   <span class="c">// v3 from Inspiration</span>
+}</pre>
+  </section>
+
+  <section id="pipeline">
+    <h2>13. Auto-edit pipeline</h2>
+    <div class="flow">
+      <div class="node"><h4>Concatenate</h4><p>Kept clips, record order</p></div>
+      <div class="arrow">&rarr;</div>
+      <div class="node"><h4>Transcribe</h4><p>Word-level timestamps</p></div>
+      <div class="arrow">&rarr;</div>
+      <div class="node"><h4>Cut</h4><p>Silences + filler</p></div>
+      <div class="arrow">&rarr;</div>
+      <div class="node"><h4>Match b-roll</h4><p>Embedding similarity</p></div>
+      <div class="arrow">&rarr;</div>
+      <div class="node"><h4>Caption</h4><p>Highlight track</p></div>
+      <div class="arrow">&rarr;</div>
+      <div class="node moat"><h4>Render</h4><p>Vertical MP4</p></div>
+    </div>
+    <p class="note">Retake dedup (FR-EDIT-7, an LLM picks the best of repeated
+      lines) is a v2 addition to the Cut stage, not in the MVP.</p>
+  </section>
+
+  <section id="data">
+    <h2>14. Data model (app, SQLite)</h2>
+<pre>project(id, type[talkinghead|prompt], status, prompt?, created_at)
+clip(id, project_id, order_index, file_uri, duration_ms,
+     verdict[dud|keep|perfect], verdict_overridden,
+     tag[talking|broll], tag_overridden, created_at)
+collection(id, name, created_at)
+inspiration(id, collection_id, source_url, thumb_uri, added_at)
+render(id, project_id, status, output_uri, style_collection_id?, created_at)</pre>
+  </section>
+
+  <section id="ml">
+    <h2>15. AI / ML components</h2>
+    <table>
+      <tr><th>Component</th><th>Approach</th></tr>
+      <tr><td>On-device verdict/tag</td><td>Face + eyes (MLKit via Vision Camera frame data), blur (Laplacian variance), audio RMS/clipping from file, speech presence. Heuristic scoring for MVP; learnable later from override data.</td></tr>
+      <tr><td>Transcription</td><td>Deepgram or OpenAI Whisper API. Word-level timestamps required.</td></tr>
+      <tr><td>Embeddings</td><td>Transcript spans and b-roll descriptions for matching; reused for prompt-mode semantic selection.</td></tr>
+      <tr><td>LLM (Claude, latest capable)</td><td>v2 retake dedup; v3 prompt understanding. Transcript-level reasoning, not video.</td></tr>
+    </table>
+  </section>
+
+  <section id="roadmap">
+    <h2>16. Roadmap (easiest first, editor last)</h2>
+    <p class="note">Phases 1-3 constitute a viable standalone product (smart
+      capture + organizer + moodboard). Phase 4 is the premium moat. A short
+      throwaway editor spike (Phase 0) is recommended to de-risk the thesis
+      before weeks of work; not yet committed.</p>
+    <div class="ph"><div class="lbl">Phase 0<span>~2-3 days</span></div>
+      <div class="desc"><b>Editor spike (throwaway, recommended)</b>
+        <p>Backend only, hardcoded clips, no app/UI. Output one auto-edited video to judge the moat. Go / no-go gate.</p></div>
+      <div class="d">RISK GATE</div></div>
+    <div class="ph"><div class="lbl">Phase 1<span>foundation</span></div>
+      <div class="desc"><b>Scaffold + Inspiration moodboard</b>
+        <p>Expo prebuild, navigation, SQLite schema, swipe + collections (FR-INSP-1..4, no style yet).</p></div>
+      <div class="d">EASY</div></div>
+    <div class="ph"><div class="lbl">Phase 2<span>capture</span></div>
+      <div class="desc"><b>Recorder + library</b>
+        <p>Vision Camera multi-clip, talking-head flow, project management (FR-CAP-*, FR-LIB-*).</p></div>
+      <div class="d">MEDIUM</div></div>
+    <div class="ph"><div class="lbl">Phase 3<span>intelligence</span></div>
+      <div class="desc"><b>Instant rating + auto-tag</b>
+        <p>On-device verdict + tag with override (FR-RATE-*, FR-TAG-1..2). End state: shippable standalone v1.</p></div>
+      <div class="d">MEDIUM</div></div>
+    <div class="ph moat"><div class="lbl">Phase 4<span>the moat</span></div>
+      <div class="desc"><b>One-tap auto-edit (MVP complete)</b>
+        <p>Backend pipeline, captions + bundled b-roll (FR-EDIT-1..6), correction re-render (FR-EDIT-8).</p></div>
+      <div class="d">HARD</div></div>
+    <div class="ph"><div class="lbl">Phase 5<span>v2</span></div>
+      <div class="desc"><b>Retake dedup + user b-roll</b>
+        <p>LLM best-take (FR-EDIT-7), user b-roll with auto descriptions (FR-BROLL-3), extra tags (FR-TAG-3).</p></div>
+      <div class="d">HARD</div></div>
+    <div class="ph"><div class="lbl">Phase 6<span>v3</span></div>
+      <div class="desc"><b>Prompt mode + style-matching</b>
+        <p>Semantic library assembly (FR-PROMPT-*); Inspiration traits as render params (FR-INSP-5).</p></div>
+      <div class="d">HARD</div></div>
+  </section>
+
+  <section id="mvp">
+    <h2>17. MVP definition</h2>
+    <div class="two">
+      <div><h3>In (end of Phase 4)</h3>
+        <p class="note">Talking-head record, instant rating, auto-tag, bundled
+          b-roll, one-tap server auto-edit (cut + captions + b-roll), preview,
+          export, iOS only.</p></div>
+      <div><h3>Out</h3>
+        <p class="note">Prompt mode, style-matching, user b-roll, retake dedup,
+          Android polish.</p></div>
+    </div>
+  </section>
+
+  <section id="risks">
+    <h2>18. Risks and mitigations</h2>
+    <table>
+      <tr><th>Risk</th><th>Impact</th><th>Mitigation</th></tr>
+      <tr><td>Auto-edit quality is subjective, may not impress</td><td><span class="sev h">FATAL</span></td><td>Phase 0 spike gates it; Phases 1-3 are a standalone fallback product</td></tr>
+      <tr><td>Round-trip latency feels slow</td><td><span class="sev m">CHURN</span></td><td>NFR-LIMIT-1 caps footage; progress UI; revisit on-device transcription</td></tr>
+      <tr><td>"Instant" read as truly live rating</td><td><span class="sev m">UX</span></td><td>Define UX as verdict within ~1s of stop, not a live overlay</td></tr>
+      <tr><td>Render cost at scale</td><td><span class="sev m">MARGIN</span></td><td>NFR-COST-1 tracks per-render cost; informs pricing/limits</td></tr>
+      <tr><td>Footage uploaded for editing (privacy)</td><td><span class="sev m">TRUST</span></td><td>NFR-PRIV-1: explicit UI; server-side delete control</td></tr>
+    </table>
+  </section>
+
+  <section id="metrics">
+    <h2>19. Success metrics</h2>
+    <table>
+      <tr><th>Metric</th><th>Definition</th></tr>
+      <tr><td>Activation</td><td>% of new users who complete one finished auto-edited video.</td></tr>
+      <tr><td>Moat quality</td><td>% of finished videos exported without manual correction.</td></tr>
+      <tr><td>Capture-loop value</td><td>Verdict override rate (lower = ratings trusted).</td></tr>
+      <tr><td>Latency</td><td>P50/P95 verdict and round-trip times vs NFR targets.</td></tr>
+      <tr><td>Retention</td><td>Weekly returning creators; videos finished per active creator.</td></tr>
+      <tr><td>Unit economics</td><td>Per-render cost vs plan price.</td></tr>
+    </table>
+  </section>
+
+  <section id="open">
+    <h2>20. Open questions</h2>
+    <table>
+      <tr><th>Question</th><th>Why it matters</th></tr>
+      <tr><td>Retake grouping: explicit "re-record this line" button vs inferred from transcript similarity?</td><td>Drives Phase 5 dedup design.</td></tr>
+      <tr><td>Music: none, royalty-free pack, or beat-synced?</td><td>Out of scope now; revisit for style-matching realism in v3.</td></tr>
+      <tr><td>Server-side footage retention window and delete UX?</td><td>Privacy/trust (NFR-PRIV-1) and storage cost.</td></tr>
+      <tr><td>Pricing model and where the free/paid line sits?</td><td>Capture loop free vs auto-edit paid is a candidate.</td></tr>
+      <tr><td>Inspiration import: programmatic reel access is restricted on most platforms.</td><td>May mean URL + thumbnail reference, not full video download. Legal/technical confirm needed.</td></tr>
+    </table>
+  </section>
+
+</main>
+</body>
+</html>

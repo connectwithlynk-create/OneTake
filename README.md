@@ -1,56 +1,87 @@
-# Welcome to your Expo app 👋
+# OneTake
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Mobile app that collapses filming, reviewing, and editing of short-form video
+into one loop. Record takes, get an instant verdict on each (dud / keep /
+perfect), auto-tag talking vs b-roll, organize projects, and collect
+inspiration reels into swipeable collections.
 
-## Get started
+Full spec: [`docs/PRD.md`](docs/PRD.md) and a visual version at
+[`docs/PRD.html`](docs/PRD.html).
 
-1. Install dependencies
+## Scope of this build
 
-   ```bash
-   npm install
-   ```
+Everything except the auto-edit is built (PRD roadmap Phases 1-3):
 
-2. Start the app
+- Projects: create talking-head or prompt projects, list, detail, delete.
+- Capture: multi-clip recorder (`expo-camera`), front/back, default tag toggle.
+- Instant rating + tagging: on-device verdict and talking/b-roll tag right
+  after each take, with manual override in the capture overlay and in clip
+  review.
+- Library: per-project clip review with verdict filters and overrides.
+- Inspiration: add reels by URL, organize into collections, gesture swipe
+  deck to file unfiled reels (right = save, left = discard), moodboard grid.
 
-   ```bash
-   npx expo start
-   ```
+Intentionally NOT built (PRD Phase 4, the moat): the one-tap auto-edit
+pipeline. `app/preview/[projectId]` is a stub that explains what Phase 4 will
+do. The capture, rating, tagging, and library work that feeds it is complete.
 
-In the output, you'll find options to open the app in a
+### On-device rating is a heuristic stub
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+`src/lib/rating.ts` is a deterministic placeholder. The real implementation
+(PRD FR-RATE-2) needs native analysis (face/eyes, blur, audio levels, speech
+presence). Swap that one module out; its callers do not change.
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+### Camera note
 
-## Get a fresh project
+This uses `expo-camera` for the recorder so the basic build runs without a
+custom native pipeline. The PRD targets `react-native-vision-camera` (PRD
+section 5/11) for production-grade capture and frame processors. That swap is
+isolated to the capture screen.
 
-When you're ready, run:
+## Stack
 
-```bash
-npm run reset-project
+Expo SDK 55, expo-router (file-based, native tabs), React 19 / React Native
+0.83, TypeScript (strict), expo-sqlite (local data), expo-file-system (clip
+storage), react-native-reanimated 4 + gesture-handler (swipe deck).
+
+## Run
+
+```sh
+npm install
+npx expo start
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Camera and microphone require a real device or a dev build (not Expo Go for
+full native behavior). Press `i` / `a` for a simulator, or scan the QR with a
+dev build.
 
-### Other setup steps
+```sh
+npm run ios       # iOS
+npm run android   # Android
+npx tsc --noEmit  # typecheck
+```
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+## Structure
 
-## Learn more
+```
+src/
+  app/                    expo-router routes
+    (tabs)/               Projects + Inspiration tabs
+    project/[id]          clip review
+    capture/[projectId]   camera + instant verdict overlay
+    prompt/[projectId]    prompt input (prompt projects)
+    preview/[projectId]   auto-edit stub (Phase 4)
+    collection/[id]       moodboard
+    swipe/[collectionId]  inspiration swipe deck
+    new-project           mode picker
+    inspiration-add       add reel (modal)
+  components/ui.tsx        playful dark design system
+  lib/                     db, repo, store, rating, filestore, types
+  theme/                   palette and tokens
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+## Theme
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Mostly-dark, playful. Limited bright palette: purple (brand), yellow (punch /
+best), blue (secondary), red (destructive / dud). Verdicts map to color:
+perfect = yellow, keep = blue, dud = red.
