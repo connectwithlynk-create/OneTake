@@ -1,8 +1,8 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { FlatList, Pressable, StyleSheet, View } from 'react-native';
+import { FlatList, View } from 'react-native';
 
-import { ClipVideo } from '@/components/clip-video';
+import { MediaTile, MEDIA_COLUMNS } from '@/components/media-tile';
 import {
   AppText,
   Button,
@@ -24,15 +24,11 @@ import {
   setVerdict,
 } from '@/lib/repo';
 import { invalidate, useData } from '@/lib/store';
+import { relativeAge, fmtDuration } from '@/lib/time';
 import { palette, space, verdictColor } from '@/theme';
 import type { Clip, Verdict } from '@/lib/types';
 
 const VERDICT_CYCLE: Verdict[] = ['dud', 'keep', 'perfect'];
-
-function fmt(ms: number) {
-  const s = Math.round(ms / 1000);
-  return `0:${s.toString().padStart(2, '0')}`;
-}
 
 export default function ProjectScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -124,54 +120,31 @@ export default function ProjectScreen() {
           ) : (
             <FlatList
               data={shown}
+              key="project-media-grid"
               keyExtractor={(c) => c.id}
+              numColumns={MEDIA_COLUMNS}
+              columnWrapperStyle={{ gap: space.md }}
               showsVerticalScrollIndicator={false}
               contentContainerStyle={{ gap: space.md, paddingBottom: 180 }}
               renderItem={({ item }) => {
                 const meta = parseMeta(item.meta_tags);
-                const tagLine = [
+                const tags = [
                   item.tag === 'talking' ? 'talking' : 'b-roll',
                   ...meta.map((m) => m.value),
-                ].join(' · ');
+                ];
+                if (item.expires_at != null) {
+                  tags.unshift(`${hoursLeft(item.expires_at)}h left`);
+                }
                 return (
-                  <Pressable
+                  <MediaTile
+                    uri={item.file_uri}
+                    title={item.name ?? `Take ${item.order_index + 1}`}
+                    date={`${relativeAge(item.created_at)} · ${fmtDuration(item.duration_ms)}`}
+                    tags={tags}
+                    accent={verdictColor[item.verdict]}
                     onLongPress={() => cycleVerdict(item)}
-                    delayLongPress={250}
-                    style={[
-                      styles.tile,
-                      { borderColor: verdictColor[item.verdict] },
-                    ]}
-                  >
-                    <View style={styles.tileThumb}>
-                      <ClipVideo
-                        uri={item.file_uri}
-                        style={StyleSheet.absoluteFill}
-                      />
-                    </View>
-                    <View style={{ flex: 1, gap: 3 }}>
-                      <AppText kind="subtitle" numberOfLines={1}>
-                        {item.name ?? `Take ${item.order_index + 1}`}
-                      </AppText>
-                      <AppText kind="dim">{fmt(item.duration_ms)}</AppText>
-                      <AppText kind="caption" numberOfLines={1}>
-                        {tagLine.toUpperCase()}
-                      </AppText>
-                      {item.expires_at != null && (
-                        <AppText
-                          kind="caption"
-                          style={{ color: palette.red }}
-                        >
-                          DISAPPEARS IN {hoursLeft(item.expires_at)}H
-                        </AppText>
-                      )}
-                    </View>
-                    <IconButton
-                      name="trash"
-                      tone="clear"
-                      color={palette.textFaint}
-                      onPress={() => remove(item)}
-                    />
-                  </Pressable>
+                    onDelete={() => remove(item)}
+                  />
                 );
               }}
             />
@@ -218,22 +191,3 @@ export default function ProjectScreen() {
     </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  tile: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space.md,
-    backgroundColor: palette.surface,
-    borderRadius: 16,
-    borderWidth: 2,
-    padding: space.md,
-  },
-  tileThumb: {
-    width: 58,
-    height: 100,
-    borderRadius: 10,
-    overflow: 'hidden',
-    backgroundColor: '#111',
-  },
-});

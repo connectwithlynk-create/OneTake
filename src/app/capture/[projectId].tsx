@@ -6,11 +6,13 @@ import {
 } from 'expo-camera';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ClipVideo } from '@/components/clip-video';
+import { MediaTile, MEDIA_COLUMNS } from '@/components/media-tile';
 import { AppText, Button } from '@/components/ui';
+import { relativeAge } from '@/lib/time';
 import { persistClip } from '@/lib/filestore';
 import { id } from '@/lib/id';
 import { rateClip } from '@/lib/rating';
@@ -191,27 +193,21 @@ export default function CaptureScreen() {
                 No clips yet. Hit record.
               </AppText>
             ) : (
-              <ScrollView contentContainerStyle={styles.sheetGrid}>
-                {taken.map((c) => (
-                  <View key={c.id} style={{ width: '31%' }}>
-                    <View
-                      style={[
-                        styles.thumb,
-                        { borderColor: verdictColor[c.verdict] },
-                      ]}
-                    >
-                      <ClipVideo uri={c.file_uri} style={StyleSheet.absoluteFill} />
-                    </View>
-                    <AppText
-                      kind="caption"
-                      numberOfLines={1}
-                      style={{ color: '#fff', marginTop: 4 }}
-                    >
-                      {c.name ?? 'Clip'}
-                    </AppText>
-                  </View>
-                ))}
-              </ScrollView>
+              <FlatList
+                data={taken}
+                keyExtractor={(c) => c.id}
+                numColumns={MEDIA_COLUMNS}
+                columnWrapperStyle={{ gap: space.md }}
+                contentContainerStyle={{ gap: space.md, padding: space.lg }}
+                renderItem={({ item }) => (
+                  <MediaTile
+                    uri={item.file_uri}
+                    title={item.name ?? 'Clip'}
+                    date={relativeAge(item.created_at)}
+                    accent={verdictColor[item.verdict]}
+                  />
+                )}
+              />
             )}
           </SafeAreaView>
         </View>
@@ -296,19 +292,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: space.lg,
     paddingVertical: space.md,
-  },
-  sheetGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: space.md,
-    padding: space.lg,
-  },
-  thumb: {
-    aspectRatio: 9 / 16,
-    borderRadius: radius.md,
-    borderWidth: 2,
-    overflow: 'hidden',
-    backgroundColor: '#111',
   },
   bottom: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingBottom: space.lg },
   recRow: {
