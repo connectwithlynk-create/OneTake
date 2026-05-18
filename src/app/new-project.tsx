@@ -17,15 +17,15 @@ export default function NewProjectScreen() {
   async function start(type: ProjectType) {
     if (busy) return;
     setBusy(true);
-    const p = await createProject(type, title);
-    invalidate();
     if (type === 'talkinghead') {
+      // Talking-head needs a project up front to attach recorded clips to.
+      const p = await createProject('talkinghead', title);
+      invalidate();
       router.replace({ pathname: '/project/[id]', params: { id: p.id } });
     } else {
-      router.replace({
-        pathname: '/prompt/[projectId]',
-        params: { projectId: p.id },
-      });
+      // Prompt projects are created only when the prompt is submitted, so
+      // backing out of the prompt screen leaves nothing behind.
+      router.replace({ pathname: '/prompt', params: { title } });
     }
   }
 

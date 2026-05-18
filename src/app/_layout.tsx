@@ -38,7 +38,7 @@ export default function RootLayout() {
           <Stack.Screen name="project/[id]" />
           <Stack.Screen name="edit/[projectId]" />
           <Stack.Screen name="capture/[projectId]" />
-          <Stack.Screen name="prompt/[projectId]" />
+          <Stack.Screen name="prompt" />
           <Stack.Screen name="preview/[projectId]" />
           <Stack.Screen name="collection/[id]" />
           <Stack.Screen name="swipe/[collectionId]" />

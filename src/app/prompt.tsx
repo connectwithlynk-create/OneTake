@@ -3,22 +3,26 @@ import React, { useState } from 'react';
 import { TextInput } from 'react-native';
 
 import { AppText, Button, Header, Screen } from '@/components/ui';
-import { setProjectPrompt, setProjectStatus } from '@/lib/repo';
+import { createProject, setProjectStatus } from '@/lib/repo';
 import { invalidate } from '@/lib/store';
 import { palette, radius, space } from '@/theme';
 
 export default function PromptScreen() {
-  const { projectId } = useLocalSearchParams<{ projectId: string }>();
+  const { title } = useLocalSearchParams<{ title?: string }>();
   const router = useRouter();
   const [text, setText] = useState('');
+  const [busy, setBusy] = useState(false);
 
   async function generate() {
-    await setProjectPrompt(projectId, text);
-    await setProjectStatus(projectId, 'processing');
+    if (busy || text.trim().length < 4) return;
+    setBusy(true);
+    // The project is created here, on submit, not when "Prompt" was picked.
+    const p = await createProject('prompt', title ?? '', text);
+    await setProjectStatus(p.id, 'processing');
     invalidate();
     router.replace({
       pathname: '/preview/[projectId]',
-      params: { projectId },
+      params: { projectId: p.id },
     });
   }
 
@@ -53,7 +57,7 @@ export default function PromptScreen() {
         label="Generate video"
         tone="accent"
         icon="sparkles"
-        disabled={text.trim().length < 4}
+        disabled={text.trim().length < 4 || busy}
         onPress={generate}
       />
     </Screen>

@@ -58,14 +58,6 @@ export async function setProjectStatus(pid: string, status: ProjectStatus) {
   await db.runAsync('UPDATE projects SET status = ? WHERE id = ?', status, pid);
 }
 
-export async function setProjectPrompt(pid: string, prompt: string) {
-  const db = await getDb();
-  await db.runAsync(
-    'UPDATE projects SET prompt = ? WHERE id = ?',
-    prompt.trim(),
-    pid
-  );
-}
 
 export async function deleteProject(pid: string) {
   const db = await getDb();
