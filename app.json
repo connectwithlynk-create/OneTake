@@ -9,7 +9,8 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "icon": "./assets/expo.icon",
-      "bundleIdentifier": "com.deact.OneTake"
+      "bundleIdentifier": "com.deact.OneTake",
+      "usesAppleSignIn": true
     },
     "android": {
       "adaptiveIcon": {

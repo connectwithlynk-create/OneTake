@@ -83,7 +83,11 @@ export default function SignInScreen() {
       }
     } catch (e: unknown) {
       const code = (e as { code?: string })?.code;
-      if (code !== 'ERR_REQUEST_CANCELED') setErr('Apple sign-in failed.');
+      if (code !== 'ERR_REQUEST_CANCELED') {
+        // Surface the real reason (entitlement / Clerk / network) instead of
+        // a generic message.
+        setErr(humanError(e));
+      }
     } finally {
       setBusy(false);
     }
@@ -204,6 +208,9 @@ export default function SignInScreen() {
 }
 
 function humanError(e: unknown): string {
-  const m = (e as { errors?: { message?: string }[] })?.errors?.[0]?.message;
-  return m || 'Something went wrong. Try again.';
+  const clerkMsg = (e as { errors?: { message?: string }[] })?.errors?.[0]
+    ?.message;
+  const nativeMsg = (e as { message?: string })?.message;
+  const code = (e as { code?: string })?.code;
+  return clerkMsg || nativeMsg || code || 'Something went wrong. Try again.';
 }
