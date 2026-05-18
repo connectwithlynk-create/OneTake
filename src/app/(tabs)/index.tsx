@@ -39,22 +39,29 @@ export default function ProjectsScreen() {
         </AppText>
       </View>
 
-      {loading && !projects ? (
-        <Loading />
-      ) : !projects || projects.length === 0 ? (
-        <EmptyState
-          icon="videocam"
-          title="No projects yet"
-          subtitle="Start a talking-head shoot or write a prompt. Tap New to begin."
-        />
-      ) : (
-        <FlatList
-          data={projects}
+      <FlatList
+          key="projects-grid-2col"
+          data={projects ?? []}
           keyExtractor={(p) => p.id}
           numColumns={2}
           showsVerticalScrollIndicator={false}
           columnWrapperStyle={{ gap: space.md }}
-          contentContainerStyle={{ gap: space.md, paddingBottom: space.xxl }}
+          contentContainerStyle={{
+            gap: space.md,
+            paddingBottom: space.xxl,
+            flexGrow: 1,
+          }}
+          ListEmptyComponent={
+            loading && !projects ? (
+              <Loading />
+            ) : (
+              <EmptyState
+                icon="videocam"
+                title="No projects yet"
+                subtitle="Start a talking-head shoot or write a prompt. Tap New to begin."
+              />
+            )
+          }
           renderItem={({ item }) => {
             const color = STATUS_COLOR[item.status];
             return (
@@ -103,7 +110,6 @@ export default function ProjectsScreen() {
             );
           }}
         />
-      )}
     </Screen>
   );
 }
