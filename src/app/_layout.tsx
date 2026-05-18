@@ -36,6 +36,7 @@ export default function RootLayout() {
             options={{ presentation: 'modal' }}
           />
           <Stack.Screen name="project/[id]" />
+          <Stack.Screen name="edit/[projectId]" />
           <Stack.Screen name="capture/[projectId]" />
           <Stack.Screen name="prompt/[projectId]" />
           <Stack.Screen name="preview/[projectId]" />

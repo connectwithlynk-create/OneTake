@@ -24,6 +24,7 @@ export interface Clip {
   verdict_overridden: number; // 0 | 1
   tag: ClipTag;
   tag_overridden: number; // 0 | 1
+  excluded: number; // 0 | 1  manual-edit: dropped from the cut
   created_at: number;
 }
 

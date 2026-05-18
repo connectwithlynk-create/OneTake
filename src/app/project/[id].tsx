@@ -189,12 +189,29 @@ export default function ProjectScreen() {
             <AppText kind="caption" style={{ textAlign: 'center' }}>
               {keeps.length} KEEPER{keeps.length === 1 ? '' : 'S'} READY
             </AppText>
-            <Button
-              label="Finish & Auto-edit"
-              icon="sparkles"
-              disabled={keeps.length === 0}
-              onPress={finish}
-            />
+            <View style={{ flexDirection: 'row', gap: space.md }}>
+              <View style={{ flex: 1 }}>
+                <Button
+                  label="Manual edit"
+                  tone="blue"
+                  icon="construct"
+                  onPress={() =>
+                    router.push({
+                      pathname: '/edit/[projectId]',
+                      params: { projectId: id },
+                    })
+                  }
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Button
+                  label="Auto-edit"
+                  icon="sparkles"
+                  disabled={keeps.length === 0}
+                  onPress={finish}
+                />
+              </View>
+            </View>
           </View>
         </>
       )}

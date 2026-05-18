@@ -100,12 +100,13 @@ export async function addClip(
     verdict_overridden: 0,
     tag,
     tag_overridden: 0,
+    excluded: 0,
     created_at: Date.now(),
   };
   await db.runAsync(
     `INSERT INTO clips
-       (id, project_id, order_index, file_uri, duration_ms, verdict, verdict_overridden, tag, tag_overridden, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       (id, project_id, order_index, file_uri, duration_ms, verdict, verdict_overridden, tag, tag_overridden, excluded, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     clip.id,
     clip.project_id,
     clip.order_index,
@@ -115,6 +116,7 @@ export async function addClip(
     clip.verdict_overridden,
     clip.tag,
     clip.tag_overridden,
+    clip.excluded,
     clip.created_at
   );
   return clip;
@@ -233,6 +235,45 @@ export async function deleteClip(clipId: string, fileUri: string) {
   const db = await getDb();
   deleteClipFile(fileUri);
   await db.runAsync('DELETE FROM clips WHERE id = ?', clipId);
+}
+
+export async function setClipExcluded(clipId: string, excluded: 0 | 1) {
+  const db = await getDb();
+  await db.runAsync(
+    'UPDATE clips SET excluded = ? WHERE id = ?',
+    excluded,
+    clipId
+  );
+}
+
+/** Manual-edit reorder: swap a clip's order_index with its neighbor. */
+export async function moveClip(clipId: string, dir: 'up' | 'down') {
+  const db = await getDb();
+  const clip = await db.getFirstAsync<Clip>(
+    'SELECT * FROM clips WHERE id = ?',
+    clipId
+  );
+  if (!clip) return;
+  const neighbor = await db.getFirstAsync<Clip>(
+    dir === 'up'
+      ? 'SELECT * FROM clips WHERE project_id = ? AND order_index < ? ORDER BY order_index DESC LIMIT 1'
+      : 'SELECT * FROM clips WHERE project_id = ? AND order_index > ? ORDER BY order_index ASC LIMIT 1',
+    clip.project_id,
+    clip.order_index
+  );
+  if (!neighbor) return;
+  await db.withTransactionAsync(async () => {
+    await db.runAsync(
+      'UPDATE clips SET order_index = ? WHERE id = ?',
+      neighbor.order_index,
+      clip.id
+    );
+    await db.runAsync(
+      'UPDATE clips SET order_index = ? WHERE id = ?',
+      clip.order_index,
+      neighbor.id
+    );
+  });
 }
 
 // ----- Collections -----
