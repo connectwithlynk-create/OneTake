@@ -1,30 +1,18 @@
-import { NativeTabs } from 'expo-router/unstable-native-tabs';
+import { Tabs } from 'expo-router';
 import React from 'react';
 
-import { palette } from '@/theme';
+import TabBar from '@/components/tab-bar';
 
 export default function TabLayout() {
   return (
-    <NativeTabs
-      backgroundColor={palette.surfaceLo}
-      indicatorColor={palette.surfaceHi}
-      labelStyle={{ selected: { color: palette.purple } }}
+    <Tabs
+      screenOptions={{ headerShown: false }}
+      tabBar={(props) => <TabBar {...props} />}
     >
-      <NativeTabs.Trigger name="index">
-        <NativeTabs.Trigger.Label>Projects</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon
-          sf={{ default: 'film', selected: 'film.fill' }}
-          md="movie"
-        />
-      </NativeTabs.Trigger>
-
-      <NativeTabs.Trigger name="inspiration">
-        <NativeTabs.Trigger.Label>Inspiration</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon
-          sf={{ default: 'sparkles', selected: 'sparkles' }}
-          md="auto_awesome"
-        />
-      </NativeTabs.Trigger>
-    </NativeTabs>
+      <Tabs.Screen name="index" options={{ title: 'Projects' }} />
+      <Tabs.Screen name="clips" options={{ title: 'Clips' }} />
+      <Tabs.Screen name="analysis" options={{ title: 'Analysis' }} />
+      <Tabs.Screen name="inspiration" options={{ title: 'Inspiration' }} />
+    </Tabs>
   );
 }

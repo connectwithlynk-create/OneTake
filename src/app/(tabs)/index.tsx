@@ -7,7 +7,6 @@ import {
   Card,
   Dot,
   EmptyState,
-  Fab,
   Loading,
   Screen,
 } from '@/components/ui';
@@ -101,12 +100,6 @@ export default function ProjectsScreen() {
           )}
         />
       )}
-
-      <Fab
-        icon="add"
-        label="New"
-        onPress={() => router.push('/new-project')}
-      />
     </Screen>
   );
 }

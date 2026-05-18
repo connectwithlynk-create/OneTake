@@ -128,6 +128,89 @@ export async function listClips(projectId: string): Promise<Clip[]> {
   );
 }
 
+export type ClipWithProject = Clip & {
+  project_title: string;
+  project_type: string;
+};
+
+export async function listAllClips(): Promise<ClipWithProject[]> {
+  const db = await getDb();
+  return db.getAllAsync<ClipWithProject>(
+    `SELECT c.*, p.title AS project_title, p.type AS project_type
+       FROM clips c
+       JOIN projects p ON p.id = c.project_id
+      ORDER BY c.created_at DESC`
+  );
+}
+
+export interface Analytics {
+  projects: number;
+  projectsByStatus: { recording: number; processing: number; ready: number };
+  clips: number;
+  verdicts: { dud: number; keep: number; perfect: number };
+  tags: { talking: number; broll: number };
+  keepers: number;
+  verdictOverrideRate: number;
+  tagOverrideRate: number;
+  totalFootageMs: number;
+  collections: number;
+  reels: number;
+}
+
+export async function getAnalytics(): Promise<Analytics> {
+  const db = await getDb();
+  const one = async (sql: string) =>
+    (await db.getFirstAsync<{ n: number }>(sql))?.n ?? 0;
+
+  const [
+    projects,
+    recording,
+    processing,
+    ready,
+    clips,
+    dud,
+    keep,
+    perfect,
+    talking,
+    broll,
+    vOver,
+    tOver,
+    footage,
+    collections,
+    reels,
+  ] = await Promise.all([
+    one('SELECT COUNT(*) n FROM projects'),
+    one("SELECT COUNT(*) n FROM projects WHERE status='recording'"),
+    one("SELECT COUNT(*) n FROM projects WHERE status='processing'"),
+    one("SELECT COUNT(*) n FROM projects WHERE status='ready'"),
+    one('SELECT COUNT(*) n FROM clips'),
+    one("SELECT COUNT(*) n FROM clips WHERE verdict='dud'"),
+    one("SELECT COUNT(*) n FROM clips WHERE verdict='keep'"),
+    one("SELECT COUNT(*) n FROM clips WHERE verdict='perfect'"),
+    one("SELECT COUNT(*) n FROM clips WHERE tag='talking'"),
+    one("SELECT COUNT(*) n FROM clips WHERE tag='broll'"),
+    one('SELECT COUNT(*) n FROM clips WHERE verdict_overridden=1'),
+    one('SELECT COUNT(*) n FROM clips WHERE tag_overridden=1'),
+    one('SELECT COALESCE(SUM(duration_ms),0) n FROM clips'),
+    one('SELECT COUNT(*) n FROM collections'),
+    one("SELECT COUNT(*) n FROM inspiration WHERE collection_id != ''"),
+  ]);
+
+  return {
+    projects,
+    projectsByStatus: { recording, processing, ready },
+    clips,
+    verdicts: { dud, keep, perfect },
+    tags: { talking, broll },
+    keepers: keep + perfect,
+    verdictOverrideRate: clips ? vOver / clips : 0,
+    tagOverrideRate: clips ? tOver / clips : 0,
+    totalFootageMs: footage,
+    collections,
+    reels,
+  };
+}
+
 export async function setVerdict(clipId: string, verdict: Verdict) {
   const db = await getDb();
   await db.runAsync(
