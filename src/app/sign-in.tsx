@@ -1,11 +1,17 @@
+import { useSSO } from '@clerk/expo';
 import { useSignInWithApple } from '@clerk/expo/apple';
 import { useSignIn, useSignUp } from '@clerk/expo/legacy';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useState } from 'react';
+import * as Linking from 'expo-linking';
+import * as WebBrowser from 'expo-web-browser';
+import React, { useEffect, useState } from 'react';
 import { Platform, Pressable, TextInput, View } from 'react-native';
 
 import { AppText, Button, Screen } from '@/components/ui';
 import { palette, radius, space } from '@/theme';
+
+// Lets the OAuth browser session close and hand control back to the app.
+WebBrowser.maybeCompleteAuthSession();
 
 type Mode = 'signin' | 'signup' | 'verify';
 
@@ -13,6 +19,15 @@ export default function SignInScreen() {
   const { isLoaded: siLoaded, signIn, setActive: setSiActive } = useSignIn();
   const { isLoaded: suLoaded, signUp, setActive: setSuActive } = useSignUp();
   const { startAppleAuthenticationFlow } = useSignInWithApple();
+  const { startSSOFlow } = useSSO();
+
+  // Warm up the in-app browser (Android optimization; harmless on iOS).
+  useEffect(() => {
+    void WebBrowser.warmUpAsync();
+    return () => {
+      void WebBrowser.coolDownAsync();
+    };
+  }, []);
 
   const [mode, setMode] = useState<Mode>('signin');
   const [email, setEmail] = useState('');
@@ -88,6 +103,26 @@ export default function SignInScreen() {
         // a generic message.
         setErr(humanError(e));
       }
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function google() {
+    if (busy) return;
+    setBusy(true);
+    setErr(null);
+    try {
+      const { createdSessionId, setActive } = await startSSOFlow({
+        strategy: 'oauth_google',
+        redirectUrl: Linking.createURL('/'),
+      });
+      if (createdSessionId && setActive) {
+        await setActive({ session: createdSessionId });
+      }
+    } catch (e: unknown) {
+      const code = (e as { code?: string })?.code;
+      if (code !== 'ERR_REQUEST_CANCELED') setErr(humanError(e));
     } finally {
       setBusy(false);
     }
@@ -192,6 +227,28 @@ export default function SignInScreen() {
               </AppText>
             </Pressable>
           )}
+
+          <Pressable
+            onPress={google}
+            disabled={busy}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: space.sm,
+              backgroundColor: palette.surface,
+              borderWidth: 2,
+              borderColor: palette.border,
+              paddingVertical: space.lg,
+              borderRadius: radius.pill,
+              marginTop: space.md,
+            }}
+          >
+            <Ionicons name="logo-google" size={20} color={palette.text} />
+            <AppText kind="body" style={{ fontWeight: '800' }}>
+              Continue with Google
+            </AppText>
+          </Pressable>
         </>
       )}
 
