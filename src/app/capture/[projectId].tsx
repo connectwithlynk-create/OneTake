@@ -1,5 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import {
+  AudioModule,
+  RecordingPresets,
+  setAudioModeAsync,
+  useAudioRecorder,
+} from 'expo-audio';
+import {
   CameraView,
   useCameraPermissions,
   useMicrophonePermissions,
@@ -16,6 +22,7 @@ import { relativeAge } from '@/lib/time';
 import { persistClip } from '@/lib/filestore';
 import { id } from '@/lib/id';
 import { rateClip } from '@/lib/rating';
+import { classifySpeech } from '@/lib/speech';
 import { addClip, deleteClip, listClips, setVerdict } from '@/lib/repo';
 import { invalidate } from '@/lib/store';
 import { palette, radius, space, verdictColor } from '@/theme';
@@ -29,6 +36,15 @@ export default function CaptureScreen() {
 
   const [camPerm, reqCam] = useCameraPermissions();
   const [micPerm, reqMic] = useMicrophonePermissions();
+
+  // Best-effort speech meter that runs alongside the camera recording so
+  // talking vs b-roll is detected from real audio, not just the lens.
+  const meterSamples = useRef<number[]>([]);
+  const meterTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const recorder = useAudioRecorder({
+    ...RecordingPresets.LOW_QUALITY,
+    isMeteringEnabled: true,
+  });
 
   const [facing, setFacing] = useState<'front' | 'back'>('front');
   const [recording, setRecording] = useState(false);
@@ -68,19 +84,61 @@ export default function CaptureScreen() {
     setLast(null);
     setRecording(true);
     startedAt.current = Date.now();
+
+    // Start the speech meter alongside the camera. Best-effort: if the
+    // audio session can't host a second recorder, we skip it and fall back
+    // to the lens heuristic - recording itself is never blocked.
+    meterSamples.current = [];
+    let meterOn = false;
+    try {
+      const perm = await AudioModule.requestRecordingPermissionsAsync();
+      if (perm.granted) {
+        await setAudioModeAsync({ allowsRecording: true });
+        await recorder.prepareToRecordAsync();
+        recorder.record();
+        meterTimer.current = setInterval(() => {
+          try {
+            const m = recorder.getStatus().metering;
+            if (typeof m === 'number') meterSamples.current.push(m);
+          } catch {
+            /* ignore a bad sample */
+          }
+        }, 200);
+        meterOn = true;
+      }
+    } catch {
+      meterOn = false;
+    }
+
+    const stopMeter = async (): Promise<boolean | undefined> => {
+      if (meterTimer.current) {
+        clearInterval(meterTimer.current);
+        meterTimer.current = null;
+      }
+      if (!meterOn) return undefined;
+      try {
+        await recorder.stop();
+      } catch {
+        /* ignore */
+      }
+      return classifySpeech(meterSamples.current);
+    };
+
     try {
       const video = await cam.current.recordAsync({ maxDuration: 60 });
       const durationMs = Date.now() - startedAt.current;
       setRecording(false);
+      const hasSpeech = await stopMeter();
       if (!video?.uri) return;
       const clipId = id();
       const uri = persistClip(video.uri, clipId);
-      // Tag inferred from the lens used (front = talking to camera).
+      // Talking vs b-roll: real speech signal wins, lens is the fallback.
       const rating = rateClip({
         clipId,
         durationMs,
         source: 'recorded',
         facing,
+        hasSpeech,
       });
       const clip = await addClip(
         projectId,
@@ -95,6 +153,7 @@ export default function CaptureScreen() {
       setLast(clip);
     } catch {
       setRecording(false);
+      await stopMeter();
     }
   }
 

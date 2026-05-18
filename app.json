@@ -51,7 +51,8 @@
           "photosPermission": "OneTake needs access to your photo library to import video clips."
         }
       ],
-      "./plugins/with-no-apple-signin.js"
+      "./plugins/with-no-apple-signin.js",
+      "expo-audio"
     ],
     "experiments": {
       "typedRoutes": true,

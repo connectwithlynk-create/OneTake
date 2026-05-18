@@ -4,7 +4,9 @@
   "version": "1.0.0",
   "expo": {
     "autolinking": {
-      "exclude": ["expo-apple-authentication"]
+      "exclude": [
+        "expo-apple-authentication"
+      ]
     }
   },
   "scripts": {
@@ -23,6 +25,7 @@
     "@supabase/supabase-js": "^2.106.0",
     "base64-arraybuffer": "^1.0.2",
     "expo": "~55.0.24",
+    "expo-audio": "~55.0.14",
     "expo-auth-session": "~55.0.16",
     "expo-camera": "~55.0.18",
     "expo-constants": "~55.0.16",

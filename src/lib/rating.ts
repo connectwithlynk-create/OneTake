@@ -35,6 +35,9 @@ export interface RatingInput {
   source: ClipSource;
   /** The lens used, when recorded in-app. Absent for imports. */
   facing?: Facing;
+  /** Real audio-metering verdict: speech present in the clip. undefined =
+   *  detection unavailable -> fall back to the lens heuristic. */
+  hasSpeech?: boolean;
 }
 
 export interface Rating {
@@ -42,18 +45,26 @@ export interface Rating {
   tag: ClipTag;
 }
 
-/** Infer talking vs b-roll from real capture signals. */
+/** Infer talking vs b-roll. Speech detection wins (lens-independent);
+ *  the lens/source heuristic is only the fallback when audio detection
+ *  was unavailable (e.g. imports, or the meter could not run). */
 export function detectTag({
   durationMs,
   source,
   facing,
-}: Pick<RatingInput, 'durationMs' | 'source' | 'facing'>): ClipTag {
+  hasSpeech,
+}: Pick<
+  RatingInput,
+  'durationMs' | 'source' | 'facing' | 'hasSpeech'
+>): ClipTag {
   // Sub-2s clips are almost never a talking take.
   if (durationMs < 2000) return 'broll';
-  // Recorded with the selfie lens => the creator is talking to camera.
+  // Real audio signal beats any metadata guess - works on any lens, even
+  // when someone else is filming you talking.
+  if (hasSpeech === true) return 'talking';
+  if (hasSpeech === false) return 'broll';
+  // Fallback (imports, or metering unavailable): front selfie lens = talking.
   if (source === 'recorded' && facing === 'front') return 'talking';
-  // Recorded with the rear lens, or anything pulled from the library, is
-  // supplemental footage.
   return 'broll';
 }
 
