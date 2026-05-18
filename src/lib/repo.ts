@@ -1,5 +1,6 @@
 import type * as SQLite from 'expo-sqlite';
 
+import { autoMetaTags, autoName, stringifyMeta } from './autotag';
 import { getDb } from './db';
 import { ephemeralExpiry } from './ephemeral';
 import { deleteClipFile } from './filestore';
@@ -10,6 +11,7 @@ import type {
   ClipTag,
   Collection,
   Inspiration,
+  MetaTag,
   Project,
   ProjectStatus,
   ProjectType,
@@ -64,6 +66,22 @@ export async function createProject(
   return p;
 }
 
+/** Stable dedicated project that device-imported clips land in. */
+export async function ensureImportProject(): Promise<string> {
+  const db = await getDb();
+  const existing = await db.getFirstAsync<Project>(
+    "SELECT id FROM projects WHERE id = 'imported'"
+  );
+  if (existing) return 'imported';
+  const now = Date.now();
+  await db.runAsync(
+    "INSERT INTO projects (id, type, title, status, prompt, created_at, updated_at, sync_status) VALUES ('imported','talkinghead','Imported clips','recording',NULL,?,?,'local')",
+    now,
+    now
+  );
+  return 'imported';
+}
+
 export async function listProjects(): Promise<Project[]> {
   const db = await getDb();
   return db.getAllAsync<Project>(
@@ -106,7 +124,14 @@ export async function addClip(
     'SELECT COUNT(*) as c FROM clips WHERE project_id = ?',
     projectId
   );
+  const tagCountRow = await db.getFirstAsync<{ c: number }>(
+    'SELECT COUNT(*) as c FROM clips WHERE project_id = ? AND tag = ?',
+    projectId,
+    tag
+  );
   const now = Date.now();
+  const meta = autoMetaTags(clipId, tag);
+  const name = autoName(tag, (tagCountRow?.c ?? 0) + 1, meta);
   const clip: Clip = {
     id: clipId,
     project_id: projectId,
@@ -124,11 +149,13 @@ export async function addClip(
     owner: null,
     updated_at: now,
     sync_status: 'local',
+    name,
+    meta_tags: stringifyMeta(meta),
   };
   await db.runAsync(
     `INSERT INTO clips
-       (id, project_id, order_index, file_uri, duration_ms, verdict, verdict_overridden, tag, tag_overridden, excluded, expires_at, created_at, updated_at, sync_status)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       (id, project_id, order_index, file_uri, duration_ms, verdict, verdict_overridden, tag, tag_overridden, excluded, expires_at, created_at, updated_at, sync_status, name, meta_tags)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     clip.id,
     clip.project_id,
     clip.order_index,
@@ -142,7 +169,9 @@ export async function addClip(
     clip.expires_at,
     clip.created_at,
     clip.updated_at,
-    clip.sync_status
+    clip.sync_status,
+    clip.name,
+    clip.meta_tags
   );
   return clip;
 }
@@ -264,6 +293,26 @@ export async function deleteClip(clipId: string, fileUri: string) {
   const db = await getDb();
   deleteClipFile(fileUri);
   await db.runAsync('DELETE FROM clips WHERE id = ?', clipId);
+}
+
+export async function setClipMetaTags(clipId: string, tags: MetaTag[]) {
+  const db = await getDb();
+  await db.runAsync(
+    'UPDATE clips SET meta_tags = ? WHERE id = ?',
+    stringifyMeta(tags),
+    clipId
+  );
+  await touch(db, 'clips', clipId);
+}
+
+export async function renameClip(clipId: string, name: string) {
+  const db = await getDb();
+  await db.runAsync(
+    'UPDATE clips SET name = ? WHERE id = ?',
+    name.trim() || null,
+    clipId
+  );
+  await touch(db, 'clips', clipId);
 }
 
 export async function setClipExcluded(clipId: string, excluded: 0 | 1) {

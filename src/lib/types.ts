@@ -5,6 +5,13 @@ export type ProjectStatus = 'recording' | 'processing' | 'ready';
 export type Verdict = 'dud' | 'keep' | 'perfect';
 export type ClipTag = 'talking' | 'broll';
 
+/** Advanced descriptive tags, esp. for b-roll (what the footage is about). */
+export type MetaKind = 'location' | 'action' | 'subject';
+export interface MetaTag {
+  kind: MetaKind;
+  value: string;
+}
+
 /** 'local' = created/changed on device, not yet pushed. 'synced' = pushed. */
 export type SyncStatus = 'local' | 'synced';
 
@@ -37,6 +44,10 @@ export interface Clip extends SyncFields {
   tag: ClipTag;
   tag_overridden: number; // 0 | 1
   excluded: number; // 0 | 1  manual-edit: dropped from the cut
+  /** Auto-generated human name, e.g. "Talking 2" or "B-roll · kitchen". */
+  name: string | null;
+  /** JSON-encoded MetaTag[] (advanced descriptive tags). */
+  meta_tags: string | null;
   /** Non-null = ephemeral take; GC'd after this epoch-ms. Null = saved
    *  (Memories): persists and is eligible for cloud backup. */
   expires_at: number | null;

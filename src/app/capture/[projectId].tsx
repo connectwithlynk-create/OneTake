@@ -6,19 +6,18 @@ import {
 } from 'expo-camera';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useRef, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { AppText, Button, Chip } from '@/components/ui';
+import { ClipVideo } from '@/components/clip-video';
+import { AppText, Button } from '@/components/ui';
 import { persistClip } from '@/lib/filestore';
 import { id } from '@/lib/id';
 import { rateClip } from '@/lib/rating';
-import { addClip, deleteClip, setTag, setVerdict } from '@/lib/repo';
+import { addClip, deleteClip, listClips, setVerdict } from '@/lib/repo';
 import { invalidate } from '@/lib/store';
-import { palette, radius, space, tagColor, verdictColor } from '@/theme';
-import type { Clip, ClipTag, Verdict } from '@/lib/types';
-
-const VERDICTS: Verdict[] = ['dud', 'keep', 'perfect'];
+import { palette, radius, space, verdictColor } from '@/theme';
+import type { Clip } from '@/lib/types';
 
 export default function CaptureScreen() {
   const { projectId } = useLocalSearchParams<{ projectId: string }>();
@@ -30,10 +29,10 @@ export default function CaptureScreen() {
   const [micPerm, reqMic] = useMicrophonePermissions();
 
   const [facing, setFacing] = useState<'front' | 'back'>('front');
-  const [defaultTag, setDefaultTag] = useState<ClipTag>('talking');
   const [recording, setRecording] = useState(false);
   const [count, setCount] = useState(0);
   const [last, setLast] = useState<Clip | null>(null);
+  const [taken, setTaken] = useState<Clip[] | null>(null); // non-null = sheet open
 
   const ready = camPerm?.granted && micPerm?.granted;
 
@@ -74,7 +73,8 @@ export default function CaptureScreen() {
       if (!video?.uri) return;
       const clipId = id();
       const uri = persistClip(video.uri, clipId);
-      const rating = rateClip({ clipId, durationMs, defaultTag });
+      // Tag auto-assigned (talking-head default). User only judges quality.
+      const rating = rateClip({ clipId, durationMs, defaultTag: 'talking' });
       const clip = await addClip(
         projectId,
         uri,
@@ -95,26 +95,26 @@ export default function CaptureScreen() {
     cam.current?.stopRecording();
   }
 
-  async function retake() {
-    if (last) {
-      await deleteClip(last.id, last.file_uri);
-      invalidate();
-      setCount((c) => Math.max(0, c - 1));
-    }
+  // Dud => discard and let them shoot the take again.
+  async function markDud() {
+    if (!last) return;
+    await deleteClip(last.id, last.file_uri);
+    invalidate();
+    setCount((c) => Math.max(0, c - 1));
     setLast(null);
   }
 
-  async function changeVerdict(v: Verdict) {
+  // Keep / Perfect => record it, move to the next take.
+  async function keepAs(v: 'keep' | 'perfect') {
     if (!last) return;
     await setVerdict(last.id, v);
     invalidate();
-    setLast({ ...last, verdict: v });
+    setLast(null);
   }
-  async function changeTag(t: ClipTag) {
-    if (!last) return;
-    await setTag(last.id, t);
-    invalidate();
-    setLast({ ...last, tag: t });
+
+  async function openTaken() {
+    const clips = await listClips(projectId);
+    setTaken(clips);
   }
 
   return (
@@ -132,11 +132,12 @@ export default function CaptureScreen() {
         <Pressable style={styles.round} onPress={() => router.back()}>
           <Ionicons name="chevron-back" size={22} color="#fff" />
         </Pressable>
-        <View style={styles.counter}>
+        <Pressable style={styles.counter} onPress={openTaken}>
+          <Ionicons name="film" size={14} color="#fff" />
           <AppText kind="caption" style={{ color: '#fff' }}>
             {count} CLIP{count === 1 ? '' : 'S'}
           </AppText>
-        </View>
+        </Pressable>
         <Pressable
           style={styles.round}
           onPress={() => setFacing((f) => (f === 'front' ? 'back' : 'front'))}
@@ -145,78 +146,80 @@ export default function CaptureScreen() {
         </Pressable>
       </SafeAreaView>
 
-      {/* verdict overlay */}
+      {/* post-record review: small preview + 3 calls */}
       {last && (
-        <View style={styles.verdictWrap}>
-          <View
-            style={[
-              styles.verdictCard,
-              { borderColor: verdictColor[last.verdict] },
-            ]}
-          >
-            <AppText
-              kind="hero"
-              style={{ color: verdictColor[last.verdict], textAlign: 'center' }}
-            >
-              {last.verdict.toUpperCase()}
-            </AppText>
-            <AppText kind="dim" style={{ textAlign: 'center', marginBottom: space.md }}>
-              Tap to fix the call or the tag
-            </AppText>
-            <View style={styles.chipRow}>
-              {VERDICTS.map((v) => (
-                <Chip
-                  key={v}
-                  label={v}
-                  color={verdictColor[v]}
-                  active={last.verdict === v}
-                  onPress={() => changeVerdict(v)}
-                />
-              ))}
+        <View style={styles.reviewWrap}>
+          <ClipVideo uri={last.file_uri} autoplay style={styles.preview} />
+          <AppText kind="dim" style={{ marginVertical: space.lg }}>
+            How was that take?
+          </AppText>
+          <View style={styles.judgeRow}>
+            <View style={{ flex: 1 }}>
+              <Button label="Dud" tone="danger" icon="refresh" onPress={markDud} />
             </View>
-            <View style={[styles.chipRow, { marginTop: space.sm }]}>
-              <Chip
-                label="Talking"
-                color={tagColor.talking}
-                active={last.tag === 'talking'}
-                onPress={() => changeTag('talking')}
-              />
-              <Chip
-                label="B-roll"
-                color={tagColor.broll}
-                active={last.tag === 'broll'}
-                onPress={() => changeTag('broll')}
-              />
+            <View style={{ flex: 1 }}>
+              <Button label="Keep" tone="blue" onPress={() => keepAs('keep')} />
             </View>
-            <View style={{ flexDirection: 'row', gap: space.md, marginTop: space.lg }}>
-              <View style={{ flex: 1 }}>
-                <Button label="Retake" tone="ghost" onPress={retake} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Button label="Keep going" onPress={() => setLast(null)} />
-              </View>
+            <View style={{ flex: 1 }}>
+              <Button
+                label="Perfect"
+                tone="accent"
+                onPress={() => keepAs('perfect')}
+              />
             </View>
           </View>
+          <AppText kind="caption" style={{ marginTop: space.md, color: '#9a9db3' }}>
+            DUD RE-SHOOTS · KEEP/PERFECT MOVES ON
+          </AppText>
         </View>
       )}
 
-      {/* bottom controls */}
-      {!last && (
+      {/* taken-clips sheet */}
+      {taken && (
+        <View style={styles.sheetWrap}>
+          <SafeAreaView edges={['top']} style={{ flex: 1 }}>
+            <View style={styles.sheetHead}>
+              <AppText kind="subtitle" style={{ color: '#fff' }}>
+                Clips so far
+              </AppText>
+              <Pressable style={styles.round} onPress={() => setTaken(null)}>
+                <Ionicons name="close" size={22} color="#fff" />
+              </Pressable>
+            </View>
+            {taken.length === 0 ? (
+              <AppText kind="dim" style={{ padding: space.xl }}>
+                No clips yet. Hit record.
+              </AppText>
+            ) : (
+              <ScrollView contentContainerStyle={styles.sheetGrid}>
+                {taken.map((c) => (
+                  <View key={c.id} style={{ width: '31%' }}>
+                    <View
+                      style={[
+                        styles.thumb,
+                        { borderColor: verdictColor[c.verdict] },
+                      ]}
+                    >
+                      <ClipVideo uri={c.file_uri} style={StyleSheet.absoluteFill} />
+                    </View>
+                    <AppText
+                      kind="caption"
+                      numberOfLines={1}
+                      style={{ color: '#fff', marginTop: 4 }}
+                    >
+                      {c.name ?? 'Clip'}
+                    </AppText>
+                  </View>
+                ))}
+              </ScrollView>
+            )}
+          </SafeAreaView>
+        </View>
+      )}
+
+      {/* record control */}
+      {!last && !taken && (
         <SafeAreaView edges={['bottom']} style={styles.bottom}>
-          <View style={styles.tagToggle}>
-            <Chip
-              label="Talking"
-              color={tagColor.talking}
-              active={defaultTag === 'talking'}
-              onPress={() => setDefaultTag('talking')}
-            />
-            <Chip
-              label="B-roll"
-              color={tagColor.broll}
-              active={defaultTag === 'broll'}
-              onPress={() => setDefaultTag('broll')}
-            />
-          </View>
           <View style={styles.recRow}>
             <View style={{ width: 56 }} />
             <Pressable onPress={recording ? stop : record} style={styles.recOuter}>
@@ -260,33 +263,54 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   counter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     backgroundColor: 'rgba(0,0,0,0.45)',
     paddingHorizontal: space.lg,
     paddingVertical: space.sm,
     borderRadius: radius.pill,
   },
-  verdictWrap: {
+  reviewWrap: {
     ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: space.xl,
-    backgroundColor: 'rgba(0,0,0,0.55)',
+    backgroundColor: 'rgba(0,0,0,0.78)',
   },
-  verdictCard: {
-    width: '100%',
-    backgroundColor: palette.surface,
+  preview: {
+    width: '64%',
+    aspectRatio: 9 / 16,
     borderRadius: radius.xl,
-    borderWidth: 2,
-    padding: space.xl,
+    overflow: 'hidden',
+    backgroundColor: '#111',
   },
-  chipRow: { flexDirection: 'row', gap: space.sm, justifyContent: 'center', flexWrap: 'wrap' },
-  bottom: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingBottom: space.lg },
-  tagToggle: {
+  judgeRow: { flexDirection: 'row', gap: space.sm, alignSelf: 'stretch' },
+  sheetWrap: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(8,6,20,0.96)',
+  },
+  sheetHead: {
     flexDirection: 'row',
-    gap: space.sm,
-    justifyContent: 'center',
-    marginBottom: space.lg,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: space.lg,
+    paddingVertical: space.md,
   },
+  sheetGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: space.md,
+    padding: space.lg,
+  },
+  thumb: {
+    aspectRatio: 9 / 16,
+    borderRadius: radius.md,
+    borderWidth: 2,
+    overflow: 'hidden',
+    backgroundColor: '#111',
+  },
+  bottom: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingBottom: space.lg },
   recRow: {
     flexDirection: 'row',
     alignItems: 'center',

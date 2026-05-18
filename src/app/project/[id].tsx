@@ -1,33 +1,33 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { FlatList, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 
+import { ClipVideo } from '@/components/clip-video';
 import {
   AppText,
   Button,
   Card,
   Chip,
-  Dot,
   EmptyState,
   Header,
   IconButton,
   Loading,
   Screen,
 } from '@/components/ui';
+import { parseMeta } from '@/lib/autotag';
+import { hoursLeft } from '@/lib/ephemeral';
 import {
   deleteClip,
   getProject,
   listClips,
   setProjectStatus,
-  setTag,
   setVerdict,
 } from '@/lib/repo';
-import { hoursLeft } from '@/lib/ephemeral';
 import { invalidate, useData } from '@/lib/store';
-import { palette, space, verdictColor, tagColor } from '@/theme';
+import { palette, space, verdictColor } from '@/theme';
 import type { Clip, Verdict } from '@/lib/types';
 
-const VERDICTS: Verdict[] = ['dud', 'keep', 'perfect'];
+const VERDICT_CYCLE: Verdict[] = ['dud', 'keep', 'perfect'];
 
 function fmt(ms: number) {
   const s = Math.round(ms / 1000);
@@ -54,13 +54,11 @@ export default function ProjectScreen() {
       : c.verdict === 'dud'
   );
 
-  async function pickVerdict(c: Clip, v: Verdict) {
-    if (c.verdict === v) return;
-    await setVerdict(c.id, v);
-    invalidate();
-  }
-  async function toggleTag(c: Clip) {
-    await setTag(c.id, c.tag === 'talking' ? 'broll' : 'talking');
+  // Verdict stays subtle: long-press a tile to cycle dud -> keep -> perfect.
+  async function cycleVerdict(c: Clip) {
+    const next =
+      VERDICT_CYCLE[(VERDICT_CYCLE.indexOf(c.verdict) + 1) % 3];
+    await setVerdict(c.id, next);
     invalidate();
   }
   async function remove(c: Clip) {
@@ -129,62 +127,53 @@ export default function ProjectScreen() {
               keyExtractor={(c) => c.id}
               showsVerticalScrollIndicator={false}
               contentContainerStyle={{ gap: space.md, paddingBottom: 180 }}
-              renderItem={({ item }) => (
-                <Card accent={verdictColor[item.verdict]}>
-                  <View
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                    }}
+              renderItem={({ item }) => {
+                const meta = parseMeta(item.meta_tags);
+                const tagLine = [
+                  item.tag === 'talking' ? 'talking' : 'b-roll',
+                  ...meta.map((m) => m.value),
+                ].join(' · ');
+                return (
+                  <Pressable
+                    onLongPress={() => cycleVerdict(item)}
+                    delayLongPress={250}
+                    style={[
+                      styles.tile,
+                      { borderColor: verdictColor[item.verdict] },
+                    ]}
                   >
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
-                      <Dot color={verdictColor[item.verdict]} />
-                      <AppText kind="subtitle">
-                        Take {item.order_index + 1}
-                      </AppText>
-                      <AppText kind="dim">· {fmt(item.duration_ms)}</AppText>
-                    </View>
-                    <IconButton name="trash" tone="clear" color={palette.red} onPress={() => remove(item)} />
-                  </View>
-
-                  <View style={{ flexDirection: 'row', gap: space.sm, marginTop: space.md, flexWrap: 'wrap' }}>
-                    {VERDICTS.map((v) => (
-                      <Chip
-                        key={v}
-                        label={v}
-                        color={verdictColor[v]}
-                        active={item.verdict === v}
-                        onPress={() => pickVerdict(item, v)}
+                    <View style={styles.tileThumb}>
+                      <ClipVideo
+                        uri={item.file_uri}
+                        style={StyleSheet.absoluteFill}
                       />
-                    ))}
-                  </View>
-
-                  <View style={{ flexDirection: 'row', marginTop: space.sm }}>
-                    <Chip
-                      label={item.tag === 'talking' ? 'Talking' : 'B-roll'}
-                      color={tagColor[item.tag]}
-                      active
-                      onPress={() => toggleTag(item)}
+                    </View>
+                    <View style={{ flex: 1, gap: 3 }}>
+                      <AppText kind="subtitle" numberOfLines={1}>
+                        {item.name ?? `Take ${item.order_index + 1}`}
+                      </AppText>
+                      <AppText kind="dim">{fmt(item.duration_ms)}</AppText>
+                      <AppText kind="caption" numberOfLines={1}>
+                        {tagLine.toUpperCase()}
+                      </AppText>
+                      {item.expires_at != null && (
+                        <AppText
+                          kind="caption"
+                          style={{ color: palette.red }}
+                        >
+                          DISAPPEARS IN {hoursLeft(item.expires_at)}H
+                        </AppText>
+                      )}
+                    </View>
+                    <IconButton
+                      name="trash"
+                      tone="clear"
+                      color={palette.textFaint}
+                      onPress={() => remove(item)}
                     />
-                    {(item.verdict_overridden === 1 || item.tag_overridden === 1) && (
-                      <View style={{ justifyContent: 'center', marginLeft: space.sm }}>
-                        <AppText kind="caption">EDITED</AppText>
-                      </View>
-                    )}
-                  </View>
-
-                  {item.expires_at != null && (
-                    <AppText
-                      kind="caption"
-                      style={{ marginTop: space.sm, color: palette.red }}
-                    >
-                      DISAPPEARS IN {hoursLeft(item.expires_at)}H · KEEP IT TO
-                      SAVE
-                    </AppText>
-                  )}
-                </Card>
-              )}
+                  </Pressable>
+                );
+              }}
             />
           )}
 
@@ -229,3 +218,22 @@ export default function ProjectScreen() {
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  tile: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.md,
+    backgroundColor: palette.surface,
+    borderRadius: 16,
+    borderWidth: 2,
+    padding: space.md,
+  },
+  tileThumb: {
+    width: 58,
+    height: 100,
+    borderRadius: 10,
+    overflow: 'hidden',
+    backgroundColor: '#111',
+  },
+});

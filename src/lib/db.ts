@@ -40,7 +40,9 @@ CREATE TABLE IF NOT EXISTS clips (
   updated_at INTEGER NOT NULL DEFAULT 0,
   sync_status TEXT NOT NULL DEFAULT 'local',
   remote_path TEXT,
-  expires_at INTEGER
+  expires_at INTEGER,
+  name TEXT,
+  meta_tags TEXT
 );
 
 CREATE TABLE IF NOT EXISTS collections (
@@ -63,7 +65,16 @@ CREATE TABLE IF NOT EXISTS inspiration (
   updated_at INTEGER NOT NULL DEFAULT 0,
   sync_status TEXT NOT NULL DEFAULT 'local'
 );
+`;
 
+/**
+ * Indexes run AFTER migrate(). idx_clips_expires references expires_at,
+ * which a pre-existing clips table only gains via addColumn() in
+ * migrate(). Creating it inside SCHEMA (before migrate) throws
+ * "no such column: expires_at" on any DB created before that column
+ * existed, aborting execAsync and breaking every getDb() caller.
+ */
+const INDEXES = `
 CREATE INDEX IF NOT EXISTS idx_clips_project ON clips(project_id);
 CREATE INDEX IF NOT EXISTS idx_clips_expires ON clips(expires_at);
 CREATE INDEX IF NOT EXISTS idx_insp_collection ON inspiration(collection_id);
@@ -75,9 +86,19 @@ export function getDb(): Promise<SQLite.SQLiteDatabase> {
       const db = await SQLite.openDatabaseAsync('onetake.db');
       await db.execAsync(SCHEMA);
       await migrate(db);
+      // Indexes last: idx_clips_expires needs expires_at, which migrate()
+      // adds to pre-existing clips tables.
+      await db.execAsync(INDEXES);
       await seed(db);
       return db;
     })();
+    // Never cache a rejected init. If open/migrate fails, clear the
+    // memo so the next getDb() retries instead of replaying the failure
+    // for the rest of the JS session (which bricks every DB-backed
+    // screen until a full reload).
+    dbPromise.catch(() => {
+      dbPromise = null;
+    });
   }
   return dbPromise;
 }
@@ -107,6 +128,8 @@ async function migrate(db: SQLite.SQLiteDatabase) {
   await addColumn(db, 'clips', 'sync_status', "TEXT NOT NULL DEFAULT 'local'");
   await addColumn(db, 'clips', 'remote_path', 'TEXT');
   await addColumn(db, 'clips', 'expires_at', 'INTEGER');
+  await addColumn(db, 'clips', 'name', 'TEXT');
+  await addColumn(db, 'clips', 'meta_tags', 'TEXT');
   // projects / collections / inspiration
   for (const t of ['projects', 'collections', 'inspiration']) {
     await addColumn(db, t, 'owner', 'TEXT');
