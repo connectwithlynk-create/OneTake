@@ -1,9 +1,11 @@
 import { DarkTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
+import { gcExpiredClips } from '@/lib/repo';
+import { invalidate } from '@/lib/store';
 import { palette } from '@/theme';
 
 const navTheme = {
@@ -19,6 +21,15 @@ const navTheme = {
 };
 
 export default function RootLayout() {
+  // Sweep expired ephemeral takes once on launch, then refresh the UI.
+  useEffect(() => {
+    gcExpiredClips()
+      .then((n) => {
+        if (n > 0) invalidate();
+      })
+      .catch(() => {});
+  }, []);
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider value={navTheme}>

@@ -1,11 +1,22 @@
-/** Domain types. Mirrors PRD section 14 (data model). */
+/** Domain types. Mirrors PRD section 14 (data model) plus sync columns. */
 
 export type ProjectType = 'talkinghead' | 'prompt';
 export type ProjectStatus = 'recording' | 'processing' | 'ready';
 export type Verdict = 'dud' | 'keep' | 'perfect';
 export type ClipTag = 'talking' | 'broll';
 
-export interface Project {
+/** 'local' = created/changed on device, not yet pushed. 'synced' = pushed. */
+export type SyncStatus = 'local' | 'synced';
+
+/** Columns every syncable row carries. owner = Clerk user id (null while
+ *  signed-out / local-only). */
+export interface SyncFields {
+  owner: string | null;
+  updated_at: number;
+  sync_status: SyncStatus;
+}
+
+export interface Project extends SyncFields {
   id: string;
   type: ProjectType;
   title: string;
@@ -14,10 +25,11 @@ export interface Project {
   created_at: number;
 }
 
-export interface Clip {
+export interface Clip extends SyncFields {
   id: string;
   project_id: string;
   order_index: number;
+  /** Relative path under the app document dir, e.g. "clips/<id>.mov". */
   file_uri: string;
   duration_ms: number;
   verdict: Verdict;
@@ -25,16 +37,21 @@ export interface Clip {
   tag: ClipTag;
   tag_overridden: number; // 0 | 1
   excluded: number; // 0 | 1  manual-edit: dropped from the cut
+  /** Non-null = ephemeral take; GC'd after this epoch-ms. Null = saved
+   *  (Memories): persists and is eligible for cloud backup. */
+  expires_at: number | null;
+  /** Supabase Storage object key once uploaded. */
+  remote_path: string | null;
   created_at: number;
 }
 
-export interface Collection {
+export interface Collection extends SyncFields {
   id: string;
   name: string;
   created_at: number;
 }
 
-export interface Inspiration {
+export interface Inspiration extends SyncFields {
   id: string;
   collection_id: string;
   source_url: string;

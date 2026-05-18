@@ -22,6 +22,7 @@ import {
   setTag,
   setVerdict,
 } from '@/lib/repo';
+import { hoursLeft } from '@/lib/ephemeral';
 import { invalidate, useData } from '@/lib/store';
 import { palette, space, verdictColor, tagColor } from '@/theme';
 import type { Clip, Verdict } from '@/lib/types';
@@ -172,6 +173,16 @@ export default function ProjectScreen() {
                       </View>
                     )}
                   </View>
+
+                  {item.expires_at != null && (
+                    <AppText
+                      kind="caption"
+                      style={{ marginTop: space.sm, color: palette.red }}
+                    >
+                      DISAPPEARS IN {hoursLeft(item.expires_at)}H · KEEP IT TO
+                      SAVE
+                    </AppText>
+                  )}
                 </Card>
               )}
             />

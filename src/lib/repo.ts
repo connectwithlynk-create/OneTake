@@ -1,4 +1,7 @@
+import type * as SQLite from 'expo-sqlite';
+
 import { getDb } from './db';
+import { ephemeralExpiry } from './ephemeral';
 import { deleteClipFile } from './filestore';
 import { id } from './id';
 import { palette } from '../theme';
@@ -13,6 +16,20 @@ import type {
   Verdict,
 } from './types';
 
+/** Mark a row changed: bump the sync clock and flag it for the next push.
+ *  `table` is always an internal constant, never user input. */
+async function touch(
+  db: SQLite.SQLiteDatabase,
+  table: 'projects' | 'clips' | 'collections' | 'inspiration',
+  rowId: string
+) {
+  await db.runAsync(
+    `UPDATE ${table} SET updated_at = ?, sync_status = 'local' WHERE id = ?`,
+    Date.now(),
+    rowId
+  );
+}
+
 // ----- Projects -----
 
 export async function createProject(
@@ -21,22 +38,28 @@ export async function createProject(
   prompt?: string
 ): Promise<Project> {
   const db = await getDb();
+  const now = Date.now();
   const p: Project = {
     id: id(),
     type,
     title: title.trim() || (type === 'prompt' ? 'Prompt project' : 'Untitled'),
     status: 'recording',
     prompt: prompt?.trim() || null,
-    created_at: Date.now(),
+    created_at: now,
+    owner: null,
+    updated_at: now,
+    sync_status: 'local',
   };
   await db.runAsync(
-    'INSERT INTO projects (id, type, title, status, prompt, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+    'INSERT INTO projects (id, type, title, status, prompt, created_at, updated_at, sync_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
     p.id,
     p.type,
     p.title,
     p.status,
     p.prompt,
-    p.created_at
+    p.created_at,
+    p.updated_at,
+    p.sync_status
   );
   return p;
 }
@@ -56,6 +79,7 @@ export async function getProject(pid: string): Promise<Project | null> {
 export async function setProjectStatus(pid: string, status: ProjectStatus) {
   const db = await getDb();
   await db.runAsync('UPDATE projects SET status = ? WHERE id = ?', status, pid);
+  await touch(db, 'projects', pid);
 }
 
 
@@ -82,6 +106,7 @@ export async function addClip(
     'SELECT COUNT(*) as c FROM clips WHERE project_id = ?',
     projectId
   );
+  const now = Date.now();
   const clip: Clip = {
     id: clipId,
     project_id: projectId,
@@ -93,12 +118,17 @@ export async function addClip(
     tag,
     tag_overridden: 0,
     excluded: 0,
-    created_at: Date.now(),
+    expires_at: ephemeralExpiry(verdict),
+    remote_path: null,
+    created_at: now,
+    owner: null,
+    updated_at: now,
+    sync_status: 'local',
   };
   await db.runAsync(
     `INSERT INTO clips
-       (id, project_id, order_index, file_uri, duration_ms, verdict, verdict_overridden, tag, tag_overridden, excluded, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       (id, project_id, order_index, file_uri, duration_ms, verdict, verdict_overridden, tag, tag_overridden, excluded, expires_at, created_at, updated_at, sync_status)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     clip.id,
     clip.project_id,
     clip.order_index,
@@ -109,7 +139,10 @@ export async function addClip(
     clip.tag,
     clip.tag_overridden,
     clip.excluded,
-    clip.created_at
+    clip.expires_at,
+    clip.created_at,
+    clip.updated_at,
+    clip.sync_status
   );
   return clip;
 }
@@ -207,11 +240,14 @@ export async function getAnalytics(): Promise<Analytics> {
 
 export async function setVerdict(clipId: string, verdict: Verdict) {
   const db = await getDb();
+  // Re-rating drives ephemerality: dud => expires, keep/perfect => saved.
   await db.runAsync(
-    'UPDATE clips SET verdict = ?, verdict_overridden = 1 WHERE id = ?',
+    'UPDATE clips SET verdict = ?, verdict_overridden = 1, expires_at = ? WHERE id = ?',
     verdict,
+    ephemeralExpiry(verdict),
     clipId
   );
+  await touch(db, 'clips', clipId);
 }
 
 export async function setTag(clipId: string, tag: ClipTag) {
@@ -221,6 +257,7 @@ export async function setTag(clipId: string, tag: ClipTag) {
     tag,
     clipId
   );
+  await touch(db, 'clips', clipId);
 }
 
 export async function deleteClip(clipId: string, fileUri: string) {
@@ -236,6 +273,24 @@ export async function setClipExcluded(clipId: string, excluded: 0 | 1) {
     excluded,
     clipId
   );
+  await touch(db, 'clips', clipId);
+}
+
+/** Sweep ephemeral takes whose window has passed: delete file + row.
+ *  Returns how many were reclaimed. */
+export async function gcExpiredClips(): Promise<number> {
+  const db = await getDb();
+  const now = Date.now();
+  const rows = await db.getAllAsync<Clip>(
+    'SELECT * FROM clips WHERE expires_at IS NOT NULL AND expires_at < ?',
+    now
+  );
+  for (const c of rows) deleteClipFile(c.file_uri);
+  const r = await db.runAsync(
+    'DELETE FROM clips WHERE expires_at IS NOT NULL AND expires_at < ?',
+    now
+  );
+  return r.changes ?? rows.length;
 }
 
 /** Manual-edit reorder: swap a clip's order_index with its neighbor. */
@@ -254,15 +309,18 @@ export async function moveClip(clipId: string, dir: 'up' | 'down') {
     clip.order_index
   );
   if (!neighbor) return;
+  const now = Date.now();
   await db.withTransactionAsync(async () => {
     await db.runAsync(
-      'UPDATE clips SET order_index = ? WHERE id = ?',
+      "UPDATE clips SET order_index = ?, updated_at = ?, sync_status = 'local' WHERE id = ?",
       neighbor.order_index,
+      now,
       clip.id
     );
     await db.runAsync(
-      'UPDATE clips SET order_index = ? WHERE id = ?',
+      "UPDATE clips SET order_index = ?, updated_at = ?, sync_status = 'local' WHERE id = ?",
       clip.order_index,
+      now,
       neighbor.id
     );
   });
@@ -287,12 +345,22 @@ export async function getCollection(cid: string): Promise<Collection | null> {
 
 export async function createCollection(name: string): Promise<Collection> {
   const db = await getDb();
-  const c: Collection = { id: id(), name: name.trim() || 'Untitled', created_at: Date.now() };
+  const now = Date.now();
+  const c: Collection = {
+    id: id(),
+    name: name.trim() || 'Untitled',
+    created_at: now,
+    owner: null,
+    updated_at: now,
+    sync_status: 'local',
+  };
   await db.runAsync(
-    'INSERT INTO collections (id, name, created_at) VALUES (?, ?, ?)',
+    'INSERT INTO collections (id, name, created_at, updated_at, sync_status) VALUES (?, ?, ?, ?, ?)',
     c.id,
     c.name,
-    c.created_at
+    c.created_at,
+    c.updated_at,
+    c.sync_status
   );
   return c;
 }
@@ -300,6 +368,7 @@ export async function createCollection(name: string): Promise<Collection> {
 export async function renameCollection(cid: string, name: string) {
   const db = await getDb();
   await db.runAsync('UPDATE collections SET name = ? WHERE id = ?', name.trim(), cid);
+  await touch(db, 'collections', cid);
 }
 
 export async function deleteCollection(cid: string) {
@@ -349,22 +418,28 @@ export async function addInspiration(
   note?: string
 ): Promise<Inspiration> {
   const db = await getDb();
+  const now = Date.now();
   const item: Inspiration = {
     id: id(),
     collection_id: collectionId,
     source_url: sourceUrl.trim(),
     thumb_color: THUMBS[Math.floor(Math.random() * THUMBS.length)],
     note: note?.trim() || null,
-    added_at: Date.now(),
+    added_at: now,
+    owner: null,
+    updated_at: now,
+    sync_status: 'local',
   };
   await db.runAsync(
-    'INSERT INTO inspiration (id, collection_id, source_url, thumb_color, note, added_at) VALUES (?, ?, ?, ?, ?, ?)',
+    'INSERT INTO inspiration (id, collection_id, source_url, thumb_color, note, added_at, updated_at, sync_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
     item.id,
     item.collection_id,
     item.source_url,
     item.thumb_color,
     item.note,
-    item.added_at
+    item.added_at,
+    item.updated_at,
+    item.sync_status
   );
   return item;
 }
@@ -392,6 +467,7 @@ export async function fileInspiration(itemId: string, collectionId: string) {
     collectionId,
     itemId
   );
+  await touch(db, 'inspiration', itemId);
 }
 
 export async function deleteInspiration(itemId: string) {
