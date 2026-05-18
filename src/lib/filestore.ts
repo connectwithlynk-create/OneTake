@@ -29,6 +29,16 @@ export function persistClip(tempUri: string, clipId: string): string {
   }
 }
 
+/** Ensure the clips dir exists (needed before writing a downloaded file). */
+export function ensureClipsDir() {
+  clipsDir();
+}
+
+/** The relative path for a given clip id. */
+export function clipRelPath(clipId: string): string {
+  return `${SUB}/${clipId}.mov`;
+}
+
 /** Relative path -> absolute uri. Legacy absolute values pass through. */
 export function resolveClipUri(rel: string): string {
   if (!rel) return rel;
