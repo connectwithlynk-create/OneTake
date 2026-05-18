@@ -53,7 +53,7 @@ export default function ClipsScreen() {
         const clipId = id();
         const uri = persistClip(a.uri, clipId);
         const durationMs = Math.round(a.duration ?? 0);
-        const r = rateClip({ clipId, durationMs, defaultTag: 'broll' });
+        const r = rateClip({ clipId, durationMs, source: 'imported' });
         await addClip(pid, uri, durationMs, r.verdict, r.tag, clipId);
       }
       invalidate();

@@ -75,8 +75,13 @@ export default function CaptureScreen() {
       if (!video?.uri) return;
       const clipId = id();
       const uri = persistClip(video.uri, clipId);
-      // Tag auto-assigned (talking-head default). User only judges quality.
-      const rating = rateClip({ clipId, durationMs, defaultTag: 'talking' });
+      // Tag inferred from the lens used (front = talking to camera).
+      const rating = rateClip({
+        clipId,
+        durationMs,
+        source: 'recorded',
+        facing,
+      });
       const clip = await addClip(
         projectId,
         uri,

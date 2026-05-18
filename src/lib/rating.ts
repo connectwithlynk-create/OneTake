@@ -1,15 +1,20 @@
 import type { ClipTag, Verdict } from './types';
 
 /**
- * On-device clip rating.
+ * On-device clip rating + talking/b-roll detection.
  *
- * MVP heuristic stub. The real implementation (PRD FR-RATE-2) runs native
- * analysis: face / eyes (MLKit), blur (Laplacian variance), audio RMS /
- * clipping, speech presence. That requires native modules and is out of
- * scope for the basic build. This deterministic placeholder produces a
- * plausible verdict from the signals available in JS (clip duration plus a
- * stable per-clip pseudo-signal) so the capture -> review loop is fully
- * exercisable. Swap this module out, not its callers.
+ * Tag detection is real signal-based inference (no LLM, no model): it uses
+ * the actual capture signals available - which camera lens the user pointed
+ * and where the clip came from - because that is how a talking-head shot and
+ * a b-roll shot genuinely differ in practice:
+ *   - front lens, recorded   -> the user is on camera talking  => talking
+ *   - back lens, recorded    -> filming the world for cutaways  => b-roll
+ *   - imported from library  -> almost always supplemental      => b-roll
+ *   - too short to be a take                                    => b-roll
+ *
+ * The verdict (dud/keep/perfect) is still a heuristic placeholder (duration
+ * + a stable per-clip pseudo-signal); true quality needs native A/V analysis
+ * (PRD FR-RATE-2). Swap that part out, not the callers.
  */
 
 function pseudo(seed: string): number {
@@ -18,15 +23,18 @@ function pseudo(seed: string): number {
     h ^= seed.charCodeAt(i);
     h = Math.imul(h, 16777619);
   }
-  // 0..1
   return ((h >>> 0) % 1000) / 1000;
 }
+
+export type ClipSource = 'recorded' | 'imported';
+export type Facing = 'front' | 'back';
 
 export interface RatingInput {
   clipId: string;
   durationMs: number;
-  /** Project default; user can still override the tag afterwards. */
-  defaultTag: ClipTag;
+  source: ClipSource;
+  /** The lens used, when recorded in-app. Absent for imports. */
+  facing?: Facing;
 }
 
 export interface Rating {
@@ -34,18 +42,34 @@ export interface Rating {
   tag: ClipTag;
 }
 
-export function rateClip({ clipId, durationMs, defaultTag }: RatingInput): Rating {
+/** Infer talking vs b-roll from real capture signals. */
+export function detectTag({
+  durationMs,
+  source,
+  facing,
+}: Pick<RatingInput, 'durationMs' | 'source' | 'facing'>): ClipTag {
+  // Sub-2s clips are almost never a talking take.
+  if (durationMs < 2000) return 'broll';
+  // Recorded with the selfie lens => the creator is talking to camera.
+  if (source === 'recorded' && facing === 'front') return 'talking';
+  // Recorded with the rear lens, or anything pulled from the library, is
+  // supplemental footage.
+  return 'broll';
+}
+
+export function rateClip(input: RatingInput): Rating {
+  const { clipId, durationMs } = input;
+  const tag = detectTag(input);
+
+  if (durationMs < 1200) return { verdict: 'dud', tag };
+
   const r = pseudo(clipId);
-
-  // Too short to be usable.
-  if (durationMs < 1200) return { verdict: 'dud', tag: defaultTag };
-
-  // Sweet spot 4-30s scores higher; very long drifts down.
   const secs = durationMs / 1000;
   let score = r;
   if (secs >= 4 && secs <= 30) score += 0.25;
   if (secs > 45) score -= 0.2;
 
-  const verdict: Verdict = score >= 0.7 ? 'perfect' : score >= 0.42 ? 'keep' : 'dud';
-  return { verdict, tag: defaultTag };
+  const verdict: Verdict =
+    score >= 0.7 ? 'perfect' : score >= 0.42 ? 'keep' : 'dud';
+  return { verdict, tag };
 }
