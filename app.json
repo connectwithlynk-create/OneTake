@@ -50,7 +50,8 @@
         {
           "photosPermission": "OneTake needs access to your photo library to import video clips."
         }
-      ]
+      ],
+      "./plugins/with-no-apple-signin.js"
     ],
     "experiments": {
       "typedRoutes": true,

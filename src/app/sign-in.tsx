@@ -1,11 +1,10 @@
 import { useSSO } from '@clerk/expo';
-import { useSignInWithApple } from '@clerk/expo/apple';
 import { useSignIn, useSignUp } from '@clerk/expo/legacy';
 import { Ionicons } from '@expo/vector-icons';
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
 import React, { useEffect, useState } from 'react';
-import { Platform, Pressable, TextInput, View } from 'react-native';
+import { Pressable, TextInput, View } from 'react-native';
 
 import { AppText, Button, Screen } from '@/components/ui';
 import { palette, radius, space } from '@/theme';
@@ -18,7 +17,6 @@ type Mode = 'signin' | 'signup' | 'verify';
 export default function SignInScreen() {
   const { isLoaded: siLoaded, signIn, setActive: setSiActive } = useSignIn();
   const { isLoaded: suLoaded, signUp, setActive: setSuActive } = useSignUp();
-  const { startAppleAuthenticationFlow } = useSignInWithApple();
   const { startSSOFlow } = useSSO();
 
   // Warm up the in-app browser (Android optimization; harmless on iOS).
@@ -82,27 +80,6 @@ export default function SignInScreen() {
       }
     } catch (e) {
       setErr(humanError(e));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function apple() {
-    if (busy) return;
-    setBusy(true);
-    setErr(null);
-    try {
-      const { createdSessionId, setActive } = await startAppleAuthenticationFlow();
-      if (createdSessionId && setActive) {
-        await setActive({ session: createdSessionId });
-      }
-    } catch (e: unknown) {
-      const code = (e as { code?: string })?.code;
-      if (code !== 'ERR_REQUEST_CANCELED') {
-        // Surface the real reason (entitlement / Clerk / network) instead of
-        // a generic message.
-        setErr(humanError(e));
-      }
     } finally {
       setBusy(false);
     }
@@ -206,27 +183,6 @@ export default function SignInScreen() {
                 : 'Have an account? Sign in'}
             </AppText>
           </Pressable>
-
-          {Platform.OS === 'ios' && (
-            <Pressable
-              onPress={apple}
-              disabled={busy}
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: space.sm,
-                backgroundColor: '#fff',
-                paddingVertical: space.lg,
-                borderRadius: radius.pill,
-              }}
-            >
-              <Ionicons name="logo-apple" size={20} color="#000" />
-              <AppText kind="body" style={{ color: '#000', fontWeight: '800' }}>
-                Continue with Apple
-              </AppText>
-            </Pressable>
-          )}
 
           <Pressable
             onPress={google}
