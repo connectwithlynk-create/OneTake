@@ -1,15 +1,26 @@
 // Metro configuration.
 //
-// Expo SDK 55 enables package "exports" resolution by default. With it on,
-// Metro resolves @supabase/supabase-js via its exports map to the ESM build
-// (dist/index.mjs), which fails under Metro/Hermes with
-// "Requiring unknown module \"1910\"". Disabling package exports makes Metro
-// fall back to the classic `main` field, so supabase-js resolves to its CJS
-// build (dist/index.cjs) which works in React Native. Every dependency in
-// this project has a `main`/`module` field, so this fallback is safe here.
+// Keep package "exports" resolution ENABLED (Expo SDK 55 default). @clerk/expo
+// imports subpaths like "@clerk/react/internal" / "@clerk/react/errors" that
+// exist only via exports maps - disabling exports globally breaks Clerk.
+//
+// @supabase/supabase-js's exports map points the "import" condition at an ESM
+// (.mjs) bundle that crashes under Metro/Hermes ("Requiring unknown module
+// 1910"). So surgically redirect just that one package to its CJS build and
+// leave every other package on Expo's default resolver.
 const { getDefaultConfig } = require('expo/metro-config');
 
 const config = getDefaultConfig(__dirname);
-config.resolver.unstable_enablePackageExports = false;
+
+const supabaseCjs = require.resolve('@supabase/supabase-js/dist/index.cjs');
+const defaultResolveRequest = config.resolver.resolveRequest;
+
+config.resolver.resolveRequest = (context, moduleName, platform) => {
+  if (moduleName === '@supabase/supabase-js') {
+    return { type: 'sourceFile', filePath: supabaseCjs };
+  }
+  const next = defaultResolveRequest ?? context.resolveRequest;
+  return next(context, moduleName, platform);
+};
 
 module.exports = config;
