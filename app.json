@@ -10,7 +10,11 @@
     "ios": {
       "icon": "./assets/expo.icon",
       "bundleIdentifier": "com.deact.OneTake",
-      "usesAppleSignIn": true
+      "usesAppleSignIn": true,
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "OneTake needs access to your photo library to import video clips.",
+        "NSPhotoLibraryAddUsageDescription": "OneTake needs access to save and import video clips."
+      }
     },
     "android": {
       "adaptiveIcon": {
