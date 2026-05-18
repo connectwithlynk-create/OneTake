@@ -41,7 +41,13 @@
       "@clerk/expo",
       "expo-secure-store",
       "expo-web-browser",
-      "expo-video"
+      "expo-video",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "OneTake needs access to your photo library to import video clips."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
