@@ -51,6 +51,9 @@ export interface Clip extends SyncFields {
   /** Speech-to-text of the clip's audio (server transcription). Drives
    *  talking/b-roll and the spoken-words title. Null until transcribed. */
   transcript: string | null;
+  /** View-time horizontal flip (mirror). The file is never re-encoded -
+   *  this only affects how the clip is displayed in the player. 0|1. */
+  mirrored: number;
   /** Non-null = ephemeral take; GC'd after this epoch-ms. Null = saved
    *  (Memories): persists and is eligible for cloud backup. */
   expires_at: number | null;

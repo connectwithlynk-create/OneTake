@@ -18,6 +18,7 @@ function clip(over: Partial<Clip> = {}): Clip {
     name: null,
     meta_tags: null,
     transcript: null,
+    mirrored: 0,
     expires_at: null,
     remote_path: null,
     created_at: 1000,

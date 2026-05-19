@@ -31,6 +31,7 @@ const CLIPS_COLUMNS = [
   'name',
   'meta_tags',
   'transcript',
+  'mirrored',
 ] as const;
 
 const CLIPS_BODY = `
@@ -52,7 +53,8 @@ const CLIPS_BODY = `
   expires_at INTEGER,
   name TEXT,
   meta_tags TEXT,
-  transcript TEXT
+  transcript TEXT,
+  mirrored INTEGER NOT NULL DEFAULT 0
 `;
 
 const SCHEMA = `
@@ -175,6 +177,7 @@ async function migrate(db: SQLite.SQLiteDatabase) {
   await addColumn(db, 'clips', 'name', 'TEXT');
   await addColumn(db, 'clips', 'meta_tags', 'TEXT');
   await addColumn(db, 'clips', 'transcript', 'TEXT');
+  await addColumn(db, 'clips', 'mirrored', 'INTEGER NOT NULL DEFAULT 0');
   // projects / collections / inspiration
   for (const t of ['projects', 'collections', 'inspiration']) {
     await addColumn(db, t, 'owner', 'TEXT');

@@ -15,7 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppText } from '@/components/ui';
 import { resolveClipUri } from '@/lib/filestore';
-import { getClip, setTag } from '@/lib/repo';
+import { getClip, setClipMirrored, setTag } from '@/lib/repo';
 import { palette, radius, space, tagColor } from '@/theme';
 import type { ClipTag } from '@/lib/types';
 
@@ -52,6 +52,7 @@ export default function PlayerScreen() {
   const [showTx, setShowTx] = useState(false);
   const [tag, setTagState] = useState<ClipTag | null>(null);
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'done'>('idle');
+  const [mirrored, setMirroredState] = useState(false);
 
   // Load the clip's transcript + current tag (only when opened with an id).
   useEffect(() => {
@@ -66,11 +67,13 @@ export default function PlayerScreen() {
         if (!alive) return;
         setTranscript(c?.transcript?.trim() || null);
         setTagState(c?.tag ?? null);
+        setMirroredState((c?.mirrored ?? 0) === 1);
       })
       .catch(() => {
         if (alive) {
           setTranscript(null);
           setTagState(null);
+          setMirroredState(false);
         }
       });
     return () => {
@@ -92,6 +95,17 @@ export default function PlayerScreen() {
       setTimeout(() => setSaveState('idle'), 1800);
     } catch {
       setSaveState('idle');
+    }
+  }
+
+  async function flipMirror() {
+    if (!id) return;
+    const next = !mirrored;
+    setMirroredState(next); // optimistic
+    try {
+      await setClipMirrored(id, next ? 1 : 0);
+    } catch {
+      setMirroredState(!next);
     }
   }
 
@@ -192,6 +206,17 @@ export default function PlayerScreen() {
         )}
         <Pressable
           style={styles.iconBtn}
+          onPress={flipMirror}
+          disabled={!id}
+        >
+          <Ionicons
+            name="swap-horizontal"
+            size={20}
+            color={mirrored ? palette.purple : palette.text}
+          />
+        </Pressable>
+        <Pressable
+          style={styles.iconBtn}
           onPress={saveToCameraRoll}
           disabled={!uri || saveState === 'saving'}
         >
@@ -221,7 +246,10 @@ export default function PlayerScreen() {
           <View style={styles.frame}>
             <VideoView
               player={player}
-              style={StyleSheet.absoluteFill}
+              style={[
+                StyleSheet.absoluteFill,
+                mirrored ? { transform: [{ scaleX: -1 }] } : null,
+              ]}
               nativeControls={false}
               contentFit="contain"
             />

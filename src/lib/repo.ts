@@ -162,11 +162,12 @@ export async function addClip(
     name,
     meta_tags: stringifyMeta(meta),
     transcript: null,
+    mirrored: 0,
   };
   await db.runAsync(
     `INSERT INTO clips
-       (id, project_id, order_index, file_uri, duration_ms, verdict, verdict_overridden, tag, tag_overridden, excluded, expires_at, created_at, updated_at, sync_status, name, meta_tags, transcript)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       (id, project_id, order_index, file_uri, duration_ms, verdict, verdict_overridden, tag, tag_overridden, excluded, expires_at, created_at, updated_at, sync_status, name, meta_tags, transcript, mirrored)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     clip.id,
     clip.project_id,
     clip.order_index,
@@ -183,7 +184,8 @@ export async function addClip(
     clip.sync_status,
     clip.name,
     clip.meta_tags,
-    clip.transcript
+    clip.transcript,
+    clip.mirrored
   );
   return clip;
 }
@@ -320,6 +322,16 @@ export async function setClipMetaTags(clipId: string, tags: MetaTag[]) {
 export async function getClip(clipId: string): Promise<Clip | null> {
   const db = await getDb();
   return db.getFirstAsync<Clip>('SELECT * FROM clips WHERE id = ?', clipId);
+}
+
+export async function setClipMirrored(clipId: string, mirrored: 0 | 1) {
+  const db = await getDb();
+  await db.runAsync(
+    'UPDATE clips SET mirrored = ? WHERE id = ?',
+    mirrored,
+    clipId
+  );
+  await touch(db, 'clips', clipId);
 }
 
 export async function setClipRemotePath(clipId: string, path: string) {
