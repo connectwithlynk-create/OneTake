@@ -9,22 +9,30 @@ import * as SQLite from 'expo-sqlite';
  */
 let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
 
-const SCHEMA = `
-PRAGMA journal_mode = WAL;
+/** Canonical clips schema. One source of truth so SCHEMA and the
+ *  self-heal rebuild can never drift. */
+const CLIPS_COLUMNS = [
+  'id',
+  'project_id',
+  'order_index',
+  'file_uri',
+  'duration_ms',
+  'verdict',
+  'verdict_overridden',
+  'tag',
+  'tag_overridden',
+  'excluded',
+  'created_at',
+  'owner',
+  'updated_at',
+  'sync_status',
+  'remote_path',
+  'expires_at',
+  'name',
+  'meta_tags',
+] as const;
 
-CREATE TABLE IF NOT EXISTS projects (
-  id TEXT PRIMARY KEY NOT NULL,
-  type TEXT NOT NULL,
-  title TEXT NOT NULL,
-  status TEXT NOT NULL,
-  prompt TEXT,
-  created_at INTEGER NOT NULL,
-  owner TEXT,
-  updated_at INTEGER NOT NULL DEFAULT 0,
-  sync_status TEXT NOT NULL DEFAULT 'local'
-);
-
-CREATE TABLE IF NOT EXISTS clips (
+const CLIPS_BODY = `
   id TEXT PRIMARY KEY NOT NULL,
   project_id TEXT NOT NULL,
   order_index INTEGER NOT NULL,
@@ -43,7 +51,24 @@ CREATE TABLE IF NOT EXISTS clips (
   expires_at INTEGER,
   name TEXT,
   meta_tags TEXT
+`;
+
+const SCHEMA = `
+PRAGMA journal_mode = WAL;
+
+CREATE TABLE IF NOT EXISTS projects (
+  id TEXT PRIMARY KEY NOT NULL,
+  type TEXT NOT NULL,
+  title TEXT NOT NULL,
+  status TEXT NOT NULL,
+  prompt TEXT,
+  created_at INTEGER NOT NULL,
+  owner TEXT,
+  updated_at INTEGER NOT NULL DEFAULT 0,
+  sync_status TEXT NOT NULL DEFAULT 'local'
 );
+
+CREATE TABLE IF NOT EXISTS clips (${CLIPS_BODY});
 
 CREATE TABLE IF NOT EXISTS collections (
   id TEXT PRIMARY KEY NOT NULL,
@@ -86,6 +111,10 @@ export function getDb(): Promise<SQLite.SQLiteDatabase> {
       const db = await SQLite.openDatabaseAsync('onetake.db');
       await db.execAsync(SCHEMA);
       await migrate(db);
+      // Self-heal: if ALTER-based migration could not bring the clips
+      // table up to the canonical schema (corrupt / very old DB), rebuild
+      // it without relying on ALTER. Guarantees expires_at etc. exist.
+      await ensureClips(db);
       // Indexes last and each isolated: idx_clips_expires needs expires_at
       // (added by migrate). An index is only an optimization - a failing
       // one must never abort init and brick every DB-backed screen.
@@ -166,6 +195,52 @@ async function migrate(db: SQLite.SQLiteDatabase) {
     );
   } catch {
     /* backfill is best-effort */
+  }
+}
+
+/**
+ * Guarantees the clips table matches the canonical schema. If ALTER-based
+ * migration could not add the required columns (a corrupt or very old DB,
+ * which is what causes "no such column: expires_at"), rebuild the table
+ * from scratch WITHOUT using ALTER: create a fresh table, copy whatever
+ * columns the old one had, swap. Existing clip rows are preserved. If even
+ * that fails, reset the clips table - it is a local cache; backed-up rows
+ * re-sync, and a working app beats a bricked one.
+ */
+async function ensureClips(db: SQLite.SQLiteDatabase) {
+  let have: string[];
+  try {
+    const info = await db.getAllAsync<{ name: string }>(
+      'PRAGMA table_info(clips)'
+    );
+    have = info.map((c) => c.name);
+  } catch {
+    have = [];
+  }
+  const missing = CLIPS_COLUMNS.filter((c) => !have.includes(c));
+  if (missing.length === 0) return;
+
+  const common = CLIPS_COLUMNS.filter((c) => have.includes(c)).join(', ');
+  try {
+    await db.execAsync('DROP TABLE IF EXISTS clips_rebuild');
+    await db.execAsync(`CREATE TABLE clips_rebuild (${CLIPS_BODY})`);
+    if (common) {
+      await db.execAsync(
+        `INSERT INTO clips_rebuild (${common}) SELECT ${common} FROM clips`
+      );
+    }
+    await db.execAsync('DROP TABLE clips');
+    await db.execAsync('ALTER TABLE clips_rebuild RENAME TO clips');
+  } catch {
+    // Could not preserve rows - last resort: reset the table so the app
+    // works (local cache only).
+    try {
+      await db.execAsync('DROP TABLE IF EXISTS clips_rebuild');
+      await db.execAsync('DROP TABLE IF EXISTS clips');
+      await db.execAsync(`CREATE TABLE clips (${CLIPS_BODY})`);
+    } catch {
+      /* nothing more we can do */
+    }
   }
 }
 
