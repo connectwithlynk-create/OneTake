@@ -75,3 +75,40 @@ After that, JS-only iterations are just `npx expo start --dev-client` + `i`.
 - Sync runs on sign-in and app launch, not continuously/in background.
 - Email *sign-in* for returning users uses Clerk's password flow; if you only
   ever signed up with Apple, use Apple to return.
+
+## 5. Transcription (Deepgram) - real talking/b-roll + spoken-words titles
+
+Provisioned: Supabase Edge Function `transcribe` (deployed) + a
+`clips.transcript` column. The function is a thin Deepgram proxy that holds
+the API key as a secret so it never ships in the app.
+
+You provide a Deepgram key:
+
+1. Create an account at https://deepgram.com (free credits). Copy an API key.
+2. Set it as a Supabase secret for the function:
+   - Supabase dashboard -> Edge Functions -> `transcribe` -> Secrets ->
+     add `DEEPGRAM_API_KEY = <your key>`
+   - or CLI: `supabase secrets set DEEPGRAM_API_KEY=<your key>`
+
+### What it does
+
+After a clip is recorded or imported, the app (best-effort, in the
+background) uploads it to the `clips` bucket, gets a short-lived signed URL,
+and the Edge Function transcribes it via Deepgram. The transcript then sets:
+
+- **tag**: speech present => `talking`, otherwise `b-roll` (lens-independent
+  - fixes imports and someone-else-filming-you cases)
+- **name**: the project's first take => "Intro"; otherwise the opening
+  spoken words (rule-based, no LLM)
+
+### Requirements / limits
+
+- Only runs when: Supabase configured, signed in (Clerk), and the
+  Clerk<->Supabase third-party integration (step 2) is set up. Otherwise it
+  silently no-ops and the on-device lens/audio heuristic stands.
+- Costs Deepgram credits per minute of audio (your account).
+- Title is rule-based from the transcript (first phrase / "Intro"), not an
+  LLM summary - it reflects the actual spoken words, not a smart topic.
+- The Edge Function has `verify_jwt=false` (it only proxies to Deepgram a
+  signed URL the caller already had RLS-gated access to create); the secret,
+  not the data, is the protected thing. Tighten before production.

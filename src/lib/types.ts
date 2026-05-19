@@ -48,6 +48,9 @@ export interface Clip extends SyncFields {
   name: string | null;
   /** JSON-encoded MetaTag[] (advanced descriptive tags). */
   meta_tags: string | null;
+  /** Speech-to-text of the clip's audio (server transcription). Drives
+   *  talking/b-roll and the spoken-words title. Null until transcribed. */
+  transcript: string | null;
   /** Non-null = ephemeral take; GC'd after this epoch-ms. Null = saved
    *  (Memories): persists and is eligible for cloud backup. */
   expires_at: number | null;

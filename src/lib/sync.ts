@@ -152,6 +152,7 @@ async function push(userId: string, res: SyncResult) {
         tag: cl.tag,
         tag_overridden: cl.tag_overridden,
         excluded: cl.excluded,
+        transcript: cl.transcript,
         created_at: cl.created_at,
         updated_at: cl.updated_at,
         deleted: false,
@@ -171,7 +172,7 @@ async function push(userId: string, res: SyncResult) {
   }
 }
 
-async function uploadClipFile(
+export async function uploadClipFile(
   userId: string,
   clip: Clip
 ): Promise<string | null> {
@@ -289,12 +290,13 @@ async function upsertLocal(
     await db.runAsync(
       `INSERT INTO clips (id, project_id, order_index, file_uri, duration_ms, verdict,
          verdict_overridden, tag, tag_overridden, excluded, expires_at, remote_path,
-         created_at, owner, updated_at, sync_status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, 'synced')
+         transcript, created_at, owner, updated_at, sync_status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, 'synced')
        ON CONFLICT(id) DO UPDATE SET order_index=excluded.order_index,
          verdict=excluded.verdict, tag=excluded.tag, excluded=excluded.excluded,
-         remote_path=excluded.remote_path, updated_at=excluded.updated_at,
-         owner=excluded.owner, sync_status='synced'`,
+         remote_path=excluded.remote_path, transcript=excluded.transcript,
+         updated_at=excluded.updated_at, owner=excluded.owner,
+         sync_status='synced'`,
       id,
       row.project_id as string,
       Number(row.order_index ?? 0),
@@ -306,6 +308,7 @@ async function upsertLocal(
       Number(row.tag_overridden ?? 0),
       Number(row.excluded ?? 0),
       (row.storage_path as string | null) ?? null,
+      (row.transcript as string | null) ?? null,
       Number(row.created_at ?? remoteUpdated),
       userId,
       remoteUpdated

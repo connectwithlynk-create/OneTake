@@ -151,11 +151,12 @@ export async function addClip(
     sync_status: 'local',
     name,
     meta_tags: stringifyMeta(meta),
+    transcript: null,
   };
   await db.runAsync(
     `INSERT INTO clips
-       (id, project_id, order_index, file_uri, duration_ms, verdict, verdict_overridden, tag, tag_overridden, excluded, expires_at, created_at, updated_at, sync_status, name, meta_tags)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       (id, project_id, order_index, file_uri, duration_ms, verdict, verdict_overridden, tag, tag_overridden, excluded, expires_at, created_at, updated_at, sync_status, name, meta_tags, transcript)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     clip.id,
     clip.project_id,
     clip.order_index,
@@ -171,7 +172,8 @@ export async function addClip(
     clip.updated_at,
     clip.sync_status,
     clip.name,
-    clip.meta_tags
+    clip.meta_tags,
+    clip.transcript
   );
   return clip;
 }
@@ -300,6 +302,38 @@ export async function setClipMetaTags(clipId: string, tags: MetaTag[]) {
   await db.runAsync(
     'UPDATE clips SET meta_tags = ? WHERE id = ?',
     stringifyMeta(tags),
+    clipId
+  );
+  await touch(db, 'clips', clipId);
+}
+
+export async function getClip(clipId: string): Promise<Clip | null> {
+  const db = await getDb();
+  return db.getFirstAsync<Clip>('SELECT * FROM clips WHERE id = ?', clipId);
+}
+
+export async function setClipRemotePath(clipId: string, path: string) {
+  const db = await getDb();
+  await db.runAsync(
+    'UPDATE clips SET remote_path = ? WHERE id = ?',
+    path,
+    clipId
+  );
+}
+
+/** Apply a server transcript: stores it and the tag/name it implies. */
+export async function setClipTranscription(
+  clipId: string,
+  transcript: string,
+  tag: ClipTag,
+  name: string
+) {
+  const db = await getDb();
+  await db.runAsync(
+    'UPDATE clips SET transcript = ?, tag = ?, name = ? WHERE id = ?',
+    transcript,
+    tag,
+    name,
     clipId
   );
   await touch(db, 'clips', clipId);

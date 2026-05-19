@@ -23,6 +23,7 @@ import { persistClip } from '@/lib/filestore';
 import { id } from '@/lib/id';
 import { rateClip } from '@/lib/rating';
 import { classifySpeech } from '@/lib/speech';
+import { maybeTranscribe } from '@/lib/transcribe';
 import { addClip, deleteClip, listClips, setVerdict } from '@/lib/repo';
 import { invalidate } from '@/lib/store';
 import { palette, radius, space, verdictColor } from '@/theme';
@@ -151,6 +152,8 @@ export default function CaptureScreen() {
       invalidate();
       setCount((c) => c + 1);
       setLast(clip);
+      // Background: server transcript -> real tag + spoken-words title.
+      void maybeTranscribe(clip.id);
     } catch {
       setRecording(false);
       await stopMeter();

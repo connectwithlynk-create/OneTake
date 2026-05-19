@@ -17,6 +17,7 @@ import { persistClip } from '@/lib/filestore';
 import { id } from '@/lib/id';
 import { rateClip } from '@/lib/rating';
 import { addClip, ensureImportProject, listAllClips } from '@/lib/repo';
+import { maybeTranscribe } from '@/lib/transcribe';
 import { invalidate, useData } from '@/lib/store';
 import { relativeAge, fmtDuration } from '@/lib/time';
 import { palette, space, verdictColor } from '@/theme';
@@ -55,6 +56,8 @@ export default function ClipsScreen() {
         const durationMs = Math.round(a.duration ?? 0);
         const r = rateClip({ clipId, durationMs, source: 'imported' });
         await addClip(pid, uri, durationMs, r.verdict, r.tag, clipId);
+        // Background: transcribe -> real talking/b-roll + spoken title.
+        void maybeTranscribe(clipId);
       }
       invalidate();
     } finally {

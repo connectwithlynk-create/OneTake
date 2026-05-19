@@ -44,3 +44,6 @@ app-example
 
 # secrets
 .env
+
+# throwaway render spike artifact
+spike-out.mp4

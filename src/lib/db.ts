@@ -30,6 +30,7 @@ const CLIPS_COLUMNS = [
   'expires_at',
   'name',
   'meta_tags',
+  'transcript',
 ] as const;
 
 const CLIPS_BODY = `
@@ -50,7 +51,8 @@ const CLIPS_BODY = `
   remote_path TEXT,
   expires_at INTEGER,
   name TEXT,
-  meta_tags TEXT
+  meta_tags TEXT,
+  transcript TEXT
 `;
 
 const SCHEMA = `
@@ -172,6 +174,7 @@ async function migrate(db: SQLite.SQLiteDatabase) {
   await addColumn(db, 'clips', 'expires_at', 'INTEGER');
   await addColumn(db, 'clips', 'name', 'TEXT');
   await addColumn(db, 'clips', 'meta_tags', 'TEXT');
+  await addColumn(db, 'clips', 'transcript', 'TEXT');
   // projects / collections / inspiration
   for (const t of ['projects', 'collections', 'inspiration']) {
     await addColumn(db, t, 'owner', 'TEXT');
