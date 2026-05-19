@@ -74,11 +74,11 @@ CREATE TABLE IF NOT EXISTS inspiration (
  * "no such column: expires_at" on any DB created before that column
  * existed, aborting execAsync and breaking every getDb() caller.
  */
-const INDEXES = `
-CREATE INDEX IF NOT EXISTS idx_clips_project ON clips(project_id);
-CREATE INDEX IF NOT EXISTS idx_clips_expires ON clips(expires_at);
-CREATE INDEX IF NOT EXISTS idx_insp_collection ON inspiration(collection_id);
-`;
+const INDEX_STMTS = [
+  'CREATE INDEX IF NOT EXISTS idx_clips_project ON clips(project_id)',
+  'CREATE INDEX IF NOT EXISTS idx_clips_expires ON clips(expires_at)',
+  'CREATE INDEX IF NOT EXISTS idx_insp_collection ON inspiration(collection_id)',
+];
 
 export function getDb(): Promise<SQLite.SQLiteDatabase> {
   if (!dbPromise) {
@@ -86,9 +86,16 @@ export function getDb(): Promise<SQLite.SQLiteDatabase> {
       const db = await SQLite.openDatabaseAsync('onetake.db');
       await db.execAsync(SCHEMA);
       await migrate(db);
-      // Indexes last: idx_clips_expires needs expires_at, which migrate()
-      // adds to pre-existing clips tables.
-      await db.execAsync(INDEXES);
+      // Indexes last and each isolated: idx_clips_expires needs expires_at
+      // (added by migrate). An index is only an optimization - a failing
+      // one must never abort init and brick every DB-backed screen.
+      for (const stmt of INDEX_STMTS) {
+        try {
+          await db.execAsync(stmt);
+        } catch {
+          /* index is non-essential */
+        }
+      }
       await seed(db);
       return db;
     })();
@@ -112,11 +119,17 @@ async function addColumn(
   column: string,
   def: string
 ) {
-  const info = await db.getAllAsync<{ name: string }>(
-    `PRAGMA table_info(${table})`
-  );
-  if (!info.some((c) => c.name === column)) {
-    await db.execAsync(`ALTER TABLE ${table} ADD COLUMN ${column} ${def}`);
+  try {
+    const info = await db.getAllAsync<{ name: string }>(
+      `PRAGMA table_info(${table})`
+    );
+    if (!info.some((c) => c.name === column)) {
+      await db.execAsync(`ALTER TABLE ${table} ADD COLUMN ${column} ${def}`);
+    }
+  } catch {
+    // One column failing must not abort the whole migration - that would
+    // leave later columns (e.g. expires_at) unadded and brick every screen.
+    // Each addColumn is independent and idempotent, so isolate failures.
   }
 }
 
@@ -137,18 +150,23 @@ async function migrate(db: SQLite.SQLiteDatabase) {
     await addColumn(db, t, 'sync_status', "TEXT NOT NULL DEFAULT 'local'");
   }
   // Backfill updated_at so pre-existing rows have a sane sync clock.
-  await db.execAsync(
-    "UPDATE projects SET updated_at = created_at WHERE updated_at = 0"
-  );
-  await db.execAsync(
-    "UPDATE clips SET updated_at = created_at WHERE updated_at = 0"
-  );
-  await db.execAsync(
-    "UPDATE collections SET updated_at = created_at WHERE updated_at = 0"
-  );
-  await db.execAsync(
-    "UPDATE inspiration SET updated_at = added_at WHERE updated_at = 0"
-  );
+  // Non-essential - never let it abort init.
+  try {
+    await db.execAsync(
+      "UPDATE projects SET updated_at = created_at WHERE updated_at = 0"
+    );
+    await db.execAsync(
+      "UPDATE clips SET updated_at = created_at WHERE updated_at = 0"
+    );
+    await db.execAsync(
+      "UPDATE collections SET updated_at = created_at WHERE updated_at = 0"
+    );
+    await db.execAsync(
+      "UPDATE inspiration SET updated_at = added_at WHERE updated_at = 0"
+    );
+  } catch {
+    /* backfill is best-effort */
+  }
 }
 
 /** First-run seed: starter inspiration collections so the section is not empty. */
