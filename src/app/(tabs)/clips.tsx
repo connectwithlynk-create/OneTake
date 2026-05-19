@@ -1,7 +1,7 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import React, { useCallback, useState } from 'react';
-import { FlatList, StyleSheet, View } from 'react-native';
+import { Alert, FlatList, StyleSheet, View } from 'react-native';
 
 import { MediaTile, MEDIA_COLUMNS } from '@/components/media-tile';
 import {
@@ -16,7 +16,7 @@ import { parseMeta } from '@/lib/autotag';
 import { persistClip } from '@/lib/filestore';
 import { id } from '@/lib/id';
 import { rateClip } from '@/lib/rating';
-import { addClip, ensureImportProject, listAllClips } from '@/lib/repo';
+import { addClip, deleteClip, ensureImportProject, listAllClips } from '@/lib/repo';
 import { maybeTranscribe } from '@/lib/transcribe';
 import { invalidate, useData } from '@/lib/store';
 import { relativeAge, fmtDuration } from '@/lib/time';
@@ -63,6 +63,24 @@ export default function ClipsScreen() {
     } finally {
       setImporting(false);
     }
+  }
+
+  function confirmDelete(clipId: string, fileUri: string, label: string) {
+    Alert.alert(
+      'Delete clip?',
+      `"${label}" will be removed from this device. This can't be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            await deleteClip(clipId, fileUri);
+            invalidate();
+          },
+        },
+      ]
+    );
   }
 
   const shown =
@@ -132,6 +150,13 @@ export default function ClipsScreen() {
                         title: item.name ?? `Take ${item.order_index + 1}`,
                       },
                     })
+                  }
+                  onDelete={() =>
+                    confirmDelete(
+                      item.id,
+                      item.file_uri,
+                      item.name ?? `Take ${item.order_index + 1}`
+                    )
                   }
                 />
               );

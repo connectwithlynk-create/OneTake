@@ -112,3 +112,34 @@ and the Edge Function transcribes it via Deepgram. The transcript then sets:
 - The Edge Function has `verify_jwt=false` (it only proxies to Deepgram a
   signed URL the caller already had RLS-gated access to create); the secret,
   not the data, is the protected thing. Tighten before production.
+
+## 6. Vision analysis (Claude) - accurate tag + topic title + b-roll tags
+
+Provisioned: Supabase Edge Function `analyze` (deployed; repo copy in
+supabase/functions/analyze). Thin Anthropic proxy, key held as a secret.
+
+You provide an Anthropic key:
+
+1. Get an API key at https://console.anthropic.com (paid; usage-based).
+2. Supabase dashboard -> Edge Functions -> `analyze` -> Secrets ->
+   `ANTHROPIC_API_KEY = <your key>` (or `supabase secrets set ...`).
+
+### Pipeline (per recorded/imported clip, background, best-effort)
+
+1. upload to `clips` bucket -> `transcribe` (Deepgram) -> transcript
+2. grab 3 frames on-device (expo-video-thumbnails) -> send frames +
+   transcript to `analyze` (Claude Haiku 4.5 vision)
+3. model returns: `tag` (talking/b-roll - vision-based, so it is correct
+   even with music over a talking head or someone else filming you),
+   `title` (real topic, e.g. "Intro"), and b-roll content `tags`
+4. persisted to the clip; falls back to transcript-only, then the
+   on-device lens/audio heuristic, if any step is unavailable
+
+### Notes / limits
+
+- Requires a native rebuild: expo-video-thumbnails is a native module
+  (`npx expo run:ios --device`).
+- Costs Anthropic + Deepgram credits per clip (your accounts).
+- Only runs when signed in + Supabase + Clerk<->Supabase set up.
+- `analyze` is verify_jwt=false (proxy holding the secret; tighten before
+  production).

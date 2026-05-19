@@ -321,19 +321,21 @@ export async function setClipRemotePath(clipId: string, path: string) {
   );
 }
 
-/** Apply a server transcript: stores it and the tag/name it implies. */
-export async function setClipTranscription(
+/** Apply the server analysis: transcript + the tag/name/meta it implies. */
+export async function setClipAnalysis(
   clipId: string,
   transcript: string,
   tag: ClipTag,
-  name: string
+  name: string,
+  metaTagsJson: string | null
 ) {
   const db = await getDb();
   await db.runAsync(
-    'UPDATE clips SET transcript = ?, tag = ?, name = ? WHERE id = ?',
+    'UPDATE clips SET transcript = ?, tag = ?, name = ?, meta_tags = ? WHERE id = ?',
     transcript,
     tag,
     name,
+    metaTagsJson,
     clipId
   );
   await touch(db, 'clips', clipId);
