@@ -41,6 +41,7 @@ function Nav() {
       <Stack.Screen name="project/[id]" />
       <Stack.Screen name="edit/[projectId]" />
       <Stack.Screen name="capture/[projectId]" />
+      <Stack.Screen name="player" options={{ presentation: 'fullScreenModal' }} />
       <Stack.Screen name="prompt" />
       <Stack.Screen name="preview/[projectId]" />
       <Stack.Screen name="collection/[id]" />

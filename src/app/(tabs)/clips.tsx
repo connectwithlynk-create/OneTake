@@ -123,8 +123,11 @@ export default function ClipsScreen() {
                   accent={verdictColor[item.verdict]}
                   onPress={() =>
                     router.push({
-                      pathname: '/project/[id]',
-                      params: { id: item.project_id },
+                      pathname: '/player',
+                      params: {
+                        uri: item.file_uri,
+                        title: item.name ?? `Take ${item.order_index + 1}`,
+                      },
                     })
                   }
                 />

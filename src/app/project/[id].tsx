@@ -142,6 +142,15 @@ export default function ProjectScreen() {
                     date={`${relativeAge(item.created_at)} · ${fmtDuration(item.duration_ms)}`}
                     tags={tags}
                     accent={verdictColor[item.verdict]}
+                    onPress={() =>
+                      router.push({
+                        pathname: '/player',
+                        params: {
+                          uri: item.file_uri,
+                          title: item.name ?? `Take ${item.order_index + 1}`,
+                        },
+                      })
+                    }
                     onLongPress={() => cycleVerdict(item)}
                     onDelete={() => remove(item)}
                   />

@@ -269,6 +269,15 @@ export default function CaptureScreen() {
                     title={item.name ?? 'Clip'}
                     date={relativeAge(item.created_at)}
                     accent={verdictColor[item.verdict]}
+                    onPress={() =>
+                      router.push({
+                        pathname: '/player',
+                        params: {
+                          uri: item.file_uri,
+                          title: item.name ?? 'Clip',
+                        },
+                      })
+                    }
                   />
                 )}
               />
