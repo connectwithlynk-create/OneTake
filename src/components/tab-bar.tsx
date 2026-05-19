@@ -1,11 +1,47 @@
+import { useUser } from '@clerk/expo';
 import { Ionicons } from '@expo/vector-icons';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import * as Haptics from 'expo-haptics';
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { palette, radius, space } from '@/theme';
+
+// Clerk hooks only work inside ClerkProvider, which is mounted only when a
+// publishable key is set. Gate the profile element on that.
+const CLERK_ON = !!process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
+
+function ProfileButton() {
+  const { user } = useUser();
+  const router = useRouter();
+  const uri = user?.imageUrl;
+  const initial = (
+    user?.firstName?.[0] ??
+    user?.primaryEmailAddress?.emailAddress?.[0] ??
+    user?.emailAddresses?.[0]?.emailAddress?.[0] ??
+    '?'
+  ).toUpperCase();
+
+  return (
+    <Pressable
+      style={styles.profile}
+      onPress={() => {
+        Haptics.selectionAsync().catch(() => {});
+        router.push('/profile');
+      }}
+    >
+      {uri ? (
+        <Image source={{ uri }} style={styles.avatar} contentFit="cover" />
+      ) : (
+        <View style={[styles.avatar, styles.avatarFallback]}>
+          <Text style={styles.avatarText}>{initial}</Text>
+        </View>
+      )}
+    </Pressable>
+  );
+}
 
 const ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   index: 'film',
@@ -77,6 +113,8 @@ export default function TabBar({
             </Pressable>
           );
         })}
+
+        {CLERK_ON && <ProfileButton />}
       </View>
     </View>
   );
@@ -120,6 +158,21 @@ const styles = StyleSheet.create({
     paddingVertical: space.sm,
   },
   label: { fontSize: 11, fontWeight: '800' },
+  profile: {
+    width: 52,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatar: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    borderWidth: 1.5,
+    borderColor: palette.purple,
+    backgroundColor: palette.surfaceHi,
+  },
+  avatarFallback: { alignItems: 'center', justifyContent: 'center' },
+  avatarText: { color: palette.purple, fontWeight: '900', fontSize: 13 },
   activeDot: {
     position: 'absolute',
     bottom: 2,

@@ -36,6 +36,7 @@ function Nav() {
     >
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="sign-in" />
+      <Stack.Screen name="profile" options={{ presentation: 'modal' }} />
       <Stack.Screen name="new-project" />
       <Stack.Screen name="inspiration-add" options={{ presentation: 'modal' }} />
       <Stack.Screen name="project/[id]" />
