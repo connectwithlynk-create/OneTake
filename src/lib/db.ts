@@ -32,6 +32,10 @@ const CLIPS_COLUMNS = [
   'meta_tags',
   'transcript',
   'mirrored',
+  'in_ms',
+  'out_ms',
+  'audio_volume',
+  'transcript_words',
 ] as const;
 
 const CLIPS_BODY = `
@@ -54,7 +58,11 @@ const CLIPS_BODY = `
   name TEXT,
   meta_tags TEXT,
   transcript TEXT,
-  mirrored INTEGER NOT NULL DEFAULT 0
+  mirrored INTEGER NOT NULL DEFAULT 0,
+  in_ms INTEGER,
+  out_ms INTEGER,
+  audio_volume REAL NOT NULL DEFAULT 1.0,
+  transcript_words TEXT
 `;
 
 const SCHEMA = `
@@ -94,6 +102,23 @@ CREATE TABLE IF NOT EXISTS inspiration (
   updated_at INTEGER NOT NULL DEFAULT 0,
   sync_status TEXT NOT NULL DEFAULT 'local'
 );
+
+CREATE TABLE IF NOT EXISTS overlays (
+  id TEXT PRIMARY KEY NOT NULL,
+  project_id TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  text TEXT NOT NULL,
+  start_ms INTEGER NOT NULL,
+  end_ms INTEGER NOT NULL,
+  x REAL NOT NULL DEFAULT 0.5,
+  y REAL NOT NULL DEFAULT 0.82,
+  color TEXT NOT NULL DEFAULT '#ffffff',
+  size INTEGER NOT NULL DEFAULT 22,
+  created_at INTEGER NOT NULL,
+  owner TEXT,
+  updated_at INTEGER NOT NULL DEFAULT 0,
+  sync_status TEXT NOT NULL DEFAULT 'local'
+);
 `;
 
 /**
@@ -107,6 +132,7 @@ const INDEX_STMTS = [
   'CREATE INDEX IF NOT EXISTS idx_clips_project ON clips(project_id)',
   'CREATE INDEX IF NOT EXISTS idx_clips_expires ON clips(expires_at)',
   'CREATE INDEX IF NOT EXISTS idx_insp_collection ON inspiration(collection_id)',
+  'CREATE INDEX IF NOT EXISTS idx_overlays_project ON overlays(project_id)',
 ];
 
 export function getDb(): Promise<SQLite.SQLiteDatabase> {
@@ -178,6 +204,10 @@ async function migrate(db: SQLite.SQLiteDatabase) {
   await addColumn(db, 'clips', 'meta_tags', 'TEXT');
   await addColumn(db, 'clips', 'transcript', 'TEXT');
   await addColumn(db, 'clips', 'mirrored', 'INTEGER NOT NULL DEFAULT 0');
+  await addColumn(db, 'clips', 'in_ms', 'INTEGER');
+  await addColumn(db, 'clips', 'out_ms', 'INTEGER');
+  await addColumn(db, 'clips', 'audio_volume', 'REAL NOT NULL DEFAULT 1.0');
+  await addColumn(db, 'clips', 'transcript_words', 'TEXT');
   // projects / collections / inspiration
   for (const t of ['projects', 'collections', 'inspiration']) {
     await addColumn(db, t, 'owner', 'TEXT');

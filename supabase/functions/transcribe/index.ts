@@ -1,10 +1,10 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 
 // Thin Deepgram proxy. Holds DEEPGRAM_API_KEY (Supabase secret) so it never
-// ships in the app. The caller supplies a short-lived signed URL it already
-// had RLS-gated access to create; this function only transcribes it.
-// Deployed to project arkzlehcpbzohmxwpntl as function `transcribe`
-// (verify_jwt=false). Repo copy of record.
+// ships in the app. Caller supplies a short-lived signed URL it already had
+// RLS-gated access to create; this function only transcribes it. Returns
+// both the full transcript and word-level timings (drives synced captions).
+// Deployed to project arkzlehcpbzohmxwpntl (verify_jwt=false). Repo copy of record.
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers':
@@ -18,6 +18,13 @@ function json(body: unknown, status = 200) {
     headers: { ...CORS, 'Content-Type': 'application/json' },
   });
 }
+
+type DGWord = {
+  word?: string;
+  punctuated_word?: string;
+  start: number;
+  end: number;
+};
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
@@ -44,9 +51,15 @@ Deno.serve(async (req: Request) => {
       return json({ error: `deepgram_${dg.status}`, detail: await dg.text() }, 502);
     }
     const data = await dg.json();
-    const transcript =
-      data?.results?.channels?.[0]?.alternatives?.[0]?.transcript ?? '';
-    return json({ transcript });
+    const alt = data?.results?.channels?.[0]?.alternatives?.[0];
+    const transcript: string = alt?.transcript ?? '';
+    const raw: DGWord[] = Array.isArray(alt?.words) ? alt.words : [];
+    const words = raw.map((w) => ({
+      w: w.punctuated_word ?? w.word ?? '',
+      s: w.start,
+      e: w.end,
+    }));
+    return json({ transcript, words });
   } catch (e) {
     return json({ error: String(e) }, 500);
   }

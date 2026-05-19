@@ -5,6 +5,7 @@ import {
   setClipRemotePath,
   setClipTranscription,
   setClipTranscriptText,
+  setClipTranscriptWords,
 } from './repo';
 import { invalidate } from './store';
 import { CLIPS_BUCKET, supabase, supabaseConfigured } from './supabase';
@@ -61,6 +62,17 @@ export async function maybeTranscribe(clipId: string): Promise<void> {
     });
     if (error || !data) return;
     const transcript: string = String(data.transcript ?? '').trim();
+    const wordTimings = Array.isArray(data.words) ? data.words : [];
+
+    // Always persist word timings (they drive synced subtitles, independent
+    // of tag/title logic).
+    if (wordTimings.length > 0) {
+      try {
+        await setClipTranscriptWords(clipId, JSON.stringify(wordTimings));
+      } catch {
+        /* ignore */
+      }
+    }
 
     // User manually set the tag? Keep their choice (and their name); just
     // stash the transcript so the player can still show it.

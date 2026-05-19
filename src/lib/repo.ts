@@ -12,6 +12,7 @@ import type {
   Collection,
   Inspiration,
   MetaTag,
+  Overlay,
   Project,
   ProjectStatus,
   ProjectType,
@@ -22,7 +23,7 @@ import type {
  *  `table` is always an internal constant, never user input. */
 async function touch(
   db: SQLite.SQLiteDatabase,
-  table: 'projects' | 'clips' | 'collections' | 'inspiration',
+  table: 'projects' | 'clips' | 'collections' | 'inspiration' | 'overlays',
   rowId: string
 ) {
   await db.runAsync(
@@ -163,11 +164,15 @@ export async function addClip(
     meta_tags: stringifyMeta(meta),
     transcript: null,
     mirrored: 0,
+    in_ms: null,
+    out_ms: null,
+    audio_volume: 1.0,
+    transcript_words: null,
   };
   await db.runAsync(
     `INSERT INTO clips
-       (id, project_id, order_index, file_uri, duration_ms, verdict, verdict_overridden, tag, tag_overridden, excluded, expires_at, created_at, updated_at, sync_status, name, meta_tags, transcript, mirrored)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       (id, project_id, order_index, file_uri, duration_ms, verdict, verdict_overridden, tag, tag_overridden, excluded, expires_at, created_at, updated_at, sync_status, name, meta_tags, transcript, mirrored, audio_volume)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     clip.id,
     clip.project_id,
     clip.order_index,
@@ -185,7 +190,8 @@ export async function addClip(
     clip.name,
     clip.meta_tags,
     clip.transcript,
-    clip.mirrored
+    clip.mirrored,
+    clip.audio_volume
   );
   return clip;
 }
@@ -322,6 +328,144 @@ export async function setClipMetaTags(clipId: string, tags: MetaTag[]) {
 export async function getClip(clipId: string): Promise<Clip | null> {
   const db = await getDb();
   return db.getFirstAsync<Clip>('SELECT * FROM clips WHERE id = ?', clipId);
+}
+
+export async function setClipTrim(
+  clipId: string,
+  inMs: number | null,
+  outMs: number | null
+) {
+  const db = await getDb();
+  await db.runAsync(
+    'UPDATE clips SET in_ms = ?, out_ms = ? WHERE id = ?',
+    inMs,
+    outMs,
+    clipId
+  );
+  await touch(db, 'clips', clipId);
+}
+
+export async function setClipVolume(clipId: string, volume: number) {
+  const db = await getDb();
+  const v = Math.max(0, Math.min(1, volume));
+  await db.runAsync(
+    'UPDATE clips SET audio_volume = ? WHERE id = ?',
+    v,
+    clipId
+  );
+  await touch(db, 'clips', clipId);
+}
+
+export async function setClipTranscriptWords(clipId: string, wordsJson: string) {
+  const db = await getDb();
+  await db.runAsync(
+    'UPDATE clips SET transcript_words = ? WHERE id = ?',
+    wordsJson,
+    clipId
+  );
+  await touch(db, 'clips', clipId);
+}
+
+/** Rewrite order_index for a project's clips to the supplied id order. */
+export async function reorderProjectClips(
+  projectId: string,
+  idsInOrder: string[]
+) {
+  const db = await getDb();
+  const now = Date.now();
+  await db.withTransactionAsync(async () => {
+    for (let i = 0; i < idsInOrder.length; i++) {
+      await db.runAsync(
+        "UPDATE clips SET order_index = ?, updated_at = ?, sync_status = 'local' WHERE id = ? AND project_id = ?",
+        i,
+        now,
+        idsInOrder[i],
+        projectId
+      );
+    }
+  });
+}
+
+// ----- Overlays (project-level text overlays for the editor) -----
+
+export async function listOverlays(projectId: string): Promise<Overlay[]> {
+  const db = await getDb();
+  return db.getAllAsync<Overlay>(
+    'SELECT * FROM overlays WHERE project_id = ? ORDER BY start_ms ASC, created_at ASC',
+    projectId
+  );
+}
+
+export async function addOverlay(
+  projectId: string,
+  args: {
+    text: string;
+    start_ms: number;
+    end_ms: number;
+    x?: number;
+    y?: number;
+    color?: string;
+    size?: number;
+  }
+): Promise<Overlay> {
+  const db = await getDb();
+  const now = Date.now();
+  const o: Overlay = {
+    id: id(),
+    project_id: projectId,
+    kind: 'text',
+    text: args.text,
+    start_ms: args.start_ms,
+    end_ms: args.end_ms,
+    x: args.x ?? 0.5,
+    y: args.y ?? 0.82,
+    color: args.color ?? '#ffffff',
+    size: args.size ?? 22,
+    created_at: now,
+    owner: null,
+    updated_at: now,
+    sync_status: 'local',
+  };
+  await db.runAsync(
+    `INSERT INTO overlays (id, project_id, kind, text, start_ms, end_ms, x, y, color, size, created_at, updated_at, sync_status)
+     VALUES (?, ?, 'text', ?, ?, ?, ?, ?, ?, ?, ?, ?, 'local')`,
+    o.id,
+    o.project_id,
+    o.text,
+    o.start_ms,
+    o.end_ms,
+    o.x,
+    o.y,
+    o.color,
+    o.size,
+    o.created_at,
+    o.updated_at
+  );
+  return o;
+}
+
+export async function updateOverlay(
+  overlayId: string,
+  patch: Partial<
+    Pick<Overlay, 'text' | 'start_ms' | 'end_ms' | 'x' | 'y' | 'color' | 'size'>
+  >
+) {
+  const db = await getDb();
+  const keys = Object.keys(patch) as (keyof typeof patch)[];
+  if (keys.length === 0) return;
+  const sets = keys.map((k) => `${k} = ?`).join(', ');
+  const vals = keys.map((k) => patch[k]);
+  await db.runAsync(
+    `UPDATE overlays SET ${sets} WHERE id = ?`,
+    ...(vals as (string | number)[]),
+    overlayId
+  );
+  await touch(db, 'overlays', overlayId);
+}
+
+export async function deleteOverlay(overlayId: string) {
+  const db = await getDb();
+  await db.runAsync('DELETE FROM overlays WHERE id = ?', overlayId);
 }
 
 export async function setClipMirrored(clipId: string, mirrored: 0 | 1) {

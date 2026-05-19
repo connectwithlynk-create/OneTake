@@ -54,6 +54,13 @@ export interface Clip extends SyncFields {
   /** View-time horizontal flip (mirror). The file is never re-encoded -
    *  this only affects how the clip is displayed in the player. 0|1. */
   mirrored: number;
+  /** Manual-edit trim in ms (null = no trim, use full clip). */
+  in_ms: number | null;
+  out_ms: number | null;
+  /** 0..1 multiplier applied during in-app preview (not baked into file). */
+  audio_volume: number;
+  /** JSON of [{w, s, e}] word timings from Deepgram. Drives subtitles. */
+  transcript_words: string | null;
   /** Non-null = ephemeral take; GC'd after this epoch-ms. Null = saved
    *  (Memories): persists and is eligible for cloud backup. */
   expires_at: number | null;
@@ -66,6 +73,28 @@ export interface Collection extends SyncFields {
   id: string;
   name: string;
   created_at: number;
+}
+
+/** Project-level text overlay (rendered over preview in [start_ms, end_ms]). */
+export interface Overlay extends SyncFields {
+  id: string;
+  project_id: string;
+  kind: 'text';
+  text: string;
+  start_ms: number;
+  end_ms: number;
+  x: number; // 0..1 normalized
+  y: number; // 0..1 normalized
+  color: string;
+  size: number;
+  created_at: number;
+}
+
+/** Compact word timing for subtitles ({w}ord, {s}tart sec, {e}nd sec). */
+export interface WordTiming {
+  w: string;
+  s: number;
+  e: number;
 }
 
 export interface Inspiration extends SyncFields {
