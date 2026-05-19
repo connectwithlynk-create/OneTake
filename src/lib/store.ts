@@ -45,6 +45,10 @@ export function useData<T>(
     setLoading(true);
     loader()
       .then((d) => alive && setData(d))
+      .catch(() => {
+        // A DB/query failure must degrade to an empty state, not a scary
+        // "Uncaught (in promise)" red box that bricks the screen.
+      })
       .finally(() => alive && setLoading(false));
     return () => {
       alive = false;
