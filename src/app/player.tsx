@@ -6,6 +6,7 @@ import {
   LayoutChangeEvent,
   PanResponder,
   Pressable,
+  ScrollView,
   StyleSheet,
   View,
 } from 'react-native';
@@ -13,7 +14,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppText } from '@/components/ui';
 import { resolveClipUri } from '@/lib/filestore';
-import { palette, radius, space } from '@/theme';
+import { getClip, setTag } from '@/lib/repo';
+import { palette, radius, space, tagColor } from '@/theme';
+import type { ClipTag } from '@/lib/types';
 
 function mmss(s: number): string {
   if (!Number.isFinite(s) || s < 0) s = 0;
@@ -26,9 +29,10 @@ function mmss(s: number): string {
 /** Custom in-app clip viewer: contained (not fullscreen), no Apple native
  *  controls. Our own play/pause + draggable scrubber. */
 export default function PlayerScreen() {
-  const { uri, title } = useLocalSearchParams<{
+  const { uri, title, id } = useLocalSearchParams<{
     uri?: string;
     title?: string;
+    id?: string;
   }>();
   const router = useRouter();
 
@@ -43,6 +47,46 @@ export default function PlayerScreen() {
   const [cur, setCur] = useState(0);
   const [dur, setDur] = useState(0);
   const [scrub, setScrub] = useState<number | null>(null); // 0..1 while dragging
+  const [transcript, setTranscript] = useState<string | null>(null);
+  const [showTx, setShowTx] = useState(false);
+  const [tag, setTagState] = useState<ClipTag | null>(null);
+
+  // Load the clip's transcript + current tag (only when opened with an id).
+  useEffect(() => {
+    let alive = true;
+    if (!id) {
+      setTranscript(null);
+      setTagState(null);
+      return;
+    }
+    getClip(id)
+      .then((c) => {
+        if (!alive) return;
+        setTranscript(c?.transcript?.trim() || null);
+        setTagState(c?.tag ?? null);
+      })
+      .catch(() => {
+        if (alive) {
+          setTranscript(null);
+          setTagState(null);
+        }
+      });
+    return () => {
+      alive = false;
+    };
+  }, [id]);
+
+  async function flipTag() {
+    if (!id || !tag) return;
+    const next: ClipTag = tag === 'talking' ? 'broll' : 'talking';
+    const prev = tag;
+    setTagState(next); // optimistic
+    try {
+      await setTag(id, next);
+    } catch {
+      setTagState(prev); // revert
+    }
+  }
 
   // Poll the player's synchronous props (avoids event-name guesswork).
   useEffect(() => {
@@ -113,6 +157,20 @@ export default function PlayerScreen() {
         <AppText kind="subtitle" numberOfLines={1} style={{ flex: 1 }}>
           {title ?? 'Clip'}
         </AppText>
+        {tag && (
+          <Pressable
+            style={[styles.tagPill, { borderColor: tagColor[tag] }]}
+            onPress={flipTag}
+            hitSlop={6}
+          >
+            <AppText
+              kind="caption"
+              style={[styles.tagPillText, { color: tagColor[tag] }]}
+            >
+              {tag === 'talking' ? 'TALKING' : 'B-ROLL'}
+            </AppText>
+          </Pressable>
+        )}
         <Pressable style={styles.iconBtn} onPress={toggleMute}>
           <Ionicons
             name={muted ? 'volume-mute' : 'volume-high'}
@@ -136,6 +194,36 @@ export default function PlayerScreen() {
                 <View style={styles.bigPlay}>
                   <Ionicons name="play" size={30} color={palette.onBright} />
                 </View>
+              </View>
+            )}
+
+            {playing && transcript && (
+              <Pressable
+                style={styles.txBtn}
+                onPress={() => setShowTx((v) => !v)}
+                hitSlop={8}
+              >
+                <Ionicons
+                  name={showTx ? 'close' : 'document-text'}
+                  size={16}
+                  color="#fff"
+                />
+              </Pressable>
+            )}
+
+            {playing && transcript && showTx && (
+              <View style={styles.txPanel}>
+                <AppText kind="caption" style={styles.txLabel}>
+                  TRANSCRIPT
+                </AppText>
+                <ScrollView
+                  style={{ flex: 1 }}
+                  showsVerticalScrollIndicator={false}
+                >
+                  <AppText kind="body" style={styles.txText}>
+                    {transcript}
+                  </AppText>
+                </ScrollView>
               </View>
             )}
           </View>
@@ -196,6 +284,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  tagPill: {
+    paddingHorizontal: space.md,
+    paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: 1.5,
+  },
+  tagPillText: { fontSize: 11, fontWeight: '800', letterSpacing: 0.4 },
   stage: {
     flex: 1,
     alignItems: 'center',
@@ -225,6 +320,36 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  txBtn: {
+    position: 'absolute',
+    bottom: 10,
+    left: 10,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  txPanel: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    maxHeight: '55%',
+    backgroundColor: 'rgba(0,0,0,0.82)',
+    paddingHorizontal: space.lg,
+    paddingTop: space.md,
+    paddingBottom: space.lg,
+    borderTopLeftRadius: radius.lg,
+    borderTopRightRadius: radius.lg,
+  },
+  txLabel: {
+    color: palette.textDim,
+    letterSpacing: 1,
+    marginBottom: space.sm,
+  },
+  txText: { color: '#fff', lineHeight: 22 },
   controls: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -1,58 +1,32 @@
 import { getClerkInstance } from '@clerk/expo';
-import * as LegacyFS from 'expo-file-system/legacy';
-import * as VideoThumbnails from 'expo-video-thumbnails';
 
-import { resolveClipUri } from './filestore';
-import { getClip, setClipAnalysis, setClipRemotePath } from './repo';
+import {
+  getClip,
+  setClipRemotePath,
+  setClipTranscription,
+  setClipTranscriptText,
+} from './repo';
 import { invalidate } from './store';
 import { CLIPS_BUCKET, supabase, supabaseConfigured } from './supabase';
 import { uploadClipFile } from './sync';
-import type { ClipTag, MetaTag } from './types';
+import type { ClipTag } from './types';
 
 /**
- * Clip analysis (Phase 4, cloud multimodal). Best-effort:
- *  1. upload clip to Storage if needed
- *  2. `transcribe` Edge Function (Deepgram) -> transcript
- *  3. grab a few frames on-device, send frames + transcript to the
- *     `analyze` Edge Function (Claude vision) -> tag, title, content tags
- *  4. persist
- * Vision is the source of truth for talking/b-roll (lens-independent, works
- * even with music over a talking head or someone else filming you). If
- * vision fails, fall back to a transcript-only heuristic; if the whole thing
- * is unavailable (signed out / not configured) it no-ops and the on-device
+ * Server transcription (Phase 4). Best-effort and lens-independent:
+ * uploads the clip to Storage if needed, has the `transcribe` Edge Function
+ * (which holds the Deepgram key) transcribe it, then derives the real
+ * talking/b-roll tag and a spoken-words title from the transcript.
+ *
+ * Requires: Supabase configured, signed in (Clerk), and the Clerk<->Supabase
+ * integration set up. Otherwise it silently no-ops and the lens/audio
  * heuristic that already ran stands.
  */
 const inFlight = new Set<string>();
-const FRAME_FRACTIONS = [0.15, 0.5, 0.85];
 
-function titleFromWords(words: string[]): string {
+function titleFrom(words: string[]): string {
   let t = words.slice(0, 7).join(' ').replace(/[.,!?;:]+$/, '').trim();
   if (t.length > 42) t = `${t.slice(0, 42).trim()}…`;
   return t.charAt(0).toUpperCase() + t.slice(1);
-}
-
-async function grabFrames(
-  fileUri: string,
-  durationMs: number
-): Promise<string[]> {
-  const abs = resolveClipUri(fileUri);
-  const dur = durationMs > 0 ? durationMs : 3000;
-  const out: string[] = [];
-  for (const f of FRAME_FRACTIONS) {
-    try {
-      const { uri } = await VideoThumbnails.getThumbnailAsync(abs, {
-        time: Math.floor(dur * f),
-        quality: 0.6,
-      });
-      const b64 = await LegacyFS.readAsStringAsync(uri, {
-        encoding: LegacyFS.EncodingType.Base64,
-      });
-      if (b64) out.push(b64);
-    } catch {
-      /* skip a frame that can't be grabbed */
-    }
-  }
-  return out;
 }
 
 export async function maybeTranscribe(clipId: string): Promise<void> {
@@ -82,56 +56,30 @@ export async function maybeTranscribe(clipId: string): Promise<void> {
       .createSignedUrl(storagePath, 120);
     if (signErr || !signed?.signedUrl) return;
 
-    // 1. transcript
-    const { data: tData, error: tErr } = await supabase.functions.invoke(
-      'transcribe',
-      { body: { signedUrl: signed.signedUrl } }
-    );
-    const transcript: string =
-      tErr || !tData ? '' : String(tData.transcript ?? '').trim();
+    const { data, error } = await supabase.functions.invoke('transcribe', {
+      body: { signedUrl: signed.signedUrl },
+    });
+    if (error || !data) return;
+    const transcript: string = String(data.transcript ?? '').trim();
+
+    // User manually set the tag? Keep their choice (and their name); just
+    // stash the transcript so the player can still show it.
+    if (clip.tag_overridden === 1) {
+      await setClipTranscriptText(clipId, transcript);
+      invalidate();
+      return;
+    }
+
     const words = transcript.split(/\s+/).filter(Boolean);
-
-    // 2. vision (frames + transcript)
-    const frames = await grabFrames(clip.file_uri, clip.duration_ms);
-    let tag: ClipTag = clip.tag;
-    let name: string = clip.name ?? 'Clip';
-    let metaTags: MetaTag[] | null = null;
-
-    let visionOk = false;
-    if (frames.length > 0) {
-      const { data: vData, error: vErr } = await supabase.functions.invoke(
-        'analyze',
-        { body: { transcript, frames } }
-      );
-      if (!vErr && vData && (vData.tag === 'talking' || vData.tag === 'broll')) {
-        tag = vData.tag;
-        name =
-          typeof vData.title === 'string' && vData.title.trim()
-            ? vData.title.trim()
-            : clip.name ?? 'Clip';
-        metaTags = Array.isArray(vData.tags) ? (vData.tags as MetaTag[]) : [];
-        visionOk = true;
-      }
+    const hasSpeech = words.length >= 4;
+    const tag: ClipTag = hasSpeech ? 'talking' : 'broll';
+    // Title from the actual spoken words; the project's opener is the Intro.
+    let name = clip.name ?? '';
+    if (hasSpeech) {
+      name = clip.order_index === 0 ? 'Intro' : titleFrom(words);
     }
 
-    if (!visionOk) {
-      // Fallback: transcript-only heuristic.
-      const hasSpeech = words.length >= 4;
-      tag = hasSpeech ? 'talking' : 'broll';
-      name = hasSpeech
-        ? clip.order_index === 0
-          ? 'Intro'
-          : titleFromWords(words)
-        : clip.name ?? 'Clip';
-    }
-
-    await setClipAnalysis(
-      clipId,
-      transcript,
-      tag,
-      name,
-      metaTags ? JSON.stringify(metaTags) : clip.meta_tags
-    );
+    await setClipTranscription(clipId, transcript, tag, name);
     invalidate();
   } catch {
     /* best-effort - heuristic tag/name stays */

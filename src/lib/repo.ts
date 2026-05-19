@@ -321,21 +321,34 @@ export async function setClipRemotePath(clipId: string, path: string) {
   );
 }
 
-/** Apply the server analysis: transcript + the tag/name/meta it implies. */
-export async function setClipAnalysis(
+/** Just stash the transcript text - leave tag/name alone (used when the
+ *  user manually overrode the tag and we want their choice to stick). */
+export async function setClipTranscriptText(
   clipId: string,
-  transcript: string,
-  tag: ClipTag,
-  name: string,
-  metaTagsJson: string | null
+  transcript: string
 ) {
   const db = await getDb();
   await db.runAsync(
-    'UPDATE clips SET transcript = ?, tag = ?, name = ?, meta_tags = ? WHERE id = ?',
+    'UPDATE clips SET transcript = ? WHERE id = ?',
+    transcript,
+    clipId
+  );
+  await touch(db, 'clips', clipId);
+}
+
+/** Apply a server transcript: stores it and the tag/name it implies. */
+export async function setClipTranscription(
+  clipId: string,
+  transcript: string,
+  tag: ClipTag,
+  name: string
+) {
+  const db = await getDb();
+  await db.runAsync(
+    'UPDATE clips SET transcript = ?, tag = ?, name = ? WHERE id = ?',
     transcript,
     tag,
     name,
-    metaTagsJson,
     clipId
   );
   await touch(db, 'clips', clipId);
