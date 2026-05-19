@@ -146,6 +146,7 @@ export default function ClipsScreen() {
                     router.push({
                       pathname: '/player',
                       params: {
+                        id: item.id,
                         uri: item.file_uri,
                         title: item.name ?? `Take ${item.order_index + 1}`,
                       },

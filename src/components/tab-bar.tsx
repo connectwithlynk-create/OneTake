@@ -44,6 +44,7 @@ function ProfileButton() {
 }
 
 const ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
+  camera: 'camera',
   index: 'film',
   clips: 'videocam',
   analysis: 'stats-chart',

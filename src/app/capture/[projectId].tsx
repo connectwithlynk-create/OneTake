@@ -276,6 +276,7 @@ export default function CaptureScreen() {
                       router.push({
                         pathname: '/player',
                         params: {
+                          id: item.id,
                           uri: item.file_uri,
                           title: item.name ?? 'Clip',
                         },

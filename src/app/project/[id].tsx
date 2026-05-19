@@ -1,6 +1,7 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { FlatList, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, TextInput, View } from 'react-native';
 
 import { MediaTile, MEDIA_COLUMNS } from '@/components/media-tile';
 import {
@@ -9,7 +10,6 @@ import {
   Card,
   Chip,
   EmptyState,
-  Header,
   IconButton,
   Loading,
   Screen,
@@ -20,12 +20,13 @@ import {
   deleteClip,
   getProject,
   listClips,
+  renameProject,
   setProjectStatus,
   setVerdict,
 } from '@/lib/repo';
 import { invalidate, useData } from '@/lib/store';
 import { relativeAge, fmtDuration } from '@/lib/time';
-import { palette, space, verdictColor } from '@/theme';
+import { palette, radius, space, verdictColor } from '@/theme';
 import type { Clip, Verdict } from '@/lib/types';
 
 const VERDICT_CYCLE: Verdict[] = ['dud', 'keep', 'perfect'];
@@ -34,6 +35,8 @@ export default function ProjectScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const [filter, setFilter] = useState<'all' | 'keeps' | 'duds'>('all');
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [titleInput, setTitleInput] = useState('');
 
   const { data: project, loading: lp } = useData(() => getProject(id), [id]);
   const { data: clips, loading: lc } = useData(() => listClips(id), [id]);
@@ -67,13 +70,27 @@ export default function ProjectScreen() {
     router.push({ pathname: '/preview/[projectId]', params: { projectId: id } });
   }
 
+  function startEditTitle() {
+    setTitleInput(project!.title);
+    setEditingTitle(true);
+  }
+  async function saveTitle() {
+    await renameProject(id, titleInput);
+    invalidate();
+    setEditingTitle(false);
+  }
+
   return (
     <Screen>
-      <Header
-        title={project.title}
-        back
-        right={
-          !isPrompt ? (
+      <View style={styles.header}>
+        <View style={styles.headerRow}>
+          <IconButton
+            name="chevron-back"
+            tone="surface"
+            onPress={() => router.back()}
+          />
+          <View style={{ flex: 1 }} />
+          {!isPrompt ? (
             <IconButton
               name="videocam"
               tone="accent"
@@ -84,9 +101,32 @@ export default function ProjectScreen() {
                 })
               }
             />
-          ) : undefined
-        }
-      />
+          ) : null}
+        </View>
+
+        {editingTitle ? (
+          <View style={styles.titleEditRow}>
+            <TextInput
+              value={titleInput}
+              onChangeText={setTitleInput}
+              autoFocus
+              placeholder={project.title}
+              placeholderTextColor={palette.textFaint}
+              style={styles.titleInput}
+              onSubmitEditing={saveTitle}
+              returnKeyType="done"
+            />
+            <IconButton name="checkmark" tone="accent" onPress={saveTitle} />
+          </View>
+        ) : (
+          <Pressable style={styles.titleRow} onPress={startEditTitle}>
+            <AppText kind="hero" style={{ flex: 1 }} numberOfLines={1}>
+              {project.title}
+            </AppText>
+            <Ionicons name="pencil" size={16} color={palette.textFaint} />
+          </Pressable>
+        )}
+      </View>
 
       {isPrompt ? (
         <View style={{ flex: 1, gap: space.lg }}>
@@ -146,6 +186,7 @@ export default function ProjectScreen() {
                       router.push({
                         pathname: '/player',
                         params: {
+                          id: item.id,
                           uri: item.file_uri,
                           title: item.name ?? `Take ${item.order_index + 1}`,
                         },
@@ -200,3 +241,32 @@ export default function ProjectScreen() {
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  header: { paddingTop: space.md, paddingBottom: space.lg },
+  headerRow: { flexDirection: 'row', alignItems: 'center' },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.md,
+    marginTop: space.md,
+  },
+  titleEditRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.sm,
+    marginTop: space.md,
+  },
+  titleInput: {
+    flex: 1,
+    backgroundColor: palette.surface,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: palette.border,
+    color: palette.text,
+    fontSize: 26,
+    fontWeight: '900',
+    paddingHorizontal: space.md,
+    paddingVertical: space.sm,
+  },
+});

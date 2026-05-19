@@ -94,6 +94,16 @@ export async function getProject(pid: string): Promise<Project | null> {
   return db.getFirstAsync<Project>('SELECT * FROM projects WHERE id = ?', pid);
 }
 
+export async function renameProject(pid: string, title: string) {
+  const db = await getDb();
+  await db.runAsync(
+    'UPDATE projects SET title = ? WHERE id = ?',
+    title.trim() || 'Untitled',
+    pid
+  );
+  await touch(db, 'projects', pid);
+}
+
 export async function setProjectStatus(pid: string, status: ProjectStatus) {
   const db = await getDb();
   await db.runAsync('UPDATE projects SET status = ? WHERE id = ?', status, pid);
