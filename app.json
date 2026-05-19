@@ -52,7 +52,14 @@
         }
       ],
       "./plugins/with-no-apple-signin.js",
-      "expo-audio"
+      "expo-audio",
+      [
+        "expo-media-library",
+        {
+          "savePhotosPermission": "OneTake needs permission to save your clips to your photo library.",
+          "photosPermission": "OneTake needs access to your photo library to import video clips."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

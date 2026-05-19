@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import * as MediaLibrary from 'expo-media-library';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import React, { useEffect, useRef, useState } from 'react';
@@ -50,6 +51,7 @@ export default function PlayerScreen() {
   const [transcript, setTranscript] = useState<string | null>(null);
   const [showTx, setShowTx] = useState(false);
   const [tag, setTagState] = useState<ClipTag | null>(null);
+  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'done'>('idle');
 
   // Load the clip's transcript + current tag (only when opened with an id).
   useEffect(() => {
@@ -75,6 +77,23 @@ export default function PlayerScreen() {
       alive = false;
     };
   }, [id]);
+
+  async function saveToCameraRoll() {
+    if (!uri || saveState === 'saving') return;
+    setSaveState('saving');
+    try {
+      const perm = await MediaLibrary.requestPermissionsAsync(true);
+      if (!perm.granted) {
+        setSaveState('idle');
+        return;
+      }
+      await MediaLibrary.saveToLibraryAsync(resolveClipUri(uri));
+      setSaveState('done');
+      setTimeout(() => setSaveState('idle'), 1800);
+    } catch {
+      setSaveState('idle');
+    }
+  }
 
   async function flipTag() {
     if (!id || !tag) return;
@@ -171,6 +190,23 @@ export default function PlayerScreen() {
             </AppText>
           </Pressable>
         )}
+        <Pressable
+          style={styles.iconBtn}
+          onPress={saveToCameraRoll}
+          disabled={!uri || saveState === 'saving'}
+        >
+          <Ionicons
+            name={
+              saveState === 'done'
+                ? 'checkmark'
+                : saveState === 'saving'
+                ? 'hourglass-outline'
+                : 'download-outline'
+            }
+            size={20}
+            color={saveState === 'done' ? palette.yellow : palette.text}
+          />
+        </Pressable>
         <Pressable style={styles.iconBtn} onPress={toggleMute}>
           <Ionicons
             name={muted ? 'volume-mute' : 'volume-high'}
