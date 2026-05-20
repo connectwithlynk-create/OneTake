@@ -334,7 +334,14 @@ export default function ManualEditScreen() {
   const lastPushRef = useRef<string>('');
   useEffect(() => {
     if (included.length === 0) return;
-    const composed: NleClipShape[] = included.map((c) => {
+    // Drop clips the native side will reject anyway. Avoids the engine
+    // failing the whole composition because one row is zero-duration
+    // or has a missing file_uri (mid-import edge cases).
+    const valid = included.filter(
+      (c) => c.file_uri && effLen(c) > 0
+    );
+    if (valid.length === 0) return;
+    const composed: NleClipShape[] = valid.map((c) => {
       const ef = getEffects(c);
       // Voice Enhance shorthand: a +6dB-ish boost handled fully in JS
       // until the AudioUnit-based engine lands.
@@ -414,6 +421,29 @@ export default function ManualEditScreen() {
       'onPlayingChange',
       (ev: NlePlayingChangeEvent) => {
         setPlaying(!!ev.isPlaying);
+      }
+    );
+    return () => sub.remove();
+  }, [player]);
+
+  // Composition load status from native. Drives the preview banner so
+  // the user actually sees when a clip failed to load instead of a
+  // silently-black preview.
+  const [loadStatus, setLoadStatus] = useState<{
+    state: 'idle' | 'loading' | 'readyToPlay' | 'error';
+    message?: string;
+  }>({ state: 'idle' });
+  useEffect(() => {
+    const sub = player.addListener(
+      'onStatusChange',
+      (ev: { status?: string; error?: string; warning?: string }) => {
+        const status =
+          (ev?.status as 'idle' | 'loading' | 'readyToPlay' | 'error') ??
+          'loading';
+        setLoadStatus({
+          state: status,
+          message: ev?.error ?? ev?.warning,
+        });
       }
     );
     return () => sub.remove();
@@ -1301,6 +1331,7 @@ export default function ManualEditScreen() {
           />
           <BeatMarkers beats={beats} globalMs={globalMs} />
           {voRecording ? <VoiceoverIndicator elapsedMs={voElapsedMs} /> : null}
+          <LoadStatusBanner status={loadStatus} />
           <View style={styles.previewChevron}>
             <Ionicons
               name="chevron-down"
@@ -2786,6 +2817,62 @@ function BeatMarkers({
     }
   }
   return null;
+}
+
+/** Banner over the preview that surfaces composition build status.
+ *  Shows nothing once the player is readyToPlay; flashes a coral
+ *  message on error / loading-with-warning so failures aren't silent. */
+function LoadStatusBanner({
+  status,
+}: {
+  status: {
+    state: 'idle' | 'loading' | 'readyToPlay' | 'error';
+    message?: string;
+  };
+}) {
+  if (status.state === 'readyToPlay' || status.state === 'idle') return null;
+  const isError = status.state === 'error';
+  return (
+    <View
+      pointerEvents="none"
+      style={{
+        position: 'absolute',
+        left: 12,
+        right: 12,
+        bottom: 12,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 10,
+        backgroundColor: isError
+          ? 'rgba(255,77,109,0.92)'
+          : 'rgba(0,0,0,0.65)',
+      }}
+    >
+      <Text
+        numberOfLines={2}
+        style={{
+          color: '#fff',
+          fontFamily: font.bodyBold,
+          fontSize: 12,
+        }}
+      >
+        {isError ? 'Video failed to load' : 'Loading…'}
+      </Text>
+      {status.message ? (
+        <Text
+          numberOfLines={2}
+          style={{
+            color: 'rgba(255,255,255,0.85)',
+            fontFamily: font.body,
+            fontSize: 10,
+            marginTop: 2,
+          }}
+        >
+          {status.message}
+        </Text>
+      ) : null}
+    </View>
+  );
 }
 
 /** Recording-indicator dot during a voiceover capture. */

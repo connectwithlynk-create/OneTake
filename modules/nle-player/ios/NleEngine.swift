@@ -224,19 +224,48 @@ final class NleEngine {
 
       var insertionTime = CMTime.zero
       var insertedVideo = false
-      for c in snapshot {
+      var skipped: [(index: Int, id: String, reason: String)] = []
+      for (cIdx, c) in snapshot.enumerated() {
+        // Skip zero-or-negative-duration clips defensively. The
+        // insertTimeRange call would throw and abort this slot's build
+        // anyway — better to log + continue.
+        if c.outMs - c.inMs <= 0 {
+          skipped.append((cIdx, c.id, "zero duration"))
+          continue
+        }
+        // Skip clips whose file isn't on disk — happens transiently
+        // right after picker copies / network downloads.
+        if c.url.isFileURL, !FileManager.default.fileExists(atPath: c.url.path) {
+          skipped.append((cIdx, c.id, "file missing"))
+          continue
+        }
         let a = self.asset(for: c.url)
-        let videos: [AVAssetTrack]
-        let audios: [AVAssetTrack]
-        do {
-          videos = try await a.loadTracks(withMediaType: .video)
-          audios = try await a.loadTracks(withMediaType: .audio)
-        } catch {
-          self.emit(
-            "onStatusChange",
-            ["status": "error", "error": error.localizedDescription]
-          )
-          return
+        // Try loadTracks once; on failure wait 200ms and retry, since
+        // freshly-written files sometimes need a beat before AVAsset
+        // can probe them.
+        var videos: [AVAssetTrack] = []
+        var audios: [AVAssetTrack] = []
+        var loadErr: Error?
+        for attempt in 0..<2 {
+          do {
+            videos = try await a.loadTracks(withMediaType: .video)
+            audios = try await a.loadTracks(withMediaType: .audio)
+            loadErr = nil
+            break
+          } catch {
+            loadErr = error
+            if attempt == 0 {
+              try? await Task.sleep(nanoseconds: 200_000_000)
+            }
+          }
+        }
+        if let err = loadErr {
+          skipped.append((cIdx, c.id, "loadTracks failed: \(err.localizedDescription)"))
+          continue
+        }
+        if videos.isEmpty {
+          skipped.append((cIdx, c.id, "no video tracks"))
+          continue
         }
 
         let start = CMTime(value: CMTimeValue(c.inMs), timescale: 1000)
@@ -301,11 +330,31 @@ final class NleEngine {
         guard self.buildId == myBuildId else { return }
 
         if !insertedVideo {
+          let detail = skipped
+            .map { "[\($0.index):\($0.id)] \($0.reason)" }
+            .joined(separator: "; ")
           self.emit(
             "onStatusChange",
-            ["status": "error", "error": "composition has no video"]
+            [
+              "status": "error",
+              "error": skipped.isEmpty
+                ? "composition has no video"
+                : "no clips loaded — \(detail)",
+            ]
           )
           return
+        }
+        if !skipped.isEmpty {
+          // Composition is partially good — emit a warning channel
+          // entry so the JS side can surface "N clips failed to load"
+          // without bricking the rest of the preview.
+          let detail = skipped
+            .map { "[\($0.index):\($0.id)] \($0.reason)" }
+            .joined(separator: "; ")
+          self.emit(
+            "onStatusChange",
+            ["status": "loading", "warning": detail]
+          )
         }
 
         let videoComp: AVMutableVideoComposition
