@@ -366,6 +366,78 @@ export async function setClipTranscriptWords(clipId: string, wordsJson: string) 
   await touch(db, 'clips', clipId);
 }
 
+/**
+ * Split a clip in two at a local offset (ms within the *effective* clip,
+ * measured from the current in_ms). Both halves keep the same source file;
+ * we just adjust in_ms / out_ms and insert a new row. order_index of all
+ * subsequent clips in the project is bumped by 1. Returns the new clip id,
+ * or null if the split would leave either half shorter than 200ms.
+ */
+export async function splitClipAt(
+  clipId: string,
+  atLocalMs: number
+): Promise<string | null> {
+  const db = await getDb();
+  const c = await db.getFirstAsync<Clip>(
+    'SELECT * FROM clips WHERE id = ?',
+    clipId
+  );
+  if (!c) return null;
+  const inMs = c.in_ms ?? 0;
+  const outMs = c.out_ms ?? c.duration_ms;
+  const splitAbs = Math.round(inMs + Math.max(0, atLocalMs));
+  if (splitAbs <= inMs + 200) return null;
+  if (splitAbs >= outMs - 200) return null;
+  const now = Date.now();
+  const newId = id();
+  await db.withTransactionAsync(async () => {
+    // shift subsequent clips down by one to make room
+    await db.runAsync(
+      "UPDATE clips SET order_index = order_index + 1, updated_at = ?, sync_status = 'local' WHERE project_id = ? AND order_index > ?",
+      now,
+      c.project_id,
+      c.order_index
+    );
+    // insert the second half (carries the same media, takes splitAbs..outMs)
+    await db.runAsync(
+      `INSERT INTO clips
+         (id, project_id, order_index, file_uri, duration_ms, verdict, verdict_overridden, tag, tag_overridden, excluded, expires_at, created_at, updated_at, sync_status, name, meta_tags, transcript, mirrored, in_ms, out_ms, audio_volume, transcript_words)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      newId,
+      c.project_id,
+      c.order_index + 1,
+      c.file_uri,
+      c.duration_ms,
+      c.verdict,
+      c.verdict_overridden,
+      c.tag,
+      c.tag_overridden,
+      c.excluded,
+      c.expires_at,
+      now,
+      now,
+      'local',
+      c.name,
+      c.meta_tags,
+      c.transcript,
+      c.mirrored,
+      splitAbs,
+      outMs,
+      c.audio_volume,
+      c.transcript_words
+    );
+    // shrink the first half to in..splitAbs
+    await db.runAsync(
+      "UPDATE clips SET in_ms = ?, out_ms = ?, updated_at = ?, sync_status = 'local' WHERE id = ?",
+      inMs,
+      splitAbs,
+      now,
+      clipId
+    );
+  });
+  return newId;
+}
+
 /** Rewrite order_index for a project's clips to the supplied id order. */
 export async function reorderProjectClips(
   projectId: string,
