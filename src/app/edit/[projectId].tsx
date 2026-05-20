@@ -1502,6 +1502,20 @@ function ClipCell({
   const snapOutRef = useRef(snapOutPx);
   snapOutRef.current = snapOutPx;
 
+  // Stabilize callback identity. The parent passes inline arrow
+  // functions for onTrimChange/onTrimEnd/onTrimRelease, so they get a
+  // new identity on every parent render. If those were in useMemo's
+  // deps the trim gesture would be rebuilt mid-drag, destroying the
+  // in-flight gesture before its onEnd could fire — meaning the trim
+  // never persisted and the cell appeared to snap back to its old
+  // width. Refs pin the callbacks; useMemo runs once.
+  const onTrimChangeRef = useRef(onTrimChange);
+  onTrimChangeRef.current = onTrimChange;
+  const onTrimEndRef = useRef(onTrimEnd);
+  onTrimEndRef.current = onTrimEnd;
+  const onTrimReleaseRef = useRef(onTrimRelease);
+  onTrimReleaseRef.current = onTrimRelease;
+
   // Snap window: within ~10px of the playhead the handle latches to it.
   const SNAP_PX = 10;
   const applySnap = (dx: number, target: number) =>
@@ -1517,7 +1531,7 @@ function ClipCell({
         .minDistance(0)
         .onUpdate((g) => {
           const dx = applySnap(g.translationX, snapInRef.current);
-          onTrimChange(dx, 0);
+          onTrimChangeRef.current(dx, 0);
         })
         .onEnd((g) => {
           const dx = applySnap(g.translationX, snapInRef.current);
@@ -1527,12 +1541,12 @@ function ClipCell({
             0,
             outMsRef.current - 200
           );
-          onTrimRelease(newIn, outMsRef.current);
-          onTrimEnd();
+          onTrimReleaseRef.current(newIn, outMsRef.current);
+          onTrimEndRef.current();
         })
-        .onFinalize(() => onTrimEnd())
+        .onFinalize(() => onTrimEndRef.current())
         .runOnJS(true),
-    [onTrimChange, onTrimEnd, onTrimRelease]
+    []
   );
   const outPan = useMemo(
     () =>
@@ -1540,7 +1554,7 @@ function ClipCell({
         .minDistance(0)
         .onUpdate((g) => {
           const dx = applySnap(g.translationX, snapOutRef.current);
-          onTrimChange(0, dx);
+          onTrimChangeRef.current(0, dx);
         })
         .onEnd((g) => {
           const dx = applySnap(g.translationX, snapOutRef.current);
@@ -1550,12 +1564,12 @@ function ClipCell({
             inMsRef.current + 200,
             durationRef.current
           );
-          onTrimRelease(inMsRef.current, newOut);
-          onTrimEnd();
+          onTrimReleaseRef.current(inMsRef.current, newOut);
+          onTrimEndRef.current();
         })
-        .onFinalize(() => onTrimEnd())
+        .onFinalize(() => onTrimEndRef.current())
         .runOnJS(true),
-    [onTrimChange, onTrimEnd, onTrimRelease]
+    []
   );
 
   const excluded = clip.excluded === 1;
@@ -1633,6 +1647,11 @@ function OverlayChip({
   startRef.current = overlay.start_ms;
   const endRef = useRef(overlay.end_ms);
   endRef.current = overlay.end_ms;
+  // Same callback-identity guard as ClipCell: the parent passes a fresh
+  // onTrimRelease every render, which would rebuild the gesture mid-drag
+  // and lose the in-flight gesture's onEnd. Pin via ref; useMemo runs once.
+  const onTrimReleaseRef = useRef(onTrimRelease);
+  onTrimReleaseRef.current = onTrimRelease;
 
   const startPan = useMemo(
     () =>
@@ -1646,11 +1665,11 @@ function OverlayChip({
             Math.min(endRef.current - 200, startRef.current + dMs)
           );
           setDxStart(0);
-          onTrimRelease(newStart, endRef.current);
+          onTrimReleaseRef.current(newStart, endRef.current);
         })
         .onFinalize(() => setDxStart(0))
         .runOnJS(true),
-    [onTrimRelease]
+    []
   );
 
   const endPan = useMemo(
@@ -1665,11 +1684,11 @@ function OverlayChip({
             endRef.current + dMs
           );
           setDxEnd(0);
-          onTrimRelease(startRef.current, newEnd);
+          onTrimReleaseRef.current(startRef.current, newEnd);
         })
         .onFinalize(() => setDxEnd(0))
         .runOnJS(true),
-    [onTrimRelease]
+    []
   );
 
   const isMedia = overlay.kind === 'image' || overlay.kind === 'video';
