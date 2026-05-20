@@ -1,0 +1,15 @@
+{
+  "name": "expo-frame-extractor",
+  "version": "0.1.0",
+  "description": "Pull frames from remote video URLs via on-device byte-range streaming.",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "private": true,
+  "keywords": ["expo", "video", "frame", "thumbnail"],
+  "license": "UNLICENSED",
+  "peerDependencies": {
+    "expo": "*",
+    "react": "*",
+    "react-native": "*"
+  }
+}

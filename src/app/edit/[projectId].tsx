@@ -13,6 +13,7 @@ import React, {
   useState,
 } from 'react';
 import {
+  Alert,
   Modal,
   NativeScrollEvent,
   NativeSyntheticEvent,
@@ -37,6 +38,7 @@ import type { NleClip as NleClipShape, NleTimeUpdateEvent, NlePlayingChangeEvent
 import { ClipVideo } from '@/components/clip-video';
 import { Loading } from '@/components/ui';
 import {
+  persistClip,
   persistOverlayMedia,
   resolveClipUri,
   resolveOverlayMediaUri,
@@ -46,19 +48,30 @@ import {
   addOverlay,
   deleteClip,
   deleteOverlay,
+  duplicateClip,
   getProject,
   listClips,
   listOverlays,
+  replaceClipFile,
+  setCaptionSettings,
   setClipAudioDetached,
   setClipExcluded,
   setClipMirrored,
   setClipTrim,
   setClipVolume,
+  slipClip,
   splitClipAt,
   updateOverlay,
 } from '@/lib/repo';
 import { invalidate, useData } from '@/lib/store';
 import { maybeTranscribe } from '@/lib/transcribe';
+import {
+  activeLineAt,
+  CAPTION_STYLES,
+  type CaptionLine,
+  type CaptionStyle,
+  lineifyProject,
+} from '@/lib/captions';
 import { font, palette, radius, space } from '@/theme';
 import type { Clip, Overlay, WordTiming } from '@/lib/types';
 
@@ -77,6 +90,18 @@ const CLIP_TOP =
   RULER_H + TRACK_GAP + SUBS_H + TRACK_GAP + OVRL_H + TRACK_GAP;
 const AUDIO_TOP = CLIP_TOP + CLIP_H + TRACK_GAP;
 const TRACK_BLOCK_H = AUDIO_TOP + AUDIO_H;
+
+/** Bottom-panel mode: which inline panel (if any) is open below the
+ *  action bar. None of these are clip-state — they're just UI mode. */
+type BottomMode =
+  | 'none'
+  | 'volume'
+  | 'speed'
+  | 'size'
+  | 'captions'
+  | 'slip'
+  | 'teleprompter'
+  | 'stickers';
 
 function mmss(ms: number): string {
   const s = Math.max(0, Math.floor(ms / 1000));
@@ -340,10 +365,8 @@ export default function ManualEditScreen() {
     }
   }
 
-  // ----- bottom-bar modes (Volume / Speed open inline panels) -----
-  const [bottomMode, setBottomMode] = useState<
-    'none' | 'volume' | 'speed' | 'size'
-  >('none');
+  // ----- bottom-bar modes (open inline panels) -----
+  const [bottomMode, setBottomMode] = useState<BottomMode>('none');
 
   async function doSplit() {
     if (!selected) return;
@@ -357,6 +380,39 @@ export default function ManualEditScreen() {
       clearHistory();
       invalidate();
     }
+  }
+
+  async function doDuplicate() {
+    if (!selected) return;
+    // No inverse primitive yet; wipe history so undo can't get stuck
+    // in a half-state.
+    clearHistory();
+    await duplicateClip(selected.id);
+    invalidate();
+  }
+
+  async function doReplace() {
+    if (!selected) return;
+    const res = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['videos'],
+      allowsMultipleSelection: false,
+      quality: 1,
+    });
+    if (res.canceled || !res.assets || res.assets.length === 0) return;
+    const a = res.assets[0];
+    // Persist the picker file into the app's clip store so it survives
+    // app restarts / clipping the picker URI.
+    const persisted = persistClip(a.uri, selected.id + '-replace');
+    const durationMs = Math.round(a.duration ?? selected.duration_ms);
+    clearHistory();
+    await replaceClipFile(selected.id, persisted, durationMs);
+    invalidate();
+  }
+
+  async function doSlip(deltaMs: number) {
+    if (!selected) return;
+    await slipClip(selected.id, deltaMs);
+    invalidate();
   }
 
   async function doDelete() {
@@ -534,6 +590,39 @@ export default function ManualEditScreen() {
   // ----- text overlays -----
   const [overlayModal, setOverlayModal] = useState(false);
   const [overlayDraft, setOverlayDraft] = useState('');
+
+  /** Shortcut to drop a text overlay at the playhead. Used by stickers
+   *  (which are just big emoji text overlays) and any "quick text" path. */
+  async function addTextOverlay(text: string) {
+    const start = globalMs;
+    const end = Math.min(
+      totalMs > 0 ? totalMs : start + 3000,
+      globalMs + 3000
+    );
+    let createdId: string | null = null;
+    let createdSnap: Overlay | null = null;
+    await runCmd({
+      do: async () => {
+        const re = createdSnap
+          ? await addOverlay(projectId, createdSnap)
+          : await addOverlay(projectId, {
+              text,
+              start_ms: start,
+              end_ms: end,
+              size: 48,
+            });
+        createdId = re.id;
+        createdSnap = re;
+        invalidate();
+      },
+      undo: async () => {
+        if (createdId) {
+          await deleteOverlay(createdId);
+          invalidate();
+        }
+      },
+    });
+  }
   async function commitNewOverlay() {
     const text = overlayDraft.trim();
     if (!text) {
@@ -745,44 +834,19 @@ export default function ManualEditScreen() {
   }
 
   // ----- subtitles (synced caption under preview) -----
-  const [subsOn, setSubsOn] = useState(true);
-  const activeWords: WordTiming[] = useMemo(() => {
-    const c = included[activeIdx.current];
-    if (!c?.transcript_words) return [];
-    try {
-      const arr = JSON.parse(c.transcript_words) as WordTiming[];
-      return Array.isArray(arr) ? arr : [];
-    } catch {
-      return [];
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [included, globalMs]);
-  const subtitleNow = useMemo(() => {
-    if (!subsOn || activeWords.length === 0) return '';
-    // Map composed-timeline ms back into the clip-local seconds so the
-    // word-timings lookup (which is per-clip) still works.
-    const aidx = activeIdx.current;
-    const c = included[aidx];
-    if (!c) return '';
-    const localSec = (globalMs - (cumulative[aidx] ?? 0) + effIn(c)) / 1000;
-    let i = activeWords.findIndex((w) => localSec >= w.s && localSec <= w.e);
-    if (i < 0) {
-      for (let j = activeWords.length - 1; j >= 0; j--) {
-        if (localSec >= activeWords[j].s) {
-          i = j;
-          break;
-        }
-      }
-    }
-    if (i < 0) return '';
-    const a = Math.max(0, i - 2);
-    const b = Math.min(activeWords.length, i + 3);
-    return activeWords
-      .slice(a, b)
-      .map((w) => w.w)
-      .join(' ');
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeWords, subsOn, globalMs]);
+  // Captions: auto-derived from per-clip transcript_words and remapped
+  // into composed-timeline ms. Style + enable lives on the project row.
+  const captionsEnabled = project?.captions_enabled !== 0;
+  const captionStyle: CaptionStyle =
+    (project?.caption_style as CaptionStyle) ?? 'karaoke';
+  const captionLines: CaptionLine[] = useMemo(
+    () => lineifyProject(included, cumulative),
+    [included, cumulative]
+  );
+  const captionNow = useMemo(
+    () => (captionsEnabled ? activeLineAt(captionLines, globalMs) : null),
+    [captionLines, captionsEnabled, globalMs]
+  );
 
   // Which clip is under the playhead right now (drives preview dimming for
   // the show/hide toggle — excluded clips render at 0.4 opacity).
@@ -936,10 +1000,8 @@ export default function ManualEditScreen() {
                 onDelete={() => removeOverlay(o)}
               />
             ))}
-          {subtitleNow ? (
-            <View style={styles.subWrap} pointerEvents="none">
-              <Text style={styles.subText}>{subtitleNow}</Text>
-            </View>
+          {captionNow ? (
+            <CaptionOverlay line={captionNow} style={captionStyle} />
           ) : null}
           <View style={styles.previewChevron}>
             <Ionicons
@@ -962,13 +1024,17 @@ export default function ManualEditScreen() {
         </Pressable>
         <Pressable
           style={styles.iconCircle}
-          onPress={() => setSubsOn((v) => !v)}
+          onPress={() => {
+            const next: 0 | 1 = captionsEnabled ? 0 : 1;
+            setCaptionSettings(projectId, { enabled: next }).catch(() => {});
+            invalidate();
+          }}
           hitSlop={6}
         >
           <Ionicons
             name="sparkles"
             size={18}
-            color={subsOn ? palette.yellow : palette.textDim}
+            color={captionsEnabled ? palette.yellow : palette.textDim}
           />
         </Pressable>
         <View style={styles.timeStack}>
@@ -1247,117 +1313,88 @@ export default function ManualEditScreen() {
           onClose={() => setBottomMode('none')}
         />
       ) : null}
+      {bottomMode === 'captions' ? (
+        <CaptionsPanel
+          enabled={captionsEnabled}
+          style={captionStyle}
+          lines={captionLines}
+          onToggle={(en) => {
+            setCaptionSettings(projectId, { enabled: en ? 1 : 0 }).catch(
+              () => {}
+            );
+            invalidate();
+          }}
+          onStyleChange={(s) => {
+            setCaptionSettings(projectId, { style: s }).catch(() => {});
+            invalidate();
+          }}
+          onClose={() => setBottomMode('none')}
+        />
+      ) : null}
+      {bottomMode === 'slip' && selected ? (
+        <SlipPanel
+          clip={selected}
+          onSlip={doSlip}
+          onClose={() => setBottomMode('none')}
+        />
+      ) : null}
+      {bottomMode === 'stickers' ? (
+        <StickerPanel
+          onPick={(emoji) => {
+            // Add as a text overlay at the playhead, 3s long.
+            addTextOverlay(emoji);
+            setBottomMode('none');
+          }}
+          onClose={() => setBottomMode('none')}
+        />
+      ) : null}
+      {bottomMode === 'teleprompter' ? (
+        <TeleprompterPanel
+          onClose={() => setBottomMode('none')}
+        />
+      ) : null}
 
-      {/* ===== Bottom action bar (horizontally scrollable) =========== */}
+      {/* ===== Bottom action bar (selection-aware roster) ============ */}
       <View style={styles.actionBar}>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.actionScrollContent}
         >
-          <ActionBtn
-            icon="cut-outline"
-            label="Split"
-            onPress={doSplit}
-            disabled={!selected}
-          />
-          <ActionBtn
-            icon="text-outline"
-            label="Text"
-            onPress={() => setOverlayModal(true)}
-          />
-          <ActionBtn
-            icon="images-outline"
-            label="Media"
-            onPress={addMediaOverlay}
-          />
-          <ActionBtn
-            icon="chatbubble-ellipses-outline"
-            label="Captions"
-            onPress={() => {
-              setSubsOn((v) => !v);
-              // Re-attempt transcription for any clip that still has no
-              // word timings. Without this, captions stay empty whenever
-              // server transcription failed silently at import.
-              for (const c of clips) {
-                if (!c.transcript_words) void maybeTranscribe(c.id);
-              }
-            }}
-            active={subsOn}
-          />
-          <ActionBtn
-            icon="volume-medium-outline"
-            label="Volume"
-            onPress={() =>
-              setBottomMode((m) => (m === 'volume' ? 'none' : 'volume'))
-            }
-            active={bottomMode === 'volume'}
-            disabled={!selected}
-          />
-          <ActionBtn
-            icon="speedometer-outline"
-            label="Speed"
-            onPress={() =>
-              setBottomMode((m) => (m === 'speed' ? 'none' : 'speed'))
-            }
-            active={bottomMode === 'speed'}
-          />
-          <ActionBtn
-            icon="resize-outline"
-            label="Size"
-            onPress={() =>
-              setBottomMode((m) => (m === 'size' ? 'none' : 'size'))
-            }
-            active={bottomMode === 'size'}
-            disabled={!selectedOverlay}
-          />
-          <ActionBtn
-            icon="swap-horizontal-outline"
-            label="Mirror"
-            onPress={toggleMirror}
-            active={!!selected && selected.mirrored === 1}
-            disabled={!selected}
-          />
-          <ActionBtn
-            icon={
-              selected && (selected.audio_volume ?? 1) === 0
-                ? 'volume-mute-outline'
-                : 'volume-high-outline'
-            }
-            label={
-              selected && (selected.audio_volume ?? 1) === 0 ? 'Muted' : 'Mute'
-            }
-            onPress={toggleMute}
-            active={!!selected && (selected.audio_volume ?? 1) === 0}
-            disabled={!selected}
-          />
-          <ActionBtn
-            icon="musical-notes-outline"
-            label={
-              selected && (selected.audio_detached ?? 0) === 1
-                ? 'Attach'
-                : 'Detach'
-            }
-            onPress={toggleAudioDetached}
-            active={!!selected && (selected.audio_detached ?? 0) === 1}
-            disabled={!selected}
-          />
-          <ActionBtn
-            icon={
-              selected && selected.excluded === 1
-                ? 'eye-off-outline'
-                : 'eye-outline'
-            }
-            label={selected && selected.excluded === 1 ? 'Hidden' : 'Show'}
-            onPress={toggleExclude}
-            disabled={!selected}
-          />
-          <ActionBtn
-            icon="trash-outline"
-            label="Delete"
-            onPress={doDeleteSelection}
-            disabled={!selected && !selectedOverlay}
-          />
+          {selected || selectedOverlay ? (
+            <ClipActions
+              selected={selected}
+              selectedOverlay={selectedOverlay}
+              bottomMode={bottomMode}
+              setBottomMode={setBottomMode}
+              doSplit={doSplit}
+              toggleMirror={toggleMirror}
+              toggleMute={toggleMute}
+              toggleAudioDetached={toggleAudioDetached}
+              toggleExclude={toggleExclude}
+              doDeleteSelection={doDeleteSelection}
+              doDuplicate={doDuplicate}
+              doReplace={doReplace}
+            />
+          ) : (
+            <GlobalActions
+              bottomMode={bottomMode}
+              setBottomMode={setBottomMode}
+              setOverlayModal={setOverlayModal}
+              addMediaOverlay={addMediaOverlay}
+              openCaptionsPanel={() => {
+                // Re-attempt transcription for any clip that still has no
+                // word timings — captions are empty until words exist.
+                for (const c of clips) {
+                  if (!c.transcript_words) void maybeTranscribe(c.id);
+                }
+                setBottomMode((m) =>
+                  m === 'captions' ? 'none' : 'captions'
+                );
+              }}
+              captionsActive={bottomMode === 'captions'}
+            />
+          )}
         </ScrollView>
       </View>
 
@@ -1829,6 +1866,551 @@ function ActionBtn({
       <Ionicons name={icon} size={22} color={tint} />
       <Text style={[styles.actionLbl, { color: tint }]}>{label}</Text>
     </Pressable>
+  );
+}
+
+/** Helper: short toast for unimplemented features so users know the
+ *  button is wired but the engine work is still ahead. */
+function comingSoon(name: string) {
+  return () => {
+    try {
+      Alert.alert(name, 'Coming soon. Wired up in the next pass.');
+    } catch {
+      /* */
+    }
+  };
+}
+
+// ============================================================
+// Selection-aware action rosters
+// ============================================================
+
+type ClipActionsProps = {
+  selected: Clip | null;
+  selectedOverlay: Overlay | null;
+  bottomMode: BottomMode;
+  setBottomMode: React.Dispatch<React.SetStateAction<BottomMode>>;
+  doSplit: () => void;
+  toggleMirror: () => void;
+  toggleMute: () => void;
+  toggleAudioDetached: () => void;
+  toggleExclude: () => void;
+  doDeleteSelection: () => void;
+  doDuplicate: () => void;
+  doReplace: () => void;
+};
+
+function ClipActions(p: ClipActionsProps) {
+  const { selected, selectedOverlay } = p;
+  const mute = selected && (selected.audio_volume ?? 1) === 0;
+  return (
+    <>
+      <ActionBtn
+        icon="cut-outline"
+        label="Split"
+        onPress={p.doSplit}
+        disabled={!selected}
+      />
+      <ActionBtn
+        icon="volume-medium-outline"
+        label="Volume"
+        onPress={() =>
+          p.setBottomMode((m) => (m === 'volume' ? 'none' : 'volume'))
+        }
+        active={p.bottomMode === 'volume'}
+        disabled={!selected}
+      />
+      <ActionBtn
+        icon="speedometer-outline"
+        label="Speed"
+        onPress={() =>
+          p.setBottomMode((m) => (m === 'speed' ? 'none' : 'speed'))
+        }
+        active={p.bottomMode === 'speed'}
+      />
+      <ActionBtn
+        icon="options-outline"
+        label="Adjust"
+        onPress={comingSoon('Adjust')}
+      />
+      <ActionBtn
+        icon="color-palette-outline"
+        label="Filters"
+        onPress={comingSoon('Filters')}
+      />
+      <ActionBtn
+        icon="resize-outline"
+        label="Size"
+        onPress={() =>
+          p.setBottomMode((m) => (m === 'size' ? 'none' : 'size'))
+        }
+        active={p.bottomMode === 'size'}
+        disabled={!selectedOverlay}
+      />
+      <ActionBtn
+        icon="swap-horizontal-outline"
+        label="Mirror"
+        onPress={p.toggleMirror}
+        active={!!selected && selected.mirrored === 1}
+        disabled={!selected}
+      />
+      <ActionBtn
+        icon={mute ? 'volume-mute-outline' : 'volume-high-outline'}
+        label={mute ? 'Muted' : 'Mute'}
+        onPress={p.toggleMute}
+        active={!!mute}
+        disabled={!selected}
+      />
+      <ActionBtn
+        icon="musical-notes-outline"
+        label={
+          selected && (selected.audio_detached ?? 0) === 1
+            ? 'Attach'
+            : 'Extract'
+        }
+        onPress={p.toggleAudioDetached}
+        active={!!selected && (selected.audio_detached ?? 0) === 1}
+        disabled={!selected}
+      />
+      <ActionBtn
+        icon="duplicate-outline"
+        label="Duplicate"
+        onPress={p.doDuplicate}
+        disabled={!selected}
+      />
+      <ActionBtn
+        icon="git-compare-outline"
+        label="Slip"
+        onPress={() =>
+          p.setBottomMode((m) => (m === 'slip' ? 'none' : 'slip'))
+        }
+        active={p.bottomMode === 'slip'}
+        disabled={!selected}
+      />
+      <ActionBtn
+        icon="repeat-outline"
+        label="Replace"
+        onPress={p.doReplace}
+        disabled={!selected}
+      />
+      <ActionBtn
+        icon="aperture-outline"
+        label="Green"
+        onPress={comingSoon('Green Screen')}
+      />
+      <ActionBtn
+        icon="mic-outline"
+        label="Voice FX"
+        onPress={comingSoon('Voice FX')}
+      />
+      <ActionBtn
+        icon="layers-outline"
+        label="Cutout"
+        onPress={comingSoon('Cutout')}
+      />
+      <ActionBtn
+        icon="sparkles-outline"
+        label="Restyle"
+        onPress={comingSoon('Restyle')}
+      />
+      <ActionBtn
+        icon="locate-outline"
+        label="Keyframes"
+        onPress={comingSoon('Keyframes')}
+      />
+      <ActionBtn
+        icon={
+          selected && selected.excluded === 1 ? 'eye-off-outline' : 'eye-outline'
+        }
+        label={selected && selected.excluded === 1 ? 'Hidden' : 'Show'}
+        onPress={p.toggleExclude}
+        disabled={!selected}
+      />
+      <ActionBtn
+        icon="trash-outline"
+        label="Delete"
+        onPress={p.doDeleteSelection}
+        disabled={!selected && !selectedOverlay}
+      />
+    </>
+  );
+}
+
+type GlobalActionsProps = {
+  bottomMode: BottomMode;
+  setBottomMode: React.Dispatch<React.SetStateAction<BottomMode>>;
+  setOverlayModal: (v: boolean) => void;
+  addMediaOverlay: () => void;
+  openCaptionsPanel: () => void;
+  captionsActive: boolean;
+};
+
+function GlobalActions(p: GlobalActionsProps) {
+  return (
+    <>
+      <ActionBtn
+        icon="add-outline"
+        label="Media"
+        onPress={p.addMediaOverlay}
+      />
+      <ActionBtn
+        icon="videocam-outline"
+        label="Record"
+        onPress={comingSoon('In-app record')}
+      />
+      <ActionBtn
+        icon="musical-notes-outline"
+        label="Audio"
+        onPress={comingSoon('Audio library')}
+      />
+      <ActionBtn
+        icon="mic-outline"
+        label="Voiceover"
+        onPress={comingSoon('Voiceover')}
+      />
+      <ActionBtn
+        icon="megaphone-outline"
+        label="Voice Enh"
+        onPress={comingSoon('Voice Enhance')}
+      />
+      <ActionBtn
+        icon="text-outline"
+        label="Text"
+        onPress={() => p.setOverlayModal(true)}
+      />
+      <ActionBtn
+        icon="chatbubble-ellipses-outline"
+        label="Captions"
+        onPress={p.openCaptionsPanel}
+        active={p.captionsActive}
+      />
+      <ActionBtn
+        icon="happy-outline"
+        label="Stickers"
+        onPress={() =>
+          p.setBottomMode((m) => (m === 'stickers' ? 'none' : 'stickers'))
+        }
+        active={p.bottomMode === 'stickers'}
+      />
+      <ActionBtn
+        icon="images-outline"
+        label="Overlays"
+        onPress={p.addMediaOverlay}
+      />
+      <ActionBtn
+        icon="swap-vertical-outline"
+        label="Transitions"
+        onPress={comingSoon('Transitions')}
+      />
+      <ActionBtn
+        icon="contract-outline"
+        label="Cut Silences"
+        onPress={comingSoon('Cut Silences')}
+      />
+      <ActionBtn
+        icon="pulse-outline"
+        label="Beats"
+        onPress={comingSoon('Beat Markers')}
+      />
+      <ActionBtn
+        icon="reader-outline"
+        label="Teleprompter"
+        onPress={() =>
+          p.setBottomMode((m) =>
+            m === 'teleprompter' ? 'none' : 'teleprompter'
+          )
+        }
+        active={p.bottomMode === 'teleprompter'}
+      />
+    </>
+  );
+}
+
+// ============================================================
+// Caption overlay (rendered over preview)
+// ============================================================
+
+function CaptionOverlay({
+  line,
+  style,
+}: {
+  line: CaptionLine;
+  style: CaptionStyle;
+}) {
+  // For now all six presets render close-enough variations of the same
+  // text — full per-style animation lands in the next pass. Style-specific
+  // tweaks: typeout reveals letter-by-letter, bar paints a solid bg, bold
+  // bumps weight + size, etc.
+  const styleSpec: Record<
+    CaptionStyle,
+    { color: string; bg: string; size: number; pad: number }
+  > = {
+    karaoke: { color: '#fff', bg: 'rgba(0,0,0,0.65)', size: 18, pad: 5 },
+    bold: { color: '#fff', bg: 'rgba(0,0,0,0.55)', size: 22, pad: 6 },
+    pop: { color: palette.yellow, bg: 'rgba(0,0,0,0.55)', size: 20, pad: 6 },
+    subtle: { color: '#fff', bg: 'rgba(0,0,0,0.35)', size: 14, pad: 4 },
+    bar: { color: '#fff', bg: palette.purple, size: 18, pad: 6 },
+    typeout: { color: '#fff', bg: 'rgba(0,0,0,0.6)', size: 18, pad: 5 },
+  };
+  const s = styleSpec[style];
+  return (
+    <View style={styles.subWrap} pointerEvents="none">
+      <Text
+        style={[
+          styles.subText,
+          {
+            fontSize: s.size,
+            color: s.color,
+            backgroundColor: s.bg,
+            paddingHorizontal: s.pad + 5,
+            paddingVertical: s.pad,
+          },
+        ]}
+        numberOfLines={2}
+      >
+        {line.text}
+      </Text>
+    </View>
+  );
+}
+
+// ============================================================
+// Captions panel — style picker + transcription preview
+// ============================================================
+
+function CaptionsPanel({
+  enabled,
+  style,
+  lines,
+  onToggle,
+  onStyleChange,
+  onClose,
+}: {
+  enabled: boolean;
+  style: CaptionStyle;
+  lines: CaptionLine[];
+  onToggle: (en: boolean) => void;
+  onStyleChange: (s: CaptionStyle) => void;
+  onClose: () => void;
+}) {
+  return (
+    <View style={styles.bottomPanel}>
+      <View style={styles.bottomPanelHead}>
+        <Ionicons
+          name="chatbubble-ellipses-outline"
+          size={16}
+          color={palette.text}
+        />
+        <Text style={styles.bottomPanelTitle}>Captions</Text>
+        <Pressable
+          onPress={() => onToggle(!enabled)}
+          style={[
+            styles.captionToggle,
+            enabled && styles.captionToggleOn,
+          ]}
+        >
+          <Text
+            style={[
+              styles.captionToggleText,
+              enabled && styles.captionToggleTextOn,
+            ]}
+          >
+            {enabled ? 'ON' : 'OFF'}
+          </Text>
+        </Pressable>
+        <Pressable onPress={onClose} hitSlop={6}>
+          <Ionicons name="close" size={18} color={palette.textFaint} />
+        </Pressable>
+      </View>
+      <Text style={styles.bottomPanelHint}>
+        {lines.length === 0
+          ? 'Transcribing… captions appear here once word timings arrive.'
+          : `${lines.length} line${lines.length === 1 ? '' : 's'} from transcript`}
+      </Text>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ gap: 8, paddingVertical: 4 }}
+      >
+        {CAPTION_STYLES.map((s) => {
+          const active = s === style;
+          return (
+            <Pressable
+              key={s}
+              onPress={() => onStyleChange(s)}
+              style={[
+                styles.styleChip,
+                active && styles.styleChipActive,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.styleChipText,
+                  active && styles.styleChipTextActive,
+                ]}
+              >
+                {s[0].toUpperCase() + s.slice(1)}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+    </View>
+  );
+}
+
+// ============================================================
+// Slip panel — scrubs the source window without resizing the clip
+// ============================================================
+
+function SlipPanel({
+  clip,
+  onSlip,
+  onClose,
+}: {
+  clip: Clip;
+  onSlip: (deltaMs: number) => void;
+  onClose: () => void;
+}) {
+  const inMs = clip.in_ms ?? 0;
+  const outMs = clip.out_ms ?? clip.duration_ms;
+  const window = outMs - inMs;
+  // Headroom on each side: how far we can slip before bumping the source
+  // edges. min(in, duration - out) doesn't quite work; use both edges.
+  const headLeft = inMs;
+  const headRight = clip.duration_ms - outMs;
+  return (
+    <View style={styles.bottomPanel}>
+      <View style={styles.bottomPanelHead}>
+        <Ionicons name="git-compare-outline" size={16} color={palette.text} />
+        <Text style={styles.bottomPanelTitle}>
+          Slip · {Math.round(window)} ms window
+        </Text>
+        <Pressable onPress={onClose} hitSlop={6}>
+          <Ionicons name="close" size={18} color={palette.textFaint} />
+        </Pressable>
+      </View>
+      <Text style={styles.bottomPanelHint}>
+        Same length on the timeline. Nudges which part of the source plays.
+      </Text>
+      <View style={{ flexDirection: 'row', gap: 8 }}>
+        <Pressable
+          style={[styles.slipBtn, headLeft <= 0 && styles.slipBtnDisabled]}
+          onPress={() => headLeft > 0 && onSlip(-500)}
+        >
+          <Text style={styles.slipBtnText}>− 500ms</Text>
+        </Pressable>
+        <Pressable
+          style={[styles.slipBtn, headRight <= 0 && styles.slipBtnDisabled]}
+          onPress={() => headRight > 0 && onSlip(500)}
+        >
+          <Text style={styles.slipBtnText}>+ 500ms</Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
+// ============================================================
+// Sticker panel — emoji picker that drops a big text overlay
+// ============================================================
+
+const STICKER_EMOJI = [
+  '🔥', '✨', '⭐', '💥', '💯', '⚡',
+  '😎', '😂', '🤯', '🙃', '😅', '😍',
+  '👀', '👏', '🙌', '💪', '🤙', '☝️',
+  '❤️', '💕', '💛', '🤍', '🖤', '💚',
+  '🚀', '🎯', '🏆', '🥇', '📈', '🎬',
+];
+
+function StickerPanel({
+  onPick,
+  onClose,
+}: {
+  onPick: (emoji: string) => void;
+  onClose: () => void;
+}) {
+  return (
+    <View style={styles.bottomPanel}>
+      <View style={styles.bottomPanelHead}>
+        <Ionicons name="happy-outline" size={16} color={palette.text} />
+        <Text style={styles.bottomPanelTitle}>Stickers</Text>
+        <Pressable onPress={onClose} hitSlop={6}>
+          <Ionicons name="close" size={18} color={palette.textFaint} />
+        </Pressable>
+      </View>
+      <View
+        style={{
+          flexDirection: 'row',
+          flexWrap: 'wrap',
+          gap: 8,
+          paddingTop: 6,
+        }}
+      >
+        {STICKER_EMOJI.map((e) => (
+          <Pressable
+            key={e}
+            onPress={() => onPick(e)}
+            style={styles.stickerCell}
+          >
+            <Text style={{ fontSize: 26 }}>{e}</Text>
+          </Pressable>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+// ============================================================
+// Teleprompter panel — scrollable script text users can read while shooting
+// ============================================================
+
+function TeleprompterPanel({ onClose }: { onClose: () => void }) {
+  const [script, setScript] = useState('');
+  const [scrollSpeed, setScrollSpeed] = useState(1);
+  return (
+    <View style={styles.bottomPanel}>
+      <View style={styles.bottomPanelHead}>
+        <Ionicons name="reader-outline" size={16} color={palette.text} />
+        <Text style={styles.bottomPanelTitle}>Teleprompter</Text>
+        <Pressable onPress={onClose} hitSlop={6}>
+          <Ionicons name="close" size={18} color={palette.textFaint} />
+        </Pressable>
+      </View>
+      <Text style={styles.bottomPanelHint}>
+        Paste a script. While recording in-app, this scrolls over the
+        viewfinder at the chosen speed.
+      </Text>
+      <TextInput
+        value={script}
+        onChangeText={setScript}
+        multiline
+        placeholder="Your script here…"
+        placeholderTextColor={palette.textFaint}
+        style={styles.teleprompterField}
+      />
+      <View style={{ flexDirection: 'row', gap: 8 }}>
+        {[0.5, 1, 1.5, 2].map((s) => (
+          <Pressable
+            key={s}
+            onPress={() => setScrollSpeed(s)}
+            style={[
+              styles.speedChip,
+              scrollSpeed === s && styles.speedChipActive,
+            ]}
+          >
+            <Text
+              style={[
+                styles.speedChipText,
+                scrollSpeed === s && styles.speedChipTextActive,
+              ]}
+            >
+              {s}×
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+    </View>
   );
 }
 
@@ -2902,5 +3484,89 @@ const styles = StyleSheet.create({
     color: palette.onBright,
     fontFamily: font.displayHeavy,
     fontWeight: '800',
+  },
+
+  // Caption toggle pill (CaptionsPanel)
+  captionToggle: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.14)',
+  },
+  captionToggleOn: {
+    backgroundColor: `${palette.lime}22`,
+    borderColor: palette.lime,
+  },
+  captionToggleText: {
+    fontFamily: font.monoBold,
+    fontSize: 10,
+    color: palette.text2,
+    letterSpacing: 1,
+  },
+  captionToggleTextOn: { color: palette.lime },
+
+  // Caption style chip
+  styleChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.10)',
+  },
+  styleChipActive: {
+    backgroundColor: `${palette.lime}22`,
+    borderColor: palette.lime,
+  },
+  styleChipText: {
+    fontFamily: font.bodyBold,
+    fontSize: 12,
+    color: palette.text2,
+  },
+  styleChipTextActive: { color: palette.lime },
+
+  // Slip nudge buttons
+  slipBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.14)',
+    alignItems: 'center',
+  },
+  slipBtnDisabled: { opacity: 0.4 },
+  slipBtnText: {
+    fontFamily: font.bodyBold,
+    fontSize: 13,
+    color: '#fff',
+  },
+
+  // Sticker cell
+  stickerCell: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  // Teleprompter input
+  teleprompterField: {
+    minHeight: 90,
+    padding: 10,
+    borderRadius: 10,
+    backgroundColor: palette.bg,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    color: '#fff',
+    fontFamily: font.body,
+    fontSize: 14,
+    textAlignVertical: 'top',
   },
 });

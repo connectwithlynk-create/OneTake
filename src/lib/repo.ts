@@ -17,6 +17,7 @@ import type {
   Project,
   ProjectStatus,
   ProjectType,
+  ReelPlatform,
   Verdict,
 } from './types';
 
@@ -53,6 +54,8 @@ export async function createProject(
     owner: null,
     updated_at: now,
     sync_status: 'local',
+    captions_enabled: 1,
+    caption_style: 'karaoke',
   };
   await db.runAsync(
     'INSERT INTO projects (id, type, title, status, prompt, created_at, updated_at, sync_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
@@ -109,6 +112,28 @@ export async function renameProject(pid: string, title: string) {
 export async function setProjectStatus(pid: string, status: ProjectStatus) {
   const db = await getDb();
   await db.runAsync('UPDATE projects SET status = ? WHERE id = ?', status, pid);
+  await touch(db, 'projects', pid);
+}
+
+export async function setCaptionSettings(
+  pid: string,
+  patch: { enabled?: 0 | 1; style?: string }
+) {
+  const db = await getDb();
+  if (patch.enabled !== undefined) {
+    await db.runAsync(
+      'UPDATE projects SET captions_enabled = ? WHERE id = ?',
+      patch.enabled,
+      pid
+    );
+  }
+  if (patch.style !== undefined) {
+    await db.runAsync(
+      'UPDATE projects SET caption_style = ? WHERE id = ?',
+      patch.style,
+      pid
+    );
+  }
   await touch(db, 'projects', pid);
 }
 
@@ -451,6 +476,110 @@ export async function splitClipAt(
   return newId;
 }
 
+/**
+ * Duplicate a clip onto the timeline right after the original. Carries the
+ * same file_uri, trim, mirror, and verdict; gets a fresh id and order_index.
+ * Subsequent clips bump down by 1. Returns the new clip id.
+ */
+export async function duplicateClip(clipId: string): Promise<string | null> {
+  const db = await getDb();
+  const c = await db.getFirstAsync<Clip>(
+    'SELECT * FROM clips WHERE id = ?',
+    clipId
+  );
+  if (!c) return null;
+  const now = Date.now();
+  const newId = id();
+  await db.withTransactionAsync(async () => {
+    await db.runAsync(
+      "UPDATE clips SET order_index = order_index + 1, updated_at = ?, sync_status = 'local' WHERE project_id = ? AND order_index > ?",
+      now,
+      c.project_id,
+      c.order_index
+    );
+    await db.runAsync(
+      `INSERT INTO clips
+         (id, project_id, order_index, file_uri, duration_ms, verdict, verdict_overridden, tag, tag_overridden, excluded, expires_at, created_at, updated_at, sync_status, name, meta_tags, transcript, mirrored, in_ms, out_ms, audio_volume, audio_detached, transcript_words)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      newId,
+      c.project_id,
+      c.order_index + 1,
+      c.file_uri,
+      c.duration_ms,
+      c.verdict,
+      c.verdict_overridden,
+      c.tag,
+      c.tag_overridden,
+      c.excluded,
+      c.expires_at,
+      now,
+      now,
+      'local',
+      c.name,
+      c.meta_tags,
+      c.transcript,
+      c.mirrored,
+      c.in_ms,
+      c.out_ms,
+      c.audio_volume,
+      c.audio_detached,
+      c.transcript_words
+    );
+  });
+  return newId;
+}
+
+/** Swap a clip's source file (e.g. picker → different take). Resets trim
+ *  to the new file's full duration and clears the transcript since the
+ *  text no longer matches the source. */
+export async function replaceClipFile(
+  clipId: string,
+  fileUri: string,
+  durationMs: number
+) {
+  const db = await getDb();
+  await db.runAsync(
+    'UPDATE clips SET file_uri = ?, duration_ms = ?, in_ms = NULL, out_ms = NULL, transcript = NULL, transcript_words = NULL WHERE id = ?',
+    fileUri,
+    durationMs,
+    clipId
+  );
+  await touch(db, 'clips', clipId);
+}
+
+/** Slip: keep the clip's *timeline* duration but shift WHICH portion of
+ *  the source plays inside it. Pass deltaMs (positive = scroll later in
+ *  source). The window stays the same length; clamp against the source
+ *  duration so it doesn't run off the ends. */
+export async function slipClip(clipId: string, deltaMs: number) {
+  const db = await getDb();
+  const c = await db.getFirstAsync<Clip>(
+    'SELECT * FROM clips WHERE id = ?',
+    clipId
+  );
+  if (!c) return;
+  const inMs = c.in_ms ?? 0;
+  const outMs = c.out_ms ?? c.duration_ms;
+  const window = outMs - inMs;
+  let newIn = inMs + Math.round(deltaMs);
+  let newOut = newIn + window;
+  if (newIn < 0) {
+    newIn = 0;
+    newOut = window;
+  }
+  if (newOut > c.duration_ms) {
+    newOut = c.duration_ms;
+    newIn = newOut - window;
+  }
+  await db.runAsync(
+    'UPDATE clips SET in_ms = ?, out_ms = ? WHERE id = ?',
+    newIn,
+    newOut,
+    clipId
+  );
+  await touch(db, 'clips', clipId);
+}
+
 /** Rewrite order_index for a project's clips to the supplied id order. */
 export async function reorderProjectClips(
   projectId: string,
@@ -731,6 +860,9 @@ export async function createCollection(name: string): Promise<Collection> {
     owner: null,
     updated_at: now,
     sync_status: 'local',
+    fingerprint_json: null,
+    fingerprint_updated_at: null,
+    n_analyzed: 0,
   };
   await db.runAsync(
     'INSERT INTO collections (id, name, created_at, updated_at, sync_status) VALUES (?, ?, ?, ?, ?)',
@@ -790,6 +922,20 @@ export async function unfiledCount(): Promise<number> {
 
 const THUMBS = [palette.purple, palette.yellow, palette.blue, palette.red];
 
+/** Tag the source platform from the host. Cheap host-only check - the
+ *  resolver re-confirms once it actually fetches the URL. */
+export function detectPlatform(sourceUrl: string): ReelPlatform {
+  try {
+    const host = new URL(sourceUrl).hostname.replace(/^www\./, '').toLowerCase();
+    if (host.endsWith('youtube.com') || host === 'youtu.be') return 'youtube';
+    if (host.endsWith('tiktok.com') || host === 'vm.tiktok.com') return 'tiktok';
+    if (host.endsWith('instagram.com')) return 'instagram';
+    return 'unknown';
+  } catch {
+    return 'unknown';
+  }
+}
+
 export async function addInspiration(
   collectionId: string,
   sourceUrl: string,
@@ -797,6 +943,7 @@ export async function addInspiration(
 ): Promise<Inspiration> {
   const db = await getDb();
   const now = Date.now();
+  const platform = detectPlatform(sourceUrl);
   const item: Inspiration = {
     id: id(),
     collection_id: collectionId,
@@ -807,9 +954,32 @@ export async function addInspiration(
     owner: null,
     updated_at: now,
     sync_status: 'local',
+    platform,
+    playable_url: null,
+    playable_url_expires_at: null,
+    duration_ms: null,
+    width: null,
+    height: null,
+    caption_text: null,
+    analysis_status: 'idle',
+    analysis_version: 0,
+    analyzed_at: null,
+    analysis_error: null,
+    shots_json: null,
+    hook_text: null,
+    hook_duration_ms: null,
+    median_shot_ms: null,
+    cuts_per_sec: null,
+    talking_pct: null,
+    broll_pct: null,
+    text_overlay_pct: null,
+    watch_pct: 0,
+    replay_count: 0,
+    time_on_card_ms: 0,
+    swipe_verdict: null,
   };
   await db.runAsync(
-    'INSERT INTO inspiration (id, collection_id, source_url, thumb_color, note, added_at, updated_at, sync_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+    'INSERT INTO inspiration (id, collection_id, source_url, thumb_color, note, added_at, updated_at, sync_status, platform) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
     item.id,
     item.collection_id,
     item.source_url,
@@ -817,7 +987,8 @@ export async function addInspiration(
     item.note,
     item.added_at,
     item.updated_at,
-    item.sync_status
+    item.sync_status,
+    item.platform
   );
   return item;
 }

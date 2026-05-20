@@ -90,7 +90,10 @@ CREATE TABLE IF NOT EXISTS collections (
   created_at INTEGER NOT NULL,
   owner TEXT,
   updated_at INTEGER NOT NULL DEFAULT 0,
-  sync_status TEXT NOT NULL DEFAULT 'local'
+  sync_status TEXT NOT NULL DEFAULT 'local',
+  fingerprint_json TEXT,
+  fingerprint_updated_at INTEGER,
+  n_analyzed INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS inspiration (
@@ -102,7 +105,30 @@ CREATE TABLE IF NOT EXISTS inspiration (
   added_at INTEGER NOT NULL,
   owner TEXT,
   updated_at INTEGER NOT NULL DEFAULT 0,
-  sync_status TEXT NOT NULL DEFAULT 'local'
+  sync_status TEXT NOT NULL DEFAULT 'local',
+  platform TEXT NOT NULL DEFAULT 'unknown',
+  playable_url TEXT,
+  playable_url_expires_at INTEGER,
+  duration_ms INTEGER,
+  width INTEGER,
+  height INTEGER,
+  caption_text TEXT,
+  analysis_status TEXT NOT NULL DEFAULT 'idle',
+  analysis_version INTEGER NOT NULL DEFAULT 0,
+  analyzed_at INTEGER,
+  analysis_error TEXT,
+  shots_json TEXT,
+  hook_text TEXT,
+  hook_duration_ms INTEGER,
+  median_shot_ms INTEGER,
+  cuts_per_sec REAL,
+  talking_pct REAL,
+  broll_pct REAL,
+  text_overlay_pct REAL,
+  watch_pct REAL NOT NULL DEFAULT 0,
+  replay_count INTEGER NOT NULL DEFAULT 0,
+  time_on_card_ms INTEGER NOT NULL DEFAULT 0,
+  swipe_verdict TEXT
 );
 
 CREATE TABLE IF NOT EXISTS overlays (
@@ -136,6 +162,9 @@ const INDEX_STMTS = [
   'CREATE INDEX IF NOT EXISTS idx_clips_project ON clips(project_id)',
   'CREATE INDEX IF NOT EXISTS idx_clips_expires ON clips(expires_at)',
   'CREATE INDEX IF NOT EXISTS idx_insp_collection ON inspiration(collection_id)',
+  // Worker queries pending/failed rows; indexing the state machine column
+  // keeps the analysis dispatcher cheap even with thousands of rows.
+  'CREATE INDEX IF NOT EXISTS idx_insp_analysis_status ON inspiration(analysis_status)',
   'CREATE INDEX IF NOT EXISTS idx_overlays_project ON overlays(project_id)',
 ];
 
@@ -213,6 +242,9 @@ async function migrate(db: SQLite.SQLiteDatabase) {
   await addColumn(db, 'clips', 'audio_volume', 'REAL NOT NULL DEFAULT 1.0');
   await addColumn(db, 'clips', 'audio_detached', 'INTEGER NOT NULL DEFAULT 0');
   await addColumn(db, 'clips', 'transcript_words', 'TEXT');
+  // projects: caption settings (enabled + style preset)
+  await addColumn(db, 'projects', 'captions_enabled', 'INTEGER NOT NULL DEFAULT 1');
+  await addColumn(db, 'projects', 'caption_style', "TEXT NOT NULL DEFAULT 'karaoke'");
   // overlays: media-overlay columns. Old DBs created before the editor
   // supported image/video overlays only have the text-overlay columns.
   await addColumn(db, 'overlays', 'file_uri', 'TEXT');
@@ -223,6 +255,37 @@ async function migrate(db: SQLite.SQLiteDatabase) {
     await addColumn(db, t, 'updated_at', 'INTEGER NOT NULL DEFAULT 0');
     await addColumn(db, t, 'sync_status', "TEXT NOT NULL DEFAULT 'local'");
   }
+  // collections: fingerprint cache
+  await addColumn(db, 'collections', 'fingerprint_json', 'TEXT');
+  await addColumn(db, 'collections', 'fingerprint_updated_at', 'INTEGER');
+  await addColumn(db, 'collections', 'n_analyzed', 'INTEGER NOT NULL DEFAULT 0');
+  // inspiration: resolved playable url + raw media facts
+  await addColumn(db, 'inspiration', 'platform', "TEXT NOT NULL DEFAULT 'unknown'");
+  await addColumn(db, 'inspiration', 'playable_url', 'TEXT');
+  await addColumn(db, 'inspiration', 'playable_url_expires_at', 'INTEGER');
+  await addColumn(db, 'inspiration', 'duration_ms', 'INTEGER');
+  await addColumn(db, 'inspiration', 'width', 'INTEGER');
+  await addColumn(db, 'inspiration', 'height', 'INTEGER');
+  await addColumn(db, 'inspiration', 'caption_text', 'TEXT');
+  // inspiration: analysis state machine
+  await addColumn(db, 'inspiration', 'analysis_status', "TEXT NOT NULL DEFAULT 'idle'");
+  await addColumn(db, 'inspiration', 'analysis_version', 'INTEGER NOT NULL DEFAULT 0');
+  await addColumn(db, 'inspiration', 'analyzed_at', 'INTEGER');
+  await addColumn(db, 'inspiration', 'analysis_error', 'TEXT');
+  // inspiration: per-reel analysis outputs
+  await addColumn(db, 'inspiration', 'shots_json', 'TEXT');
+  await addColumn(db, 'inspiration', 'hook_text', 'TEXT');
+  await addColumn(db, 'inspiration', 'hook_duration_ms', 'INTEGER');
+  await addColumn(db, 'inspiration', 'median_shot_ms', 'INTEGER');
+  await addColumn(db, 'inspiration', 'cuts_per_sec', 'REAL');
+  await addColumn(db, 'inspiration', 'talking_pct', 'REAL');
+  await addColumn(db, 'inspiration', 'broll_pct', 'REAL');
+  await addColumn(db, 'inspiration', 'text_overlay_pct', 'REAL');
+  // inspiration: swipe-deck telemetry (task #8 writes these)
+  await addColumn(db, 'inspiration', 'watch_pct', 'REAL NOT NULL DEFAULT 0');
+  await addColumn(db, 'inspiration', 'replay_count', 'INTEGER NOT NULL DEFAULT 0');
+  await addColumn(db, 'inspiration', 'time_on_card_ms', 'INTEGER NOT NULL DEFAULT 0');
+  await addColumn(db, 'inspiration', 'swipe_verdict', 'TEXT');
   // Backfill updated_at so pre-existing rows have a sane sync clock.
   // Non-essential - never let it abort init.
   try {
