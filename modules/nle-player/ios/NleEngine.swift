@@ -167,14 +167,20 @@ final class NleEngine {
         preferredTrackID: kCMPersistentTrackID_Invalid
       )
 
+      // One layer instruction for the single composed video track,
+      // with a setTransform(_:at:) per clip insert so each segment
+      // applies its source's preferredTransform. Without this, portrait
+      // phone video (90° transform baked into the source) renders
+      // outside the layer's render rect → black preview.
+      let layerInstruction = videoTrack.map {
+        AVMutableVideoCompositionLayerInstruction(assetTrack: $0)
+      }
+      var renderSize: CGSize = .zero
+
       var insertionTime = CMTime.zero
       var insertedVideo = false
       for c in snapshot {
         let a = self.asset(for: c.url)
-        // Load tracks async — AVURLAsset.tracks(withMediaType:) is not
-        // guaranteed to be populated synchronously, even for local
-        // files, which silently dropped the inserted time range and
-        // left the composition empty (= prior frame stuck on screen).
         let videos: [AVAssetTrack]
         let audios: [AVAssetTrack]
         do {
@@ -199,6 +205,24 @@ final class NleEngine {
           do {
             try videoTrack.insertTimeRange(range, of: v, at: insertionTime)
             insertedVideo = true
+
+            // Apply the source's preferredTransform from this clip's
+            // insertion point forward — it stays in effect until the
+            // next setTransform on the same layer instruction.
+            let transform = v.preferredTransform
+            layerInstruction?.setTransform(transform, at: insertionTime)
+
+            // Render size = post-transform size of the first clip. For
+            // a portrait recording the raw naturalSize is landscape
+            // and the 90° transform swaps the axes.
+            if renderSize == .zero {
+              let rect = CGRect(origin: .zero, size: v.naturalSize)
+                .applying(transform)
+              renderSize = CGSize(
+                width: abs(rect.width),
+                height: abs(rect.height)
+              )
+            }
           } catch {
             // Skip just this clip; keep building.
           }
@@ -221,7 +245,27 @@ final class NleEngine {
           return
         }
 
+        // Single instruction spanning the whole composed timeline,
+        // carrying the single per-track layer instruction whose
+        // setTransform calls switch transform per segment.
+        let mainInstruction = AVMutableVideoCompositionInstruction()
+        mainInstruction.timeRange = CMTimeRange(
+          start: .zero,
+          duration: insertionTime
+        )
+        if let li = layerInstruction {
+          mainInstruction.layerInstructions = [li]
+        }
+
+        let videoComp = AVMutableVideoComposition()
+        videoComp.instructions = [mainInstruction]
+        videoComp.renderSize = renderSize == .zero
+          ? CGSize(width: 1080, height: 1920)
+          : renderSize
+        videoComp.frameDuration = CMTime(value: 1, timescale: 30)
+
         let item = AVPlayerItem(asset: comp)
+        item.videoComposition = videoComp
         item.audioMix = self.buildAudioMix(in: comp)
         self.item = item
 
