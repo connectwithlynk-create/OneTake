@@ -768,20 +768,35 @@ export function AudioPanel({
 }
 
 // =============================================================
-// Cut silences — run + report
+// Cut silences — preview / tolerance slider / accept-reject
 // =============================================================
 
+import type { SilenceProposal } from '@/lib/silences';
+
 export function CutSilencesPanel({
-  isRunning,
+  toleranceMs,
+  proposals,
+  isApplying,
   lastResult,
-  onRun,
+  onToleranceChange,
+  onAccept,
+  onReject,
   onClose,
 }: {
-  isRunning: boolean;
+  toleranceMs: number;
+  proposals: SilenceProposal[];
+  isApplying: boolean;
   lastResult: { removedMs: number; trimmedClips: number } | null;
-  onRun: () => void;
+  onToleranceChange: (ms: number) => void;
+  onAccept: () => void;
+  onReject: () => void;
   onClose: () => void;
 }) {
+  const totalRemovedMs = proposals.reduce(
+    (sum, p) => sum + p.headRemovedMs + p.tailRemovedMs,
+    0
+  );
+  const hasProposals = proposals.length > 0;
   return (
     <PanelShell
       title="Cut Silences"
@@ -789,30 +804,52 @@ export function CutSilencesPanel({
       onClose={onClose}
     >
       <Text style={s.hint}>
-        Scans each clip&apos;s transcript and tightens head / tail silences.
-        Only touches gaps &gt; 500ms.
+        Highlighted regions on the timeline are what would be removed.
+        Drag the tolerance to flag longer / shorter pauses.
+      </Text>
+      <SliderRow
+        label="Tolerance"
+        value={toleranceMs}
+        min={200}
+        max={2000}
+        step={50}
+        onChange={onToleranceChange}
+      />
+      <Text style={s.result}>
+        {hasProposals
+          ? `Would remove ${(totalRemovedMs / 1000).toFixed(1)}s across ${proposals.length} clip${proposals.length === 1 ? '' : 's'}.`
+          : 'No silences over the current tolerance.'}
       </Text>
       {lastResult ? (
-        <Text style={s.result}>
-          Removed {Math.round(lastResult.removedMs / 100) / 10}s across{' '}
-          {lastResult.trimmedClips} clip
+        <Text style={[s.result, { color: palette.text2 }]}>
+          Last accept: removed {(lastResult.removedMs / 1000).toFixed(1)}s
+          across {lastResult.trimmedClips} clip
           {lastResult.trimmedClips === 1 ? '' : 's'}.
         </Text>
       ) : null}
-      <Pressable
-        style={s.bigBtn}
-        disabled={isRunning}
-        onPress={onRun}
-      >
-        <Ionicons
-          name={isRunning ? 'hourglass' : 'cut'}
-          size={16}
-          color={palette.onBright}
-        />
-        <Text style={[s.bigBtnText, { color: palette.onBright }]}>
-          {isRunning ? 'Working…' : 'Tighten'}
-        </Text>
-      </Pressable>
+      <View style={{ flexDirection: 'row', gap: 8 }}>
+        <Pressable style={s.actionBtnGhost} onPress={onReject}>
+          <Text style={s.actionBtnGhostText}>Reject</Text>
+        </Pressable>
+        <Pressable
+          style={[
+            s.bigBtn,
+            { flex: 1 },
+            (!hasProposals || isApplying) && { opacity: 0.5 },
+          ]}
+          disabled={!hasProposals || isApplying}
+          onPress={onAccept}
+        >
+          <Ionicons
+            name={isApplying ? 'hourglass' : 'checkmark'}
+            size={16}
+            color={palette.onBright}
+          />
+          <Text style={[s.bigBtnText, { color: palette.onBright }]}>
+            {isApplying ? 'Applying…' : 'Accept'}
+          </Text>
+        </Pressable>
+      </View>
     </PanelShell>
   );
 }

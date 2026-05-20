@@ -91,7 +91,11 @@ import {
   setOverlayKeyframes,
   setTransition,
 } from '@/lib/effects';
-import { cutSilencesInProject } from '@/lib/silences';
+import {
+  analyzeProjectSilences,
+  applySilenceProposals,
+  type SilenceProposal,
+} from '@/lib/silences';
 import {
   AdjustPanel,
   AudioPanel,
@@ -445,11 +449,20 @@ export default function ManualEditScreen() {
   // ----- bottom-bar modes (open inline panels) -----
   const [bottomMode, setBottomMode] = useState<BottomMode>('none');
 
-  // Cut Silences state
-  const [silencesRunning, setSilencesRunning] = useState(false);
+  // Cut Silences state. Default tolerance lines up with the lib's
+  // historic threshold so existing muscle memory still works.
+  const [silencesTolerance, setSilencesTolerance] = useState(500);
+  const [silencesApplying, setSilencesApplying] = useState(false);
   const [silencesResult, setSilencesResult] = useState<
     { removedMs: number; trimmedClips: number } | null
   >(null);
+  /** Live preview, recomputed whenever the clips or tolerance change
+   *  *while the panel is open*. Pure derivation — no DB writes here. */
+  const silencesProposals = useMemo<SilenceProposal[]>(() => {
+    if (bottomMode !== 'silences') return [];
+    return analyzeProjectSilences(included, silencesTolerance);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bottomMode, included, silencesTolerance]);
 
   // Voiceover recording state
   const voRecorder = useAudioRecorder({
@@ -566,19 +579,27 @@ export default function ManualEditScreen() {
   }
 
   // ---- Cut Silences ------------------------------------------------
-  async function runCutSilences() {
-    if (silencesRunning || included.length === 0) return;
-    setSilencesRunning(true);
+  /** Commit the currently-displayed proposals. We trust the live
+   *  `silencesProposals` memo so the user is accepting exactly what
+   *  they see highlighted. */
+  async function acceptCutSilences() {
+    if (silencesApplying || silencesProposals.length === 0) return;
+    setSilencesApplying(true);
     try {
-      const r = await cutSilencesInProject(included, 500);
+      const r = await applySilenceProposals(silencesProposals);
       setSilencesResult(r);
       clearHistory();
       invalidate();
     } catch {
       setSilencesResult({ removedMs: 0, trimmedClips: 0 });
     } finally {
-      setSilencesRunning(false);
+      setSilencesApplying(false);
     }
+  }
+  function rejectCutSilences() {
+    // Close panel without writing. The preview disappears with the panel.
+    setSilencesResult(null);
+    setBottomMode('none');
   }
 
   // ---- Voiceover ---------------------------------------------------
@@ -1496,6 +1517,48 @@ export default function ManualEditScreen() {
                     />
                   );
                 })}
+                {/* Silence preview highlights: red strips overlaying
+                    each clip cell at the regions that would be trimmed
+                    if the user accepts. Drawn AFTER the cells so they
+                    paint over the thumbnails. */}
+                {bottomMode === 'silences'
+                  ? silencesProposals.map((p) => {
+                      const idx = included.findIndex(
+                        (c) => c.id === p.clipId
+                      );
+                      if (idx < 0) return null;
+                      const c = included[idx];
+                      const cellLeft = cumulative[idx] * pxPerMs;
+                      const cellW = effLen(c) * pxPerMs;
+                      const headW = (p.newIn - p.curIn) * pxPerMs;
+                      const tailW = (p.curOut - p.newOut) * pxPerMs;
+                      return (
+                        <React.Fragment key={`silprev-${p.clipId}`}>
+                          {headW > 0 ? (
+                            <View
+                              pointerEvents="none"
+                              style={[
+                                styles.silenceHL,
+                                { left: cellLeft, width: headW },
+                              ]}
+                            />
+                          ) : null}
+                          {tailW > 0 ? (
+                            <View
+                              pointerEvents="none"
+                              style={[
+                                styles.silenceHL,
+                                {
+                                  left: cellLeft + cellW - tailW,
+                                  width: tailW,
+                                },
+                              ]}
+                            />
+                          ) : null}
+                        </React.Fragment>
+                      );
+                    })
+                  : null}
               </View>
 
               {/* Audio strip: a violet block per detached clip */}
@@ -1756,9 +1819,13 @@ export default function ManualEditScreen() {
       ) : null}
       {bottomMode === 'silences' ? (
         <CutSilencesPanel
-          isRunning={silencesRunning}
+          toleranceMs={silencesTolerance}
+          proposals={silencesProposals}
+          isApplying={silencesApplying}
           lastResult={silencesResult}
-          onRun={runCutSilences}
+          onToleranceChange={setSilencesTolerance}
+          onAccept={acceptCutSilences}
+          onReject={rejectCutSilences}
           onClose={() => setBottomMode('none')}
         />
       ) : null}
@@ -3719,6 +3786,16 @@ const styles = StyleSheet.create({
     backgroundColor: '#111',
     borderWidth: 1,
     borderColor: palette.border,
+  },
+  // Silence preview highlight — diagonal-striped coral block painted
+  // over the part of a cell that would be trimmed if the user accepts.
+  silenceHL: {
+    position: 'absolute',
+    top: 0,
+    height: CLIP_H,
+    backgroundColor: 'rgba(255,77,109,0.45)',
+    borderWidth: 1,
+    borderColor: palette.coral,
   },
   cellSelected: {
     borderColor: palette.lime,
