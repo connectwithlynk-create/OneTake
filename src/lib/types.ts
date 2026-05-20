@@ -59,6 +59,10 @@ export interface Clip extends SyncFields {
   out_ms: number | null;
   /** 0..1 multiplier applied during in-app preview (not baked into file). */
   audio_volume: number;
+  /** 1 = audio is shown as a detached block on the audio track. The audio
+   *  still plays from the same source file; this is presentation-only so
+   *  the user can see / select / mute audio independently of the video. */
+  audio_detached: number;
   /** JSON of [{w, s, e}] word timings from Deepgram. Drives subtitles. */
   transcript_words: string | null;
   /** Non-null = ephemeral take; GC'd after this epoch-ms. Null = saved

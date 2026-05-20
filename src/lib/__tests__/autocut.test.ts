@@ -22,6 +22,7 @@ function clip(over: Partial<Clip> = {}): Clip {
     in_ms: null,
     out_ms: null,
     audio_volume: 1,
+    audio_detached: 0,
     transcript_words: null,
     expires_at: null,
     remote_path: null,

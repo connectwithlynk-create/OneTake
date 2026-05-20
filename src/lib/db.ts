@@ -35,6 +35,7 @@ const CLIPS_COLUMNS = [
   'in_ms',
   'out_ms',
   'audio_volume',
+  'audio_detached',
   'transcript_words',
 ] as const;
 
@@ -62,6 +63,7 @@ const CLIPS_BODY = `
   in_ms INTEGER,
   out_ms INTEGER,
   audio_volume REAL NOT NULL DEFAULT 1.0,
+  audio_detached INTEGER NOT NULL DEFAULT 0,
   transcript_words TEXT
 `;
 
@@ -209,6 +211,7 @@ async function migrate(db: SQLite.SQLiteDatabase) {
   await addColumn(db, 'clips', 'in_ms', 'INTEGER');
   await addColumn(db, 'clips', 'out_ms', 'INTEGER');
   await addColumn(db, 'clips', 'audio_volume', 'REAL NOT NULL DEFAULT 1.0');
+  await addColumn(db, 'clips', 'audio_detached', 'INTEGER NOT NULL DEFAULT 0');
   await addColumn(db, 'clips', 'transcript_words', 'TEXT');
   // overlays: media-overlay columns. Old DBs created before the editor
   // supported image/video overlays only have the text-overlay columns.

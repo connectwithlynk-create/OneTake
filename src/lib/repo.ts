@@ -168,6 +168,7 @@ export async function addClip(
     in_ms: null,
     out_ms: null,
     audio_volume: 1.0,
+    audio_detached: 0,
     transcript_words: null,
   };
   await db.runAsync(
@@ -357,6 +358,16 @@ export async function setClipVolume(clipId: string, volume: number) {
   await touch(db, 'clips', clipId);
 }
 
+export async function setClipAudioDetached(clipId: string, detached: 0 | 1) {
+  const db = await getDb();
+  await db.runAsync(
+    'UPDATE clips SET audio_detached = ? WHERE id = ?',
+    detached,
+    clipId
+  );
+  await touch(db, 'clips', clipId);
+}
+
 export async function setClipTranscriptWords(clipId: string, wordsJson: string) {
   const db = await getDb();
   await db.runAsync(
@@ -402,8 +413,8 @@ export async function splitClipAt(
     // insert the second half (carries the same media, takes splitAbs..outMs)
     await db.runAsync(
       `INSERT INTO clips
-         (id, project_id, order_index, file_uri, duration_ms, verdict, verdict_overridden, tag, tag_overridden, excluded, expires_at, created_at, updated_at, sync_status, name, meta_tags, transcript, mirrored, in_ms, out_ms, audio_volume, transcript_words)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         (id, project_id, order_index, file_uri, duration_ms, verdict, verdict_overridden, tag, tag_overridden, excluded, expires_at, created_at, updated_at, sync_status, name, meta_tags, transcript, mirrored, in_ms, out_ms, audio_volume, audio_detached, transcript_words)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       newId,
       c.project_id,
       c.order_index + 1,
@@ -425,6 +436,7 @@ export async function splitClipAt(
       splitAbs,
       outMs,
       c.audio_volume,
+      c.audio_detached,
       c.transcript_words
     );
     // shrink the first half to in..splitAbs

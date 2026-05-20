@@ -45,6 +45,7 @@ import {
   getProject,
   listClips,
   listOverlays,
+  setClipAudioDetached,
   setClipExcluded,
   setClipMirrored,
   setClipTrim,
@@ -66,9 +67,12 @@ const RULER_H = 22;
 const SUBS_H = 30;
 const OVRL_H = 30;
 const CLIP_H = 64;
+const AUDIO_H = 28;
 const TRACK_GAP = 6;
-const TRACK_BLOCK_H =
-  RULER_H + TRACK_GAP + SUBS_H + TRACK_GAP + OVRL_H + TRACK_GAP + CLIP_H;
+const CLIP_TOP =
+  RULER_H + TRACK_GAP + SUBS_H + TRACK_GAP + OVRL_H + TRACK_GAP;
+const AUDIO_TOP = CLIP_TOP + CLIP_H + TRACK_GAP;
+const TRACK_BLOCK_H = AUDIO_TOP + AUDIO_H;
 
 function mmss(ms: number): string {
   const s = Math.max(0, Math.floor(ms / 1000));
@@ -549,6 +553,23 @@ export default function ManualEditScreen() {
       },
       undo: async () => {
         await setClipMirrored(clipId, prev);
+        invalidate();
+      },
+    });
+  }
+
+  async function toggleAudioDetached() {
+    if (!selected) return;
+    const clipId = selected.id;
+    const prev = (selected.audio_detached ?? 0) === 1 ? 1 : 0;
+    const next: 0 | 1 = prev === 1 ? 0 : 1;
+    await runCmd({
+      do: async () => {
+        await setClipAudioDetached(clipId, next);
+        invalidate();
+      },
+      undo: async () => {
+        await setClipAudioDetached(clipId, prev as 0 | 1);
         invalidate();
       },
     });
@@ -1224,16 +1245,7 @@ export default function ManualEditScreen() {
               <View
                 style={[
                   styles.trackRow,
-                  {
-                    top:
-                      RULER_H +
-                      TRACK_GAP +
-                      SUBS_H +
-                      TRACK_GAP +
-                      OVRL_H +
-                      TRACK_GAP,
-                    height: CLIP_H,
-                  },
+                  { top: CLIP_TOP, height: CLIP_H },
                 ]}
               >
                 {included.map((c, idx) => {
@@ -1286,6 +1298,46 @@ export default function ManualEditScreen() {
                       onTrimRelease={(newIn, newOut) =>
                         persistTrim(newIn, newOut)
                       }
+                    />
+                  );
+                })}
+              </View>
+
+              {/* Audio strip: a violet block per detached clip */}
+              <View
+                style={[
+                  styles.trackRow,
+                  { top: AUDIO_TOP, height: AUDIO_H },
+                ]}
+              >
+                {included.map((c, idx) => {
+                  if (c.audio_detached !== 1) return null;
+                  const baseLeft = cumulative[idx] * pxPerMs;
+                  const baseW = Math.max(4, effLen(c) * pxPerMs);
+                  let dispLeft = baseLeft;
+                  let dispW = baseW;
+                  if (trimDrag) {
+                    const trimIdx = included.findIndex(
+                      (x) => x.id === trimDrag.id
+                    );
+                    if (idx === trimIdx) {
+                      dispLeft = baseLeft + trimDrag.dxIn;
+                      dispW = Math.max(
+                        48,
+                        baseW - trimDrag.dxIn + trimDrag.dxOut
+                      );
+                    } else if (idx > trimIdx) {
+                      dispLeft = baseLeft + trimDrag.dxOut;
+                    }
+                  }
+                  return (
+                    <AudioChip
+                      key={c.id}
+                      left={dispLeft}
+                      width={dispW}
+                      muted={(c.audio_volume ?? 1) === 0}
+                      selected={c.id === selectedId}
+                      onPress={() => selectClip(c.id)}
                     />
                   );
                 })}
@@ -1413,6 +1465,17 @@ export default function ManualEditScreen() {
             }
             onPress={toggleMute}
             active={!!selected && (selected.audio_volume ?? 1) === 0}
+            disabled={!selected}
+          />
+          <ActionBtn
+            icon="musical-notes-outline"
+            label={
+              selected && (selected.audio_detached ?? 0) === 1
+                ? 'Attach'
+                : 'Detach'
+            }
+            onPress={toggleAudioDetached}
+            active={!!selected && (selected.audio_detached ?? 0) === 1}
             disabled={!selected}
           />
           <ActionBtn
@@ -1792,6 +1855,66 @@ function OverlayChip({
           </GestureDetector>
         </>
       ) : null}
+    </Pressable>
+  );
+}
+
+// Detached-audio block on the audio track. The bars are a stylized
+// waveform (no real audio analysis), enough to read as audio at a glance.
+function AudioChip({
+  left,
+  width,
+  muted,
+  selected,
+  onPress,
+}: {
+  left: number;
+  width: number;
+  muted: boolean;
+  selected: boolean;
+  onPress: () => void;
+}) {
+  // Deterministic-ish bar heights derived from index so layout is stable
+  // across renders, and dense enough to look like a waveform at any width.
+  const barCount = Math.max(8, Math.floor(width / 4));
+  const bars = useMemo(() => {
+    const out: number[] = [];
+    for (let i = 0; i < barCount; i++) {
+      const h =
+        0.35 +
+        0.35 * Math.abs(Math.sin(i * 0.7)) +
+        0.25 * Math.abs(Math.sin(i * 0.31));
+      out.push(Math.min(1, h));
+    }
+    return out;
+  }, [barCount]);
+  return (
+    <Pressable
+      onPress={onPress}
+      style={[
+        styles.audioChip,
+        { left, width },
+        selected ? styles.audioChipSelected : null,
+        muted ? { opacity: 0.45 } : null,
+      ]}
+    >
+      <View style={styles.audioBars} pointerEvents="none">
+        {bars.map((h, i) => (
+          <View
+            key={i}
+            style={[
+              styles.audioBar,
+              { height: `${Math.round(h * 100)}%` },
+            ]}
+          />
+        ))}
+      </View>
+      <Ionicons
+        name={muted ? 'volume-mute' : 'musical-notes'}
+        size={10}
+        color={palette.violet}
+        style={styles.audioChipIcon}
+      />
     </Pressable>
   );
 }
@@ -2574,6 +2697,43 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.5,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 0 },
+  },
+
+  // Audio chips on the audio track (violet, faux waveform)
+  audioChip: {
+    position: 'absolute',
+    top: 0,
+    height: AUDIO_H,
+    borderRadius: 6,
+    overflow: 'hidden',
+    backgroundColor: `${palette.violet}15`,
+    borderWidth: 1,
+    borderColor: `${palette.violet}55`,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+  },
+  audioChipSelected: {
+    borderColor: palette.lime,
+    borderWidth: 2,
+  },
+  audioChipIcon: { position: 'absolute', top: 3, left: 4 },
+  audioBars: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+  },
+  audioBar: {
+    flex: 1,
+    marginHorizontal: 0.5,
+    backgroundColor: palette.violet,
+    opacity: 0.65,
+    borderRadius: 0.5,
   },
   cellBadge: {
     position: 'absolute',
