@@ -47,13 +47,15 @@ function parseWords(raw: string | null): WordTiming[] {
   }
 }
 
-/** Compute a per-clip proposal: head silence before the first word and
- *  tail silence after the last word, trimmed if > pauseMs. Keeps a
- *  100ms breath around speech and refuses to shrink a clip below
- *  300ms. Returns null when the clip has no transcript. */
+/** Compute a per-clip proposal: head silence before the first word
+ *  and tail silence after the last word. Trims them off if > 500ms.
+ *  `offsetMs` shifts the breath buffer around the trim — positive
+ *  values keep MORE silence (less aggressive), negative trim deeper
+ *  into the talk. Refuses to shrink a clip below 300ms.
+ *  Returns null when the clip has no transcript. */
 export function proposeForClip(
   clip: Clip,
-  pauseMs = 500
+  offsetMs = 0
 ): SilenceProposal | null {
   const words = parseWords(clip.transcript_words);
   if (words.length === 0) return null;
@@ -61,21 +63,29 @@ export function proposeForClip(
   const curOut = clip.out_ms ?? clip.duration_ms;
   const firstStart = Math.round(words[0].s * 1000);
   const lastEnd = Math.round(words[words.length - 1].e * 1000);
+  // Minimum pause that counts as a silence worth removing. Keeps the
+  // signal/noise ratio sane — micro-pauses inside speech don't fire.
+  const PAUSE_MS = 500;
+  // Default breath buffer: 100ms of pad either side. `offsetMs` shifts
+  // it (positive = more pad = less aggressive trim).
+  const breath = 100 + offsetMs;
 
   let newIn = curIn;
   let newOut = curOut;
   let headRemoved = 0;
   let tailRemoved = 0;
 
-  if (firstStart - curIn > pauseMs) {
-    const adj = firstStart - 100; // keep 100ms breath
+  if (firstStart - curIn > PAUSE_MS) {
+    // Clamp to curIn so a negative offset doesn't tighten past the
+    // original head and produce a negative removal.
+    const adj = Math.max(curIn, firstStart - breath);
     if (adj > newIn && newOut - adj > 300) {
       headRemoved = adj - newIn;
       newIn = adj;
     }
   }
-  if (curOut - lastEnd > pauseMs) {
-    const adj = lastEnd + 100;
+  if (curOut - lastEnd > PAUSE_MS) {
+    const adj = Math.min(curOut, lastEnd + breath);
     if (adj < newOut && adj - newIn > 300) {
       tailRemoved = newOut - adj;
       newOut = adj;
@@ -93,30 +103,16 @@ export function proposeForClip(
   };
 }
 
-/** Compute proposals for every clip in the project. Returns only the
- *  proposals where SOMETHING would change so the UI can iterate them
- *  without filtering. */
-export function analyzeProjectSilences(
+/** Run proposeForClip across every clip and apply non-empty proposals. */
+export async function cutSilencesInProject(
   clips: Clip[],
-  pauseMs = 500
-): SilenceProposal[] {
-  const out: SilenceProposal[] = [];
-  for (const c of clips) {
-    const p = proposeForClip(c, pauseMs);
-    if (!p) continue;
-    if (p.headRemovedMs === 0 && p.tailRemovedMs === 0) continue;
-    out.push(p);
-  }
-  return out;
-}
-
-/** Commit a set of proposals. */
-export async function applySilenceProposals(
-  proposals: SilenceProposal[]
+  offsetMs = 0
 ): Promise<CutSilencesResult> {
   let totalRemoved = 0;
   let trimmed = 0;
-  for (const p of proposals) {
+  for (const c of clips) {
+    const p = proposeForClip(c, offsetMs);
+    if (!p) continue;
     const removed = p.headRemovedMs + p.tailRemovedMs;
     if (removed <= 0) continue;
     await setClipTrim(p.clipId, p.newIn, p.newOut);
@@ -124,13 +120,4 @@ export async function applySilenceProposals(
     trimmed += 1;
   }
   return { removedMs: totalRemoved, trimmedClips: trimmed };
-}
-
-/** Backwards-compatible one-shot: analyze + apply. Kept so older
- *  callers (and tests) don't have to thread proposals manually. */
-export async function cutSilencesInProject(
-  clips: Clip[],
-  pauseMs = 500
-): Promise<CutSilencesResult> {
-  return applySilenceProposals(analyzeProjectSilences(clips, pauseMs));
 }

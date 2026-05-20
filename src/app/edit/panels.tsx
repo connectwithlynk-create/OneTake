@@ -770,35 +770,25 @@ export function AudioPanel({
 }
 
 // =============================================================
-// Cut silences — preview / tolerance slider / accept-reject
+// Cut silences — offset stepper + one-shot Tighten
 // =============================================================
 
-import type { SilenceProposal } from '@/lib/silences';
-
 export function CutSilencesPanel({
-  toleranceMs,
-  proposals,
+  offsetMs,
   isApplying,
   lastResult,
-  onToleranceChange,
-  onAccept,
-  onReject,
+  onOffsetChange,
+  onRun,
   onClose,
 }: {
-  toleranceMs: number;
-  proposals: SilenceProposal[];
+  offsetMs: number;
   isApplying: boolean;
   lastResult: { removedMs: number; trimmedClips: number } | null;
-  onToleranceChange: (ms: number) => void;
-  onAccept: () => void;
-  onReject: () => void;
+  onOffsetChange: (ms: number) => void;
+  onRun: () => void;
   onClose: () => void;
 }) {
-  const totalRemovedMs = proposals.reduce(
-    (sum, p) => sum + p.headRemovedMs + p.tailRemovedMs,
-    0
-  );
-  const hasProposals = proposals.length > 0;
+  const STEP = 50;
   return (
     <PanelShell
       title="Cut Silences"
@@ -806,52 +796,50 @@ export function CutSilencesPanel({
       onClose={onClose}
     >
       <Text style={s.hint}>
-        Highlighted regions on the timeline are what would be removed.
-        Drag the tolerance to flag longer / shorter pauses.
+        Tightens head / tail silences across every clip. Adjust the
+        offset to trim deeper (−) into the talk or keep more breath (+).
       </Text>
-      <SliderRow
-        label="Tolerance"
-        value={toleranceMs}
-        min={200}
-        max={2000}
-        step={50}
-        onChange={onToleranceChange}
-      />
-      <Text style={s.result}>
-        {hasProposals
-          ? `Would remove ${(totalRemovedMs / 1000).toFixed(1)}s across ${proposals.length} clip${proposals.length === 1 ? '' : 's'}.`
-          : 'No silences over the current tolerance.'}
-      </Text>
+      <View style={s.offsetRow}>
+        <Pressable
+          style={s.offsetBtn}
+          onPress={() => onOffsetChange(offsetMs - STEP)}
+        >
+          <Text style={s.offsetBtnText}>−{STEP}ms</Text>
+        </Pressable>
+        <Pressable style={s.offsetReset} onPress={() => onOffsetChange(0)}>
+          <Text style={s.offsetValue}>
+            {offsetMs > 0 ? '+' : ''}
+            {offsetMs} ms
+          </Text>
+        </Pressable>
+        <Pressable
+          style={s.offsetBtn}
+          onPress={() => onOffsetChange(offsetMs + STEP)}
+        >
+          <Text style={s.offsetBtnText}>+{STEP}ms</Text>
+        </Pressable>
+      </View>
       {lastResult ? (
         <Text style={[s.result, { color: palette.text2 }]}>
-          Last accept: removed {(lastResult.removedMs / 1000).toFixed(1)}s
+          Last run: removed {(lastResult.removedMs / 1000).toFixed(1)}s
           across {lastResult.trimmedClips} clip
           {lastResult.trimmedClips === 1 ? '' : 's'}.
         </Text>
       ) : null}
-      <View style={{ flexDirection: 'row', gap: 8 }}>
-        <Pressable style={s.actionBtnGhost} onPress={onReject}>
-          <Text style={s.actionBtnGhostText}>Reject</Text>
-        </Pressable>
-        <Pressable
-          style={[
-            s.bigBtn,
-            { flex: 1 },
-            (!hasProposals || isApplying) && { opacity: 0.5 },
-          ]}
-          disabled={!hasProposals || isApplying}
-          onPress={onAccept}
-        >
-          <Ionicons
-            name={isApplying ? 'hourglass' : 'checkmark'}
-            size={16}
-            color={palette.onBright}
-          />
-          <Text style={[s.bigBtnText, { color: palette.onBright }]}>
-            {isApplying ? 'Applying…' : 'Accept'}
-          </Text>
-        </Pressable>
-      </View>
+      <Pressable
+        style={[s.bigBtn, isApplying && { opacity: 0.5 }]}
+        disabled={isApplying}
+        onPress={onRun}
+      >
+        <Ionicons
+          name={isApplying ? 'hourglass' : 'cut'}
+          size={16}
+          color={palette.onBright}
+        />
+        <Text style={[s.bigBtnText, { color: palette.onBright }]}>
+          {isApplying ? 'Tightening…' : 'Tighten'}
+        </Text>
+      </Pressable>
     </PanelShell>
   );
 }
@@ -1092,6 +1080,40 @@ const s = StyleSheet.create({
     color: palette.text2,
     fontFamily: font.bodyBold,
     fontSize: 12,
+  },
+
+  // Cut Silences offset stepper
+  offsetRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  offsetBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.14)',
+  },
+  offsetBtnText: {
+    color: palette.text,
+    fontFamily: font.bodyBold,
+    fontSize: 13,
+  },
+  offsetReset: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.10)',
+  },
+  offsetValue: {
+    color: palette.lime,
+    fontFamily: font.monoBold,
+    fontSize: 14,
   },
 
   kfRow: {
