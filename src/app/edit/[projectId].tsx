@@ -2,6 +2,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+// NlePlayer drives the main timeline. expo-video is still used for the
+// per-overlay muted/loop video previews (OverlayVideo below).
 import { useVideoPlayer, VideoView } from 'expo-video';
 import React, {
   useCallback,
@@ -30,6 +32,8 @@ import {
 } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { NlePlayerView, useNlePlayer } from '../../../modules/nle-player';
+import type { NleClip as NleClipShape, NleTimeUpdateEvent, NlePlayingChangeEvent } from '../../../modules/nle-player';
 import { ClipVideo } from '@/components/clip-video';
 import { Loading } from '@/components/ui';
 import {
@@ -205,72 +209,21 @@ export default function ManualEditScreen() {
   // Touch `historyTick` so the lints/optimizer keep the read in deps.
   void historyTick;
 
-  // ----- player engine: double-buffered ------------------------------
-  // Two players, swap-on-boundary. While the active plays, the buffer
-  // pre-loads the next clip and sits paused at its effIn. At a clip
-  // boundary we flip which one is rendered, so the user never sees a
-  // black-flash or replay() stall. This is what real video editors do.
-  const playerA = useVideoPlayer(null, (p) => {
-    p.loop = false;
-    p.timeUpdateEventInterval = 0.1;
-  });
-  const playerB = useVideoPlayer(null, (p) => {
-    p.loop = false;
-    p.timeUpdateEventInterval = 0.1;
-  });
-  const [activeAB, setActiveAB] = useState<'A' | 'B'>('A');
-  const activeABRef = useRef<'A' | 'B'>('A');
-  activeABRef.current = activeAB;
-  const active = useCallback(
-    () => (activeABRef.current === 'A' ? playerA : playerB),
-    [playerA, playerB]
-  );
-  const buffer = useCallback(
-    () => (activeABRef.current === 'A' ? playerB : playerA),
-    [playerA, playerB]
-  );
-  // Per-player state. Each player tracks its own loaded source + pending
-  // load action so the listeners and load helpers stay symmetric.
-  type LoadIntent = { seekMs: number; autoplay: boolean };
-  const pendingLoadA = useRef<LoadIntent | null>(null);
-  const pendingLoadB = useRef<LoadIntent | null>(null);
-  const sourceA = useRef<string | null>(null);
-  const sourceB = useRef<string | null>(null);
-  const pendingTimerA = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pendingTimerB = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pendingLoadFor = (p: ReturnType<typeof useVideoPlayer>) =>
-    p === playerA ? pendingLoadA : pendingLoadB;
-  const sourceRefFor = (p: ReturnType<typeof useVideoPlayer>) =>
-    p === playerA ? sourceA : sourceB;
-  const pendingTimerFor = (p: ReturnType<typeof useVideoPlayer>) =>
-    p === playerA ? pendingTimerA : pendingTimerB;
-  const clearPendingTimer = (p: ReturnType<typeof useVideoPlayer>) => {
-    const t = pendingTimerFor(p);
-    if (t.current) {
-      clearTimeout(t.current);
-      t.current = null;
-    }
-  };
-  // Which clip index is currently sitting prepared in the buffer player.
-  // Lets advanceClip do an instant swap when this matches the next clip,
-  // and skip pre-loading work when it's already right.
-  const bufferIdxRef = useRef<number | null>(null);
-
+  // ----- player engine: native NLE composition -----------------------
+  // One native player driven by a composed timeline. The native side
+  // (AVMutableComposition on iOS, ConcatenatingMediaSource on Android)
+  // handles boundary cuts, pre-warm, and frame-accurate seek for free.
+  const player = useNlePlayer();
   const [playing, setPlaying] = useState(false);
   const [globalMs, setGlobalMs] = useState(0);
   const globalMsRef = useRef(0);
   globalMsRef.current = globalMs;
+  /** Which clip currently covers globalMs. Driven by the player's
+   *  per-frame onTimeUpdate event; cheap derived state. */
   const activeIdx = useRef<number>(0);
   const [speed, setSpeed] = useState(1);
   const speedRef = useRef(1);
   speedRef.current = speed;
-  // Tracks the user's *intent* to play, independent of the player's actual
-  // playing state. The player can flip to !playing on its own (natural EOF
-  // when a clip's effOut == file duration; replace() while a new asset
-  // loads). Reading player.playing at those moments would auto-pause the
-  // next clip in the timeline, so the boundary handler reads this ref
-  // instead.
-  const wantPlayingRef = useRef(false);
 
   // ----- zoom + viewport (centered playhead model) -----
   const [pxPerMs, setPxPerMs] = useState(DEFAULT_PX_PER_MS);
@@ -280,451 +233,96 @@ export default function ManualEditScreen() {
   const viewportWRef = useRef(0);
   viewportWRef.current = viewportW;
 
-  // statusChange handler factory: applies the queued seek + (optional)
-  // autoplay once the new asset is ready. Created per-player so each can
-  // run its own pendingLoad slot without interference.
+  // Push the current clip list down to the native composition. The
+  // composition is rebuilt on any structural change (split, delete,
+  // reorder, trim); the user only sees a brief load while the new
+  // composition primes — boundary cuts within it are seamless.
   useEffect(() => {
-    const make = (p: ReturnType<typeof useVideoPlayer>) =>
-      p.addListener('statusChange', (ev: { status?: string }) => {
-        if (ev?.status !== 'readyToPlay') return;
-        const pl = pendingLoadFor(p).current;
-        if (!pl) return;
-        pendingLoadFor(p).current = null;
-        clearPendingTimer(p);
-        try {
-          p.currentTime = pl.seekMs / 1000;
-          if (pl.autoplay) p.play();
-        } catch {
-          /* ignore */
-        }
-      });
-    const subA = make(playerA);
-    const subB = make(playerB);
-    return () => {
-      subA.remove();
-      subB.remove();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [playerA, playerB]);
+    if (included.length === 0) return;
+    const composed: NleClipShape[] = included.map((c) => ({
+      id: c.id,
+      uri: resolveClipUri(c.file_uri),
+      inMs: effIn(c),
+      outMs: effOut(c),
+      volume: c.audio_volume ?? 1,
+    }));
+    player.setClips(composed);
+  }, [included, player]);
 
-  // Load a clip into a specific player at a given local seek (or its
-  // effIn) and either auto-play or pause. Symmetric for active loads
-  // and buffer pre-loads.
-  const loadInto = useCallback(
-    (
-      p: ReturnType<typeof useVideoPlayer>,
-      c: Clip,
-      autoplay: boolean,
-      seekMs?: number
-    ) => {
-      const newSrc = resolveClipUri(c.file_uri);
-      const seek = seekMs ?? effIn(c);
-      const srcRef = sourceRefFor(p);
-      const sameSrc = srcRef.current === newSrc;
-      const plRef = pendingLoadFor(p);
-      try {
-        clearPendingTimer(p);
-        if (sameSrc) {
-          // Same source — replace() is a no-op and statusChange won't
-          // fire. Skip pendingLoad so fallbacks aren't suppressed.
-          plRef.current = null;
-        } else {
-          plRef.current = { seekMs: seek, autoplay };
-          p.replace(newSrc);
-          srcRef.current = newSrc;
-          // Watchdog in case statusChange doesn't report readyToPlay
-          // (cached asset, error, etc.). Free up the slot after 1.5s so
-          // the safety paths can recover.
-          pendingTimerFor(p).current = setTimeout(() => {
-            plRef.current = null;
-            pendingTimerFor(p).current = null;
-          }, 1500);
-        }
-        p.volume = c.audio_volume ?? 1;
-        p.playbackRate = speedRef.current;
-        try {
-          p.currentTime = seek / 1000;
-        } catch {
-          /* not ready */
-        }
-        if (autoplay) {
-          // Delay play() so the seek lands. Calling play() in the same
-          // tick as the seek can silently no-op when the player was at
-          // EOF. Keep an immediate attempt too for the non-EOF path.
-          setTimeout(() => {
-            if (!wantPlayingRef.current) return;
-            try {
-              p.play();
-            } catch {
-              /* */
-            }
-          }, 60);
-          try {
-            p.play();
-          } catch {
-            /* */
-          }
-        } else {
-          try {
-            p.pause();
-          } catch {
-            /* */
-          }
-        }
-      } catch {
-        /* player not ready */
-      }
-    },
-    // pendingLoadFor/sourceRefFor/pendingTimerFor/clearPendingTimer are
-    // stable closures over refs; safe to omit.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    []
-  );
-
-  // Load a clip into the *active* player. Used by tap-to-select, entry,
-  // and the engine's slow-path fallback.
-  const loadActive = useCallback(
-    (idx: number, autoplay: boolean) => {
-      const c = included[idx];
-      if (!c) return;
-      activeIdx.current = idx;
-      loadInto(active(), c, autoplay);
-    },
-    [included, loadInto, active]
-  );
-
-  // Pre-load a clip into the *buffer* player (paused at effIn). Skips
-  // work when the buffer is already pointed at this index. Updates
-  // bufferIdxRef so advanceClip can do an instant swap.
-  const preloadBuffer = useCallback(
-    (idx: number) => {
-      const c = included[idx];
-      if (!c) {
-        bufferIdxRef.current = null;
-        return;
-      }
-      if (bufferIdxRef.current === idx) return;
-      bufferIdxRef.current = idx;
-      loadInto(buffer(), c, false);
-    },
-    [included, loadInto, buffer]
-  );
-
-  // Tap a timeline cell -> switch the active source + re-prep buffer
-  // with the new next-next.
+  // Tap a timeline cell → seek to the start of that clip on the composed
+  // timeline. No source swap needed; the composition already covers
+  // every clip.
   useEffect(() => {
     if (!selectedId) return;
     const idx = included.findIndex((c) => c.id === selectedId);
     if (idx >= 0 && idx !== activeIdx.current) {
-      loadActive(idx, false);
+      activeIdx.current = idx;
       setGlobalMs(cumulative[idx]);
-      preloadBuffer(idx + 1);
+      try {
+        player.seek(cumulative[idx]);
+      } catch {
+        /* */
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedId]);
 
-  // Load the first clip's source on entry so the preview isn't blank, and
-  // immediately start pre-loading clip 1 into the buffer so the first
-  // boundary transition is seamless.
-  const sourceLoaded = useRef(false);
+  // Drive globalMs from the player's per-frame time updates. The native
+  // engine emits these on CADisplayLink / Choreographer cadence so the
+  // playhead tracks the displayed frame.
   useEffect(() => {
-    if (sourceLoaded.current) return;
-    if (included.length === 0) return;
-    sourceLoaded.current = true;
-    loadActive(0, false);
-    preloadBuffer(1);
-  }, [included, loadActive, preloadBuffer]);
-
-  // Whenever the clip list mutates (split, delete, reorder, trim) the
-  // pre-loaded buffer may now point at the wrong index. Re-prep it.
-  useEffect(() => {
-    if (included.length === 0) return;
-    preloadBuffer(activeIdx.current + 1);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [included]);
-
-  // Find which included clip a global ms maps into, returning [idx, localMs].
-  const idxAt = useCallback(
-    (ms: number): { idx: number; localMs: number } => {
-      const target = clamp(ms, 0, totalMs);
-      if (included.length === 0) return { idx: 0, localMs: 0 };
-      let idx = included.length - 1;
-      for (let i = 0; i < included.length; i++) {
-        if (target < cumulative[i + 1]) {
-          idx = i;
-          break;
-        }
+    const sub = player.addListener(
+      'onTimeUpdate',
+      (ev: NleTimeUpdateEvent) => {
+        if (userScrolling.current) return;
+        activeIdx.current = Math.max(0, ev.clipIndex);
+        setGlobalMs(ev.ms);
       }
-      const c = included[idx];
-      const localMs = effIn(c) + (target - cumulative[idx]);
-      return { idx, localMs };
-    },
-    [included, cumulative, totalMs]
-  );
+    );
+    return () => sub.remove();
+  }, [player]);
 
-  // Deferred clip swap: while scrubbing we never call `player.replace()` (that
-  // re-loads the asset and causes the freeze the user saw). Instead we record
-  // the clip index the scrub last landed on and commit the swap once the
-  // scroll settles.
-  const pendingSwap = useRef<number | null>(null);
+  useEffect(() => {
+    const sub = player.addListener(
+      'onPlayingChange',
+      (ev: NlePlayingChangeEvent) => {
+        setPlaying(!!ev.isPlaying);
+      }
+    );
+    return () => sub.remove();
+  }, [player]);
 
-  // Seek the active player to a global timeline ms. With `deferSwap`,
-  // cross-clip scrubs only freeze the current frame and record the
-  // pending clip; the actual swap happens on scroll settle.
+  // Seek + commit helpers — kept so the scrub UI code below stays
+  // unchanged. With the native composition, "swap" reduces to a single
+  // player.seek(ms) call; there's no longer any deferred work.
   const seekToGlobalMs = useCallback(
-    (ms: number, deferSwap = false) => {
+    (ms: number) => {
       if (included.length === 0) return;
       const target = clamp(ms, 0, totalMs);
-      const { idx, localMs } = idxAt(target);
-      const c = included[idx];
-      if (!c) return;
       setGlobalMs(target);
-
-      if (idx === activeIdx.current) {
-        pendingSwap.current = null;
-        try {
-          active().currentTime = localMs / 1000;
-        } catch {
-          /* not ready */
-        }
-        return;
+      try {
+        player.seek(target);
+      } catch {
+        /* */
       }
-
-      if (deferSwap) {
-        pendingSwap.current = idx;
-        // Freeze the current player on the nearest frame so the preview
-        // doesn't black-flash mid-scrub.
-        const cur = included[activeIdx.current];
-        if (cur) {
-          const freeze =
-            idx > activeIdx.current
-              ? Math.max(effIn(cur), effOut(cur) - 30)
-              : effIn(cur);
-          try {
-            active().currentTime = freeze / 1000;
-          } catch {
-            /* not ready */
-          }
-        }
-        return;
-      }
-
-      // Immediate swap (e.g. tap on a clip). Loads on active; buffer is
-      // re-prepped below by the post-effect.
-      activeIdx.current = idx;
-      pendingSwap.current = null;
-      loadInto(active(), c, false, localMs);
-      preloadBuffer(idx + 1);
     },
-    [included, totalMs, idxAt, active, loadInto, preloadBuffer]
+    [included.length, totalMs, player]
   );
 
-  // Commit a pending cross-clip swap that was deferred during scrubbing.
   const commitPendingSwap = useCallback(() => {
-    const idx = pendingSwap.current;
-    if (idx === null) return;
-    pendingSwap.current = null;
-    const c = included[idx];
-    if (!c) return;
-    const { localMs } = idxAt(globalMsRef.current);
-    activeIdx.current = idx;
-    loadInto(active(), c, false, localMs);
-    preloadBuffer(idx + 1);
-  }, [included, idxAt, active, loadInto, preloadBuffer]);
-
-  // Advance to the next clip — by swapping to the buffer if it's ready
-  // (seamless, no replace() flash), otherwise by loading on the active
-  // (one-shot fallback for tiny clips where pre-load didn't finish in
-  // time).
-  const advanceClip = useCallback(() => {
-    const idx = activeIdx.current;
-    const nextIdx = idx + 1;
-    if (nextIdx >= included.length) {
-      wantPlayingRef.current = false;
-      try {
-        active().pause();
-      } catch {
-        /* ignore */
-      }
-      setGlobalMs(totalMs);
-      return;
-    }
-    const nextClip = included[nextIdx];
-    const wantPlay = wantPlayingRef.current;
-
-    // Fast path: buffer is already pre-loaded with nextIdx. Swap
-    // visibility, play the new active, pause the old active, then
-    // pre-prep the buffer (now the OLD active) with nextIdx + 1.
-    if (bufferIdxRef.current === nextIdx) {
-      const oldActive = active();
-      const newActive = buffer();
-      // Mirror current per-clip params just in case (volume/rate may
-      // have changed since the buffer was prepped).
-      try {
-        newActive.volume = nextClip.audio_volume ?? 1;
-      } catch {
-        /* */
-      }
-      try {
-        newActive.playbackRate = speedRef.current;
-      } catch {
-        /* */
-      }
-      try {
-        newActive.currentTime = effIn(nextClip) / 1000;
-      } catch {
-        /* */
-      }
-      // Flip role atomically. setActiveAB re-renders; activeABRef gives
-      // the rest of the engine immediate read-after-write semantics.
-      activeABRef.current = activeABRef.current === 'A' ? 'B' : 'A';
-      setActiveAB((cur) => (cur === 'A' ? 'B' : 'A'));
-      activeIdx.current = nextIdx;
-      bufferIdxRef.current = null;
-      try {
-        oldActive.pause();
-      } catch {
-        /* */
-      }
-      if (wantPlay) {
-        try {
-          newActive.play();
-        } catch {
-          /* */
-        }
-      }
-      setGlobalMs(cumulative[nextIdx]);
-      // Schedule the next-next pre-load on the (newly) buffer player.
-      preloadBuffer(nextIdx + 1);
-      return;
-    }
-
-    // Slow path: buffer wasn't ready. Fall back to the previous
-    // single-player load on active. Still try to pre-prep buffer for
-    // nextIdx + 1.
-    loadInto(active(), nextClip, wantPlay);
-    activeIdx.current = nextIdx;
-    setGlobalMs(cumulative[nextIdx]);
-    preloadBuffer(nextIdx + 1);
-  }, [
-    included,
-    cumulative,
-    totalMs,
-    active,
-    buffer,
-    loadInto,
-    preloadBuffer,
-  ]);
-
-  // Fallback: when the *active* player reports playToEnd, treat it as a
-  // boundary even if our 100ms poll missed the threshold. Listen on both
-  // so we don't lose the event on swap; gate by which one is active.
-  useEffect(() => {
-    const makeEnd = (
-      p: ReturnType<typeof useVideoPlayer>,
-      role: 'A' | 'B'
-    ) =>
-      p.addListener('playToEnd', () => {
-        if (activeABRef.current !== role) return;
-        if (userScrolling.current) return;
-        if (pendingLoadFor(p).current) return;
-        advanceClip();
-      });
-    const subA = makeEnd(playerA, 'A');
-    const subB = makeEnd(playerB, 'B');
-    return () => {
-      subA.remove();
-      subB.remove();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [playerA, playerB, advanceClip]);
-
-  // Fast recovery: when the active player flips from playing → paused but
-  // the user still wants to play, nudge it back.
-  useEffect(() => {
-    const makePc = (
-      p: ReturnType<typeof useVideoPlayer>,
-      role: 'A' | 'B'
-    ) =>
-      p.addListener('playingChange', (ev: { isPlaying?: boolean }) => {
-        if (activeABRef.current !== role) return;
-        if (ev?.isPlaying) return;
-        if (!wantPlayingRef.current) return;
-        if (userScrolling.current) return;
-        setTimeout(() => {
-          if (!wantPlayingRef.current) return;
-          if (activeABRef.current !== role) return;
-          if (p.playing) return;
-          try {
-            p.play();
-          } catch {
-            /* ignore */
-          }
-        }, 30);
-      });
-    const subA = makePc(playerA, 'A');
-    const subB = makePc(playerB, 'B');
-    return () => {
-      subA.remove();
-      subB.remove();
-    };
-  }, [playerA, playerB]);
-
-  // Engine loop: poll the *active* player's time, advance at clip bounds.
-  useEffect(() => {
-    if (included.length === 0) return;
-    if (activeIdx.current >= included.length) loadActive(0, false);
-    const t = setInterval(() => {
-      try {
-        const p = active();
-        setPlaying(p.playing);
-        if (userScrolling.current) return;
-        const idx = activeIdx.current;
-        const c = included[idx];
-        if (!c) return;
-        const tMs = (p.currentTime ?? 0) * 1000;
-        const outMs = effOut(c);
-        const inMs = effIn(c);
-        // 250ms threshold > 100ms poll interval, so the boundary fires
-        // BEFORE the player auto-pauses at the file's natural end. The
-        // buffer should already be pre-loaded with the next clip, so
-        // advanceClip can swap visibility instantly.
-        if (tMs >= outMs - 250) {
-          advanceClip();
-          return;
-        }
-        const local = Math.max(0, tMs - inMs);
-        setGlobalMs(cumulative[idx] + local);
-        // Safety: user wants to play but the active has stalled. play()
-        // is idempotent on a playing/loading player, so don't gate on
-        // pendingLoad.
-        if (wantPlayingRef.current && !p.playing) {
-          try {
-            p.play();
-          } catch {
-            /* ignore */
-          }
-        }
-      } catch {
-        /* ignore */
-      }
-    }, 100);
-    return () => clearInterval(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [included, cumulative, totalMs, advanceClip]);
+    // No-op with the native composition. Kept to satisfy existing scrub
+    // wiring.
+  }, []);
 
   function togglePlay() {
     try {
-      const p = active();
-      if (p.playing) {
-        wantPlayingRef.current = false;
-        p.pause();
-      } else if (activeIdx.current >= included.length) {
-        wantPlayingRef.current = true;
-        loadActive(0, true);
+      if (player.isPlaying) {
+        player.pause();
       } else {
-        wantPlayingRef.current = true;
-        p.play();
+        if (globalMsRef.current >= totalMs - 1) {
+          player.seek(0);
+        }
+        player.play();
       }
     } catch {
       /* ignore */
@@ -831,7 +429,7 @@ export default function ManualEditScreen() {
     const next = prev > 0 ? 0 : 1;
     const applyTo = (val: number) => {
       try {
-        if (included[activeIdx.current]?.id === clipId) active().volume = val;
+        player.setClipVolume(clipId, val);
       } catch {
         /* ignore */
       }
@@ -852,17 +450,8 @@ export default function ManualEditScreen() {
 
   function doSpeed(s: number) {
     setSpeed(s);
-    try {
-      active().playbackRate = s;
-    } catch {
-      /* ignore */
-    }
-    // Keep the buffer in sync so it doesn't jump speeds on swap.
-    try {
-      buffer().playbackRate = s;
-    } catch {
-      /* ignore */
-    }
+    // NlePlayer doesn't yet expose per-clip playback rate; the
+    // composition plays at 1x. Reserved for a future native pass.
   }
 
   async function changeVolume(v: number) {
@@ -871,7 +460,7 @@ export default function ManualEditScreen() {
     const prev = selected.audio_volume ?? 1;
     const applyTo = (val: number) => {
       try {
-        if (included[activeIdx.current]?.id === clipId) active().volume = val;
+        player.setClipVolume(clipId, val);
       } catch {
         /* ignore */
       }
@@ -1159,7 +748,12 @@ export default function ManualEditScreen() {
   }, [included, globalMs]);
   const subtitleNow = useMemo(() => {
     if (!subsOn || activeWords.length === 0) return '';
-    const localSec = active().currentTime ?? 0;
+    // Map composed-timeline ms back into the clip-local seconds so the
+    // word-timings lookup (which is per-clip) still works.
+    const aidx = activeIdx.current;
+    const c = included[aidx];
+    if (!c) return '';
+    const localSec = (globalMs - (cumulative[aidx] ?? 0) + effIn(c)) / 1000;
     let i = activeWords.findIndex((w) => localSec >= w.s && localSec <= w.e);
     if (i < 0) {
       for (let j = activeWords.length - 1; j >= 0; j--) {
@@ -1218,7 +812,7 @@ export default function ManualEditScreen() {
       if (!userScrolling.current) return;
       const x = e.nativeEvent.contentOffset.x;
       const ms = x / pxPerMsRef.current;
-      seekToGlobalMs(ms, true);
+      seekToGlobalMs(ms);
     },
     [seekToGlobalMs]
   );
@@ -1302,35 +896,18 @@ export default function ManualEditScreen() {
       {/* ===== Preview =============================================== */}
       <View style={styles.previewWrap}>
         <View style={styles.previewFrame}>
-          {/* Double-buffered: both VideoViews mounted, only the active
-              one is opaque. At a clip boundary we flip activeAB and the
-              other view becomes visible in a single frame — no replace
-              flash, no seek stutter. */}
-          <VideoView
-            player={playerA}
+          {/* One native composition player. AVMutableComposition /
+              ExoPlayer handle boundary cuts internally, so there's no
+              flash, swap, or stutter at clip junctions. */}
+          <NlePlayerView
+            player={player}
             style={[
               StyleSheet.absoluteFill,
               {
-                opacity: activeAB === 'A' ? (activeDim ? 0.4 : 1) : 0,
+                opacity: activeDim ? 0.4 : 1,
                 transform: activeMirrored ? [{ scaleX: -1 }] : [],
-                zIndex: activeAB === 'A' ? 1 : 0,
               },
             ]}
-            nativeControls={false}
-            contentFit="contain"
-          />
-          <VideoView
-            player={playerB}
-            style={[
-              StyleSheet.absoluteFill,
-              {
-                opacity: activeAB === 'B' ? (activeDim ? 0.4 : 1) : 0,
-                transform: activeMirrored ? [{ scaleX: -1 }] : [],
-                zIndex: activeAB === 'B' ? 1 : 0,
-              },
-            ]}
-            nativeControls={false}
-            contentFit="contain"
           />
           {overlays
             .filter((o) => globalMs >= o.start_ms && globalMs < o.end_ms)
@@ -1427,8 +1004,7 @@ export default function ManualEditScreen() {
                 scrubEndTimer.current = null;
               }
               try {
-                wantPlayingRef.current = false;
-                active().pause();
+                player.pause();
               } catch {
                 /* ignore */
               }

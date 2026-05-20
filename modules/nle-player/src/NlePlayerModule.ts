@@ -1,0 +1,137 @@
+import { NativeModule, requireNativeModule } from 'expo';
+
+import {
+  NleClip,
+  NlePlayerModuleEvents,
+  NleTimeUpdateEvent,
+  NlePlayingChangeEvent,
+  NleStatusChangeEvent,
+  NlePlayToEndEvent,
+} from './NlePlayer.types';
+
+/** Static native module. Owns the player registry; the JS-side NlePlayer
+ *  class wraps a handle returned by create(). */
+declare class NlePlayerNative extends NativeModule<NlePlayerModuleEvents> {
+  /** Create a new native player instance. Returns its handle (int >= 0). */
+  create(): number;
+  /** Tear down a native player. */
+  destroy(handle: number): void;
+  /** Replace the player's composed timeline. Synchronous on the JS side
+   *  but the native composition is built and the player primed
+   *  asynchronously; subscribe to onStatusChange to know when it's
+   *  ready. */
+  setClips(handle: number, clips: NleClip[]): void;
+  play(handle: number): void;
+  pause(handle: number): void;
+  /** Seek by composed-timeline milliseconds. */
+  seek(handle: number, ms: number): void;
+  /** Synchronous reads for hot paths. Falls back to 0 if the handle is
+   *  unknown or the player isn't ready yet. */
+  getCurrentTime(handle: number): number;
+  getDuration(handle: number): number;
+  getIsPlaying(handle: number): boolean;
+  /** Apply per-clip volume without rebuilding the composition. */
+  setClipVolume(handle: number, clipId: string, volume: number): void;
+}
+
+const Native = requireNativeModule<NlePlayerNative>('NlePlayer');
+
+export default Native;
+
+/** Imperative wrapper around a single native player handle. Mirrors the
+ *  shape of expo-video's `useVideoPlayer` returned object so the editor
+ *  can substitute it with minimal churn. */
+export class NlePlayer {
+  /** Native handle. -1 once destroyed. */
+  private _handle: number;
+  private _subs: Array<{ remove(): void }> = [];
+
+  constructor() {
+    this._handle = Native.create();
+  }
+
+  get handle(): number {
+    return this._handle;
+  }
+
+  setClips(clips: NleClip[]) {
+    if (this._handle < 0) return;
+    Native.setClips(this._handle, clips);
+  }
+
+  play() {
+    if (this._handle < 0) return;
+    Native.play(this._handle);
+  }
+  pause() {
+    if (this._handle < 0) return;
+    Native.pause(this._handle);
+  }
+  seek(ms: number) {
+    if (this._handle < 0) return;
+    Native.seek(this._handle, ms);
+  }
+  setClipVolume(clipId: string, volume: number) {
+    if (this._handle < 0) return;
+    Native.setClipVolume(this._handle, clipId, volume);
+  }
+
+  get currentTime(): number {
+    if (this._handle < 0) return 0;
+    return Native.getCurrentTime(this._handle);
+  }
+  get duration(): number {
+    if (this._handle < 0) return 0;
+    return Native.getDuration(this._handle);
+  }
+  get isPlaying(): boolean {
+    if (this._handle < 0) return false;
+    return Native.getIsPlaying(this._handle);
+  }
+
+  /** Subscribe to a player-scoped event. Native filters by handle so
+   *  listeners on different player instances don't cross-fire. */
+  addListener<K extends keyof NlePlayerModuleEvents>(
+    event: K,
+    listener: (payload: Parameters<NlePlayerModuleEvents[K]>[0]) => void
+  ): { remove: () => void } {
+    const wrapped = (
+      payload: Parameters<NlePlayerModuleEvents[K]>[0] & { handle?: number }
+    ) => {
+      if (payload?.handle !== undefined && payload.handle !== this._handle) {
+        return;
+      }
+      listener(payload);
+    };
+    const sub = Native.addListener(event, wrapped as never);
+    this._subs.push(sub);
+    return {
+      remove: () => {
+        sub.remove();
+        this._subs = this._subs.filter((s) => s !== sub);
+      },
+    };
+  }
+
+  destroy() {
+    if (this._handle < 0) return;
+    for (const s of this._subs) {
+      try {
+        s.remove();
+      } catch {
+        /* ignore */
+      }
+    }
+    this._subs = [];
+    Native.destroy(this._handle);
+    this._handle = -1;
+  }
+}
+
+export type {
+  NleClip,
+  NleTimeUpdateEvent,
+  NlePlayingChangeEvent,
+  NleStatusChangeEvent,
+  NlePlayToEndEvent,
+};
