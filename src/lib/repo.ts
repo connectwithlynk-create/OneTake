@@ -341,8 +341,31 @@ export async function setTag(clipId: string, tag: ClipTag) {
 
 export async function deleteClip(clipId: string, fileUri: string) {
   const db = await getDb();
-  deleteClipFile(fileUri);
+  // Drop the row first so the reference count we read next doesn't
+  // include this clip.
   await db.runAsync('DELETE FROM clips WHERE id = ?', clipId);
+  // Cascade: cutout's subject overlay shares the source's file_uri.
+  await db.runAsync(
+    "DELETE FROM overlays WHERE source_clip_id = ? AND kind = 'subject'",
+    clipId
+  );
+  // Only delete the underlying file when nothing else references it.
+  // Splits + duplicates produce multiple clip rows that point at the
+  // same file_uri; killing the file too early breaks the surviving
+  // clips with a "video failed to load" the next time the editor
+  // opens. Subject overlays and audio-only / media overlays may also
+  // reference the file.
+  const clipRefs = await db.getFirstAsync<{ c: number }>(
+    'SELECT COUNT(*) AS c FROM clips WHERE file_uri = ?',
+    fileUri
+  );
+  const overlayRefs = await db.getFirstAsync<{ c: number }>(
+    'SELECT COUNT(*) AS c FROM overlays WHERE file_uri = ?',
+    fileUri
+  );
+  if ((clipRefs?.c ?? 0) === 0 && (overlayRefs?.c ?? 0) === 0) {
+    deleteClipFile(fileUri);
+  }
 }
 
 export async function setClipMetaTags(clipId: string, tags: MetaTag[]) {

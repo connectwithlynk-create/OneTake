@@ -405,12 +405,22 @@ final class NleEngine {
           case .readyToPlay:
             self.emit("onStatusChange", ["status": "readyToPlay"])
           case .failed:
+            // Map generic AVFoundation errors to something the user
+            // can actually do something about. "Operation could not
+            // be completed" most often = source file gone.
+            let raw = item.error?.localizedDescription ?? "unknown"
+            let msg: String = {
+              let lower = raw.lowercased()
+              if lower.contains("could not be completed")
+                || lower.contains("no such file")
+                || lower.contains("cannot find") {
+                return "Source file missing for one of the clips"
+              }
+              return raw
+            }()
             self.emit(
               "onStatusChange",
-              [
-                "status": "error",
-                "error": item.error?.localizedDescription ?? "unknown",
-              ]
+              ["status": "error", "error": msg]
             )
           case .unknown:
             self.emit("onStatusChange", ["status": "loading"])
