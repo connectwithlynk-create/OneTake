@@ -218,6 +218,13 @@ export default function ManualEditScreen() {
   const [speed, setSpeed] = useState(1);
   const speedRef = useRef(1);
   speedRef.current = speed;
+  // Tracks the user's *intent* to play, independent of the player's actual
+  // playing state. The player can flip to !playing on its own (natural EOF
+  // when a clip's effOut == file duration; replace() while a new asset
+  // loads). Reading player.playing at those moments would auto-pause the
+  // next clip in the timeline, so the boundary handler reads this ref
+  // instead.
+  const wantPlayingRef = useRef(false);
 
   // ----- zoom + viewport (centered playhead model) -----
   const [pxPerMs, setPxPerMs] = useState(DEFAULT_PX_PER_MS);
@@ -447,16 +454,18 @@ export default function ManualEditScreen() {
         const inMs = effIn(c);
         if (tMs >= outMs - 30) {
           if (idx + 1 < included.length) {
-            // Capture wasPlaying BEFORE replace() — player.playing flips to
-            // false while the new source loads, and reading it after the
-            // call would always paused-pin the next clip.
-            const wasPlaying = player.playing;
-            loadActive(idx + 1, wasPlaying);
+            // Use the user's *intent* to play, not player.playing. When a
+            // clip's effOut sits at the file's natural end, the player has
+            // already auto-paused by the time this 100ms poll detects the
+            // boundary, which would otherwise cause the next clip to load
+            // paused.
+            loadActive(idx + 1, wantPlayingRef.current);
             // Jump the playhead to the boundary immediately so the UI
             // doesn't visibly freeze on the 100ms poll gap while the new
             // source loads.
             setGlobalMs(cumulative[idx + 1]);
           } else {
+            wantPlayingRef.current = false;
             player.pause();
             setGlobalMs(totalMs);
           }
@@ -474,9 +483,16 @@ export default function ManualEditScreen() {
 
   function togglePlay() {
     try {
-      if (player.playing) player.pause();
-      else if (activeIdx.current >= included.length) loadActive(0, true);
-      else player.play();
+      if (player.playing) {
+        wantPlayingRef.current = false;
+        player.pause();
+      } else if (activeIdx.current >= included.length) {
+        wantPlayingRef.current = true;
+        loadActive(0, true);
+      } else {
+        wantPlayingRef.current = true;
+        player.play();
+      }
     } catch {
       /* ignore */
     }
@@ -1154,6 +1170,7 @@ export default function ManualEditScreen() {
                 scrubEndTimer.current = null;
               }
               try {
+                wantPlayingRef.current = false;
                 player.pause();
               } catch {
                 /* ignore */
