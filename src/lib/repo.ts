@@ -626,14 +626,17 @@ export async function addOverlay(
     color?: string;
     size?: number;
     scale?: number;
+    source_clip_id?: string | null;
   }
 ): Promise<Overlay> {
   const db = await getDb();
   const now = Date.now();
   const kind: OverlayKind = args.kind ?? 'text';
   // Media overlays default to a centered, larger position so they read as
-  // picture-in-picture rather than a footer caption.
-  const defaultY = kind === 'text' ? 0.82 : 0.3;
+  // picture-in-picture rather than a footer caption. Subject overlays
+  // default to FULL-SIZE so they align with the source frame.
+  const defaultY = kind === 'text' ? 0.82 : 0.5;
+  const defaultScale = kind === 'subject' ? 1 : args.scale ?? 0.4;
   const o: Overlay = {
     id: id(),
     project_id: projectId,
@@ -646,16 +649,17 @@ export async function addOverlay(
     y: args.y ?? defaultY,
     color: args.color ?? '#ffffff',
     size: args.size ?? 22,
-    scale: args.scale ?? 0.4,
+    scale: defaultScale,
     keyframes_json: null,
+    source_clip_id: args.source_clip_id ?? null,
     created_at: now,
     owner: null,
     updated_at: now,
     sync_status: 'local',
   };
   await db.runAsync(
-    `INSERT INTO overlays (id, project_id, kind, text, file_uri, start_ms, end_ms, x, y, color, size, scale, created_at, updated_at, sync_status)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'local')`,
+    `INSERT INTO overlays (id, project_id, kind, text, file_uri, start_ms, end_ms, x, y, color, size, scale, source_clip_id, created_at, updated_at, sync_status)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'local')`,
     o.id,
     o.project_id,
     o.kind,
@@ -668,10 +672,58 @@ export async function addOverlay(
     o.color,
     o.size,
     o.scale,
+    o.source_clip_id,
     o.created_at,
     o.updated_at
   );
   return o;
+}
+
+/** Create the "subject" overlay representing a cutout-extracted person
+ *  layer above the source clip. The overlay shares the clip's media
+ *  and its time range on the composed timeline. The native engine
+ *  recognises kind='subject' / source_clip_id and applies Vision
+ *  person-segmentation when rendering its frames. */
+export async function createSubjectOverlay(
+  projectId: string,
+  sourceClipId: string,
+  startMs: number,
+  endMs: number,
+  fileUri: string
+): Promise<Overlay> {
+  return addOverlay(projectId, {
+    kind: 'subject',
+    file_uri: fileUri,
+    start_ms: startMs,
+    end_ms: endMs,
+    source_clip_id: sourceClipId,
+    // Centered, full-size so it perfectly overlays the source until
+    // the user drags it somewhere new.
+    x: 0.5,
+    y: 0.5,
+    scale: 1,
+  });
+}
+
+/** Find the subject overlay (if any) attached to this source clip. */
+export async function findSubjectOverlayFor(
+  clipId: string
+): Promise<Overlay | null> {
+  const db = await getDb();
+  const row = await db.getFirstAsync<Overlay>(
+    "SELECT * FROM overlays WHERE source_clip_id = ? AND kind = 'subject' LIMIT 1",
+    clipId
+  );
+  return row ?? null;
+}
+
+/** Drop a subject overlay (if present) for the given source clip. */
+export async function removeSubjectOverlayFor(clipId: string) {
+  const db = await getDb();
+  await db.runAsync(
+    "DELETE FROM overlays WHERE source_clip_id = ? AND kind = 'subject'",
+    clipId
+  );
 }
 
 export async function updateOverlay(

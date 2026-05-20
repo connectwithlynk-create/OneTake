@@ -3,6 +3,7 @@ import CoreImage
 import CoreImage.CIFilterBuiltins
 import Foundation
 import QuartzCore
+import Vision
 
 /// One clip on the composed timeline.
 struct NleClip {
@@ -22,6 +23,9 @@ struct NleClip {
   let chromaEnabled: Bool
   let chromaColor: String  // '#RRGGBB' or ''
   let chromaThreshold: Float
+  // Person segmentation (Cutout). When true, the CIFilter pass masks
+  // frames so only the segmented person remains over a transparent BG.
+  let cutoutEnabled: Bool
 
   init?(dict: [String: Any]) {
     guard
@@ -51,6 +55,7 @@ struct NleClip {
     self.chromaEnabled = (dict["chromaEnabled"] as? Bool) ?? false
     self.chromaColor = (dict["chromaColor"] as? String) ?? ""
     self.chromaThreshold = f("chromaThreshold", 0.3)
+    self.cutoutEnabled = (dict["cutoutEnabled"] as? Bool) ?? false
   }
 
   /// True if this clip's effect bag deviates from the neutral defaults
@@ -63,6 +68,7 @@ struct NleClip {
       || abs(shadows) > 0.001
       || abs(highlights) > 0.001
       || chromaEnabled
+      || cutoutEnabled
   }
 }
 
@@ -524,6 +530,23 @@ final class NleEngine {
       if let out = f.outputImage { img = out }
     }
 
+    // Person segmentation (Cutout). Run Vision on the current frame
+    // and use the result as an alpha mask. Failures fall through to
+    // the unmasked image so the user never sees a black preview.
+    if c.cutoutEnabled {
+      if let mask = personMaskCache.mask(for: img) {
+        // Composite source over a clear bg using the mask as alpha.
+        // CIBlendWithMask: bg = clear, fg = img, mask = personMask.
+        let blend = CIFilter(name: "CIBlendWithMask")!
+        let clear = CIImage(color: CIColor(red: 0, green: 0, blue: 0, alpha: 0))
+          .cropped(to: img.extent)
+        blend.setValue(img, forKey: kCIInputImageKey)
+        blend.setValue(clear, forKey: kCIInputBackgroundImageKey)
+        blend.setValue(mask, forKey: kCIInputMaskImageKey)
+        if let out = blend.outputImage { img = out }
+      }
+    }
+
     // Chroma key — synth a color cube that zeros alpha where the hue
     // falls inside the threshold band around the target color.
     if c.chromaEnabled {
@@ -551,6 +574,13 @@ final class NleEngine {
     let b = Float(v & 0xFF) / 255.0
     return (r, g, b)
   }
+
+  /// Vision person-segmentation runner. Holds a single
+  /// VNGeneratePersonSegmentationRequest configured for `.balanced`
+  /// quality (good speed/accuracy for live preview). The request is
+  /// thread-safe per the docs; we hit it from the CIFilter handler
+  /// thread directly.
+  static let personMaskCache = PersonMaskRunner()
 
   /// Build a 16-step color cube that zeros alpha for samples within
   /// `threshold` of the target color in linear RGB. The cube is small
@@ -586,6 +616,66 @@ final class NleEngine {
       }
     }
     return (size, data)
+  }
+}
+
+/// Runs Vision person-segmentation on a CIImage frame and returns a
+/// single-channel mask CIImage sized to the input frame. The request
+/// object is reused across calls; only the per-frame buffer changes.
+final class PersonMaskRunner {
+  private let request: VNGeneratePersonSegmentationRequest = {
+    let r = VNGeneratePersonSegmentationRequest()
+    r.qualityLevel = .balanced
+    r.outputPixelFormat = kCVPixelFormatType_OneComponent8
+    return r
+  }()
+  private let context = CIContext(options: nil)
+
+  /// Returns nil if Vision didn't surface a mask (no person detected
+  /// or an error). Callers should fall back to the unmasked image.
+  func mask(for image: CIImage) -> CIImage? {
+    // Vision needs a CGImage / CVPixelBuffer. Render the input to a
+    // pixel buffer at the source extent.
+    let extent = image.extent
+    guard extent.width > 0, extent.height > 0 else { return nil }
+    let w = Int(extent.width)
+    let h = Int(extent.height)
+
+    var pb: CVPixelBuffer?
+    let attrs: [CFString: Any] = [
+      kCVPixelBufferPixelFormatTypeKey: kCVPixelFormatType_32BGRA,
+      kCVPixelBufferIOSurfacePropertiesKey: [:],
+    ]
+    CVPixelBufferCreate(
+      kCFAllocatorDefault,
+      w,
+      h,
+      kCVPixelFormatType_32BGRA,
+      attrs as CFDictionary,
+      &pb
+    )
+    guard let buf = pb else { return nil }
+    context.render(image, to: buf)
+
+    let handler = VNImageRequestHandler(cvPixelBuffer: buf, options: [:])
+    do {
+      try handler.perform([request])
+    } catch {
+      return nil
+    }
+    guard
+      let result = request.results?.first,
+      let maskBuffer = result.pixelBuffer as CVPixelBuffer?
+    else {
+      return nil
+    }
+    // Mask comes back at the segmenter's working resolution; CIImage
+    // scaling lines it back up with the source extent.
+    let mask = CIImage(cvPixelBuffer: maskBuffer)
+    let scaleX = extent.width / mask.extent.width
+    let scaleY = extent.height / mask.extent.height
+    return mask.transformed(by: CGAffineTransform(scaleX: scaleX, y: scaleY))
+      .cropped(to: extent)
   }
 }
 

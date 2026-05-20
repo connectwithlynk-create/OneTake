@@ -477,15 +477,17 @@ export function CutoutPanel({
   return (
     <PanelShell title="Cutout" icon="layers-outline" onClose={onClose}>
       <Text style={s.hint}>
-        Isolates the subject so you can drop a background underneath.
-        Uses on-device person segmentation; runs at preview time.
+        Extracts the subject (person segmentation) and drops it on a
+        new layer over the main track. Toggle off to remove the layer.
+        You can then move, scale, or keyframe the subject independent
+        of the source clip.
       </Text>
       <Pressable
         onPress={() => onChange({ cutoutEnabled: !on })}
         style={[s.bigToggle, on && s.bigToggleActive]}
       >
         <Text style={[s.bigToggleText, on && s.bigToggleTextActive]}>
-          {on ? 'Cutout ON' : 'Cutout OFF'}
+          {on ? 'Subject layer ON' : 'Subject layer OFF'}
         </Text>
       </Pressable>
     </PanelShell>

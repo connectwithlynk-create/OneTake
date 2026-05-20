@@ -149,7 +149,7 @@ export interface Collection extends SyncFields {
   n_analyzed: number;
 }
 
-export type OverlayKind = 'text' | 'image' | 'video';
+export type OverlayKind = 'text' | 'image' | 'video' | 'subject';
 
 /** Project-level overlay (rendered over preview in [start_ms, end_ms]).
  *  Either a text overlay (text+color+size) or a media overlay (file_uri+scale).
@@ -174,6 +174,9 @@ export interface Overlay extends SyncFields {
   scale: number;
   /** JSON-encoded OverlayKeyframe[]. Null = static (x/y/scale used as-is). */
   keyframes_json: string | null;
+  /** For subject overlays (cutout person layer): the source clip id
+   *  whose frames are pulled and masked. Null for normal overlays. */
+  source_clip_id: string | null;
   created_at: number;
 }
 

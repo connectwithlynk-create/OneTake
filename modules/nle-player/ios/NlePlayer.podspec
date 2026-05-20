@@ -5,7 +5,7 @@ Pod::Spec.new do |s|
   s.description    = 'AVMutableComposition-backed timeline player for OneTake'
   s.author         = ''
   s.homepage       = 'https://docs.expo.dev/modules/'
-  s.frameworks     = 'AVFoundation', 'CoreImage', 'QuartzCore', 'UIKit'
+  s.frameworks     = 'AVFoundation', 'CoreImage', 'CoreVideo', 'QuartzCore', 'UIKit', 'Vision'
   s.platforms      = {
     :ios => '15.1',
     :tvos => '15.1'

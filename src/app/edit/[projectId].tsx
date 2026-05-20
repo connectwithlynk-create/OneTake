@@ -45,12 +45,15 @@ import {
 import { id as newId } from '@/lib/id';
 import {
   addOverlay,
+  createSubjectOverlay,
   deleteClip,
   deleteOverlay,
   duplicateClip,
+  findSubjectOverlayFor,
   getProject,
   listClips,
   listOverlays,
+  removeSubjectOverlayFor,
   replaceClipFile,
   setCaptionSettings,
   setClipAudioDetached,
@@ -350,6 +353,8 @@ export default function ManualEditScreen() {
         chromaEnabled: ef.chromaEnabled,
         chromaColor: ef.chromaColor,
         chromaThreshold: ef.chromaThreshold,
+        // Person segmentation — native applies Vision masking.
+        cutoutEnabled: ef.cutoutEnabled,
       };
     });
     const sig = composed
@@ -358,7 +363,8 @@ export default function ManualEditScreen() {
           `${c.id}:${c.inMs}:${c.outMs}:${c.volume ?? 1}:${c.uri}:` +
           `${c.brightness ?? 0}:${c.contrast ?? 1}:${c.saturation ?? 1}:` +
           `${c.warmth ?? 0}:${c.shadows ?? 0}:${c.highlights ?? 0}:` +
-          `${c.chromaEnabled ? 1 : 0}:${c.chromaColor ?? ''}:${c.chromaThreshold ?? 0}`
+          `${c.chromaEnabled ? 1 : 0}:${c.chromaColor ?? ''}:${c.chromaThreshold ?? 0}:` +
+          `${c.cutoutEnabled ? 1 : 0}`
       )
       .join('|');
     if (sig === lastPushRef.current) return;
@@ -1719,7 +1725,36 @@ export default function ManualEditScreen() {
       {bottomMode === 'cutout' && selected ? (
         <CutoutPanel
           effects={selectedEffects}
-          onChange={patchSelectedEffects}
+          onChange={async (patch) => {
+            // Side-effect: keep a "subject" overlay in sync with the
+            // cutoutEnabled flag so the layer is visible in the
+            // timeline + the native engine has a target to mask.
+            if (
+              typeof patch.cutoutEnabled === 'boolean' &&
+              selected
+            ) {
+              const idx = included.findIndex(
+                (c) => c.id === selected.id
+              );
+              const compStart = cumulative[idx] ?? 0;
+              const compEnd = cumulative[idx + 1] ?? compStart;
+              if (patch.cutoutEnabled) {
+                const existing = await findSubjectOverlayFor(selected.id);
+                if (!existing) {
+                  await createSubjectOverlay(
+                    projectId,
+                    selected.id,
+                    compStart,
+                    compEnd,
+                    selected.file_uri
+                  );
+                }
+              } else {
+                await removeSubjectOverlayFor(selected.id);
+              }
+            }
+            await patchSelectedEffects(patch);
+          }}
           onClose={() => setBottomMode('none')}
         />
       ) : null}
@@ -2206,6 +2241,7 @@ function OverlayChip({
   );
 
   const isMedia = overlay.kind === 'image' || overlay.kind === 'video';
+  const isSubject = overlay.kind === 'subject';
   const baseLeft = overlay.start_ms * pxPerMs;
   const baseW = Math.max(40, (overlay.end_ms - overlay.start_ms) * pxPerMs);
   const liveLeft = baseLeft + (selected ? dxStart : 0);
@@ -2220,11 +2256,14 @@ function OverlayChip({
       style={[
         styles.overlayChip,
         isMedia && styles.overlayChipMedia,
+        isSubject && styles.overlayChipSubject,
         selected && styles.overlayChipSelected,
         { left: liveLeft, width: liveW },
       ]}
     >
-      {isMedia ? (
+      {isSubject ? (
+        <Ionicons name="person" size={12} color={palette.onBright} />
+      ) : isMedia ? (
         <Ionicons
           name={overlay.kind === 'video' ? 'videocam' : 'image-outline'}
           size={12}
@@ -2232,11 +2271,13 @@ function OverlayChip({
         />
       ) : null}
       <Text numberOfLines={1} style={styles.overlayChipText}>
-        {isMedia
-          ? overlay.kind === 'video'
-            ? 'Video'
-            : 'Image'
-          : overlay.text}
+        {isSubject
+          ? 'Subject'
+          : isMedia
+            ? overlay.kind === 'video'
+              ? 'Video'
+              : 'Image'
+            : overlay.text}
       </Text>
       {selected ? (
         <>
@@ -3739,6 +3780,12 @@ const styles = StyleSheet.create({
   overlayChipMedia: {
     backgroundColor: `${palette.gold}22`,
     borderColor: `${palette.gold}88`,
+  },
+  // Subject overlays (cutout person layer) get a distinct cyan tint
+  // so the user can spot the AI layer at a glance.
+  overlayChipSubject: {
+    backgroundColor: `${palette.cyan}22`,
+    borderColor: `${palette.cyan}88`,
   },
   overlayChipSelected: {
     borderWidth: 2,

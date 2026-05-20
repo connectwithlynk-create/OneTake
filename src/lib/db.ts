@@ -260,6 +260,9 @@ async function migrate(db: SQLite.SQLiteDatabase) {
   // supported image/video overlays only have the text-overlay columns.
   await addColumn(db, 'overlays', 'file_uri', 'TEXT');
   await addColumn(db, 'overlays', 'scale', 'REAL NOT NULL DEFAULT 0.4');
+  // overlays.source_clip_id links a "subject" overlay (cutout person
+  // layer) back to the source clip whose frames it pulls from.
+  await addColumn(db, 'overlays', 'source_clip_id', 'TEXT');
   // projects / collections / inspiration
   for (const t of ['projects', 'collections', 'inspiration']) {
     await addColumn(db, t, 'owner', 'TEXT');

@@ -29,6 +29,9 @@ export type NleClip = {
   chromaEnabled?: boolean;
   chromaColor?: string; // '#RRGGBB'
   chromaThreshold?: number; // 0..1
+  // Person segmentation (Cutout). Native masks the frame so only the
+  // segmented person remains; the rest becomes transparent.
+  cutoutEnabled?: boolean;
 };
 
 /** Event payload helpers. timeUpdate fires on display-synced cadence
