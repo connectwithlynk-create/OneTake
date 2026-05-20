@@ -315,7 +315,7 @@ export default function ManualEditScreen() {
         }
         player.volume = c.audio_volume ?? 1;
         player.playbackRate = speedRef.current;
-        // Best-effort immediate seek/play. For same-source this is the
+        // Best-effort immediate seek. For same-source this is the
         // primary mechanism; for cross-source it's a hint that gets
         // retried once statusChange reports readyToPlay.
         try {
@@ -324,6 +324,20 @@ export default function ManualEditScreen() {
           /* not ready */
         }
         if (autoplay) {
+          // Delay play() so the seek above has a chance to land. Calling
+          // play() in the same tick as the currentTime setter can silently
+          // no-op when the player was at EOF (it still thinks it's at the
+          // end). The poll loop will re-nudge if this somehow misses.
+          setTimeout(() => {
+            if (!wantPlayingRef.current) return;
+            try {
+              player.play();
+            } catch {
+              /* */
+            }
+          }, 60);
+          // Also attempt immediately — for the no-EOF case this gets us
+          // playing without the 60ms wait.
           try {
             player.play();
           } catch {
@@ -510,6 +524,32 @@ export default function ManualEditScreen() {
     };
   }, [player, advanceClip]);
 
+  // Fast recovery: when the player flips from playing → paused but the
+  // user still wants to play, nudge it back. Beats the 100ms poll. Wait
+  // one tick so any seek queued before this event has a chance to land.
+  useEffect(() => {
+    const sub = player.addListener(
+      'playingChange',
+      (ev: { isPlaying?: boolean }) => {
+        if (ev?.isPlaying) return;
+        if (!wantPlayingRef.current) return;
+        if (userScrolling.current) return;
+        setTimeout(() => {
+          if (!wantPlayingRef.current) return;
+          if (player.playing) return;
+          try {
+            player.play();
+          } catch {
+            /* ignore */
+          }
+        }, 30);
+      }
+    );
+    return () => {
+      sub.remove();
+    };
+  }, [player]);
+
   // Engine loop: poll player time, advance at clip bounds.
   useEffect(() => {
     if (included.length === 0) return;
@@ -536,13 +576,10 @@ export default function ManualEditScreen() {
         const local = Math.max(0, tMs - inMs);
         setGlobalMs(cumulative[idx] + local);
         // Safety: the user wants to play but the player has silently
-        // stalled (e.g. it auto-paused at EOF and the immediate play()
-        // after replace() didn't take). Nudge it. Skip while loading.
-        if (
-          wantPlayingRef.current &&
-          !player.playing &&
-          !pendingLoad.current
-        ) {
+        // stalled (e.g. auto-paused at EOF and the post-seek play()
+        // didn't take). Nudge it. Calling play() on a loading or already-
+        // playing player is a no-op, so don't gate on pendingLoad.
+        if (wantPlayingRef.current && !player.playing) {
           try {
             player.play();
           } catch {
