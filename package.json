@@ -48,7 +48,6 @@
     "expo-haptics": "~55.0.14",
     "expo-image": "~55.0.10",
     "expo-image-picker": "~55.0.20",
-    "expo-linear-gradient": "~55.0.14",
     "expo-linking": "~55.0.15",
     "expo-local-authentication": "~55.0.14",
     "expo-media-library": "~55.0.17",

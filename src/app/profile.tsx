@@ -1,6 +1,5 @@
 import { useClerk, useUser } from '@clerk/expo';
 import { Image } from 'expo-image';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
@@ -48,14 +47,9 @@ export default function ProfileScreen() {
           {user?.imageUrl ? (
             <Image source={{ uri: user.imageUrl }} style={s.avatar} contentFit="cover" />
           ) : (
-            <LinearGradient
-              colors={[palette.coral, palette.magenta]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={[s.avatar, s.avatarFallback]}
-            >
+            <View style={[s.avatar, s.avatarFallback]}>
               <Text style={s.avatarText}>{initial}</Text>
-            </LinearGradient>
+            </View>
           )}
           <View style={{ alignItems: 'center' }}>
             <Text style={s.name}>{name}</Text>
@@ -120,7 +114,7 @@ const s = StyleSheet.create({
     borderRadius: 40,
     borderWidth: 2,
     borderColor: palette.lime,
-    backgroundColor: palette.bg2,
+    backgroundColor: palette.magenta,
   },
   avatarFallback: { alignItems: 'center', justifyContent: 'center' },
   avatarText: {

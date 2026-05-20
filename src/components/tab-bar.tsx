@@ -3,7 +3,6 @@ import { Ionicons } from '@expo/vector-icons';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
@@ -34,14 +33,9 @@ function ProfileButton() {
       {uri ? (
         <Image source={{ uri }} style={styles.avatar} contentFit="cover" />
       ) : (
-        <LinearGradient
-          colors={[palette.coral, palette.magenta]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={[styles.avatar, styles.avatarFallback]}
-        >
+        <View style={[styles.avatar, styles.avatarFallback]}>
           <Text style={styles.avatarText}>{initial}</Text>
-        </LinearGradient>
+        </View>
       )}
     </Pressable>
   );
@@ -72,9 +66,7 @@ export default function TabBar({
   const router = useRouter();
 
   return (
-    <LinearGradient
-      colors={['rgba(8,8,15,0)', 'rgba(8,8,15,0.92)', 'rgba(8,8,15,1)']}
-      locations={[0, 0.3, 1]}
+    <View
       style={[
         styles.wrap,
         { paddingBottom: Math.max(space.md, insets.bottom) },
@@ -130,7 +122,7 @@ export default function TabBar({
 
         {CLERK_ON && <ProfileButton />}
       </View>
-    </LinearGradient>
+    </View>
   );
 }
 
@@ -138,6 +130,7 @@ const styles = StyleSheet.create({
   wrap: {
     paddingHorizontal: 14,
     paddingTop: 8,
+    backgroundColor: palette.bg0,
   },
   newBtn: {
     alignSelf: 'center',
@@ -199,7 +192,7 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     borderWidth: 1.5,
     borderColor: palette.lime,
-    backgroundColor: palette.bg2,
+    backgroundColor: palette.magenta,
     alignItems: 'center',
     justifyContent: 'center',
   },
