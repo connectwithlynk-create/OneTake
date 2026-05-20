@@ -436,6 +436,41 @@ export default function ManualEditScreen() {
     }
   }, [included, idxAt, player]);
 
+  // Advance to the next clip (or pause at the timeline's end). Called from
+  // the poll loop when we detect tMs >= outMs - BOUNDARY_MS and from the
+  // playToEnd event as a fallback for when the player runs the source past
+  // our threshold and auto-pauses.
+  const advanceClip = useCallback(() => {
+    const idx = activeIdx.current;
+    if (idx + 1 < included.length) {
+      loadActive(idx + 1, wantPlayingRef.current);
+      setGlobalMs(cumulative[idx + 1]);
+    } else {
+      wantPlayingRef.current = false;
+      try {
+        player.pause();
+      } catch {
+        /* ignore */
+      }
+      setGlobalMs(totalMs);
+    }
+  }, [included.length, cumulative, totalMs, loadActive, player]);
+
+  // Fallback: when expo-video reports the asset hit end-of-file, treat it
+  // as the boundary even if our 100ms poll missed the threshold. Without
+  // this, a clip whose effOut sits at the file's natural duration can
+  // auto-pause before the poll fires and stay stuck on the old source.
+  useEffect(() => {
+    const sub = player.addListener('playToEnd', () => {
+      if (userScrolling.current) return;
+      if (pendingLoad.current) return; // mid-replace; ignore stale EOF
+      advanceClip();
+    });
+    return () => {
+      sub.remove();
+    };
+  }, [player, advanceClip]);
+
   // Engine loop: poll player time, advance at clip bounds.
   useEffect(() => {
     if (included.length === 0) return;
@@ -452,34 +487,36 @@ export default function ManualEditScreen() {
         const tMs = (player.currentTime ?? 0) * 1000;
         const outMs = effOut(c);
         const inMs = effIn(c);
-        if (tMs >= outMs - 30) {
-          if (idx + 1 < included.length) {
-            // Use the user's *intent* to play, not player.playing. When a
-            // clip's effOut sits at the file's natural end, the player has
-            // already auto-paused by the time this 100ms poll detects the
-            // boundary, which would otherwise cause the next clip to load
-            // paused.
-            loadActive(idx + 1, wantPlayingRef.current);
-            // Jump the playhead to the boundary immediately so the UI
-            // doesn't visibly freeze on the 100ms poll gap while the new
-            // source loads.
-            setGlobalMs(cumulative[idx + 1]);
-          } else {
-            wantPlayingRef.current = false;
-            player.pause();
-            setGlobalMs(totalMs);
-          }
+        // 250ms gives the boundary handler comfortably more headroom than
+        // the poll interval (100ms), so we transition BEFORE the player
+        // hits the file's natural end and auto-pauses itself.
+        if (tMs >= outMs - 250) {
+          advanceClip();
           return;
         }
         const local = Math.max(0, tMs - inMs);
         setGlobalMs(cumulative[idx] + local);
+        // Safety: the user wants to play but the player has silently
+        // stalled (e.g. it auto-paused at EOF and the immediate play()
+        // after replace() didn't take). Nudge it. Skip while loading.
+        if (
+          wantPlayingRef.current &&
+          !player.playing &&
+          !pendingLoad.current
+        ) {
+          try {
+            player.play();
+          } catch {
+            /* ignore */
+          }
+        }
       } catch {
         /* ignore */
       }
     }, 100);
     return () => clearInterval(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [included, cumulative, totalMs]);
+  }, [included, cumulative, totalMs, advanceClip]);
 
   function togglePlay() {
     try {
