@@ -244,6 +244,23 @@ export default function ManualEditScreen() {
   const pendingLoad = useRef<{ seekMs: number; autoplay: boolean } | null>(
     null
   );
+  // Watchdog: if statusChange never reports readyToPlay (e.g. a cached
+  // asset skips the transition), force-clear pendingLoad so the poll-
+  // loop safety nudge isn't suppressed indefinitely.
+  const pendingLoadTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const clearPendingLoadTimer = () => {
+    if (pendingLoadTimer.current) {
+      clearTimeout(pendingLoadTimer.current);
+      pendingLoadTimer.current = null;
+    }
+  };
+  // Tracks the absolute source URI currently loaded into the player so
+  // loadActive() can detect a same-source replace (very common after a
+  // split: two adjacent clips share the same file). expo-video's
+  // replace(sameUri) can be a no-op and statusChange may never fire, so
+  // we must not queue pendingLoad in that case — otherwise it stays set
+  // forever and suppresses our playToEnd + poll-loop fallbacks.
+  const currentSourceRef = useRef<string | null>(null);
 
   useEffect(() => {
     const sub = player.addListener(
@@ -253,6 +270,7 @@ export default function ManualEditScreen() {
         const pl = pendingLoad.current;
         if (!pl) return;
         pendingLoad.current = null;
+        clearPendingLoadTimer();
         try {
           player.currentTime = pl.seekMs / 1000;
           if (pl.autoplay) player.play();
@@ -271,14 +289,35 @@ export default function ManualEditScreen() {
       const c = included[idx];
       if (!c) return;
       activeIdx.current = idx;
+      const newSrc = resolveClipUri(c.file_uri);
+      const sameSrc = currentSourceRef.current === newSrc;
       try {
-        pendingLoad.current = { seekMs: effIn(c), autoplay };
-        player.replace(resolveClipUri(c.file_uri));
+        clearPendingLoadTimer();
+        if (sameSrc) {
+          // Same source as the player's current asset (common after a
+          // split). replace(sameUri) may be a no-op and statusChange may
+          // not fire, so don't queue pendingLoad — that would suppress
+          // our fallbacks indefinitely. Skip replace entirely and just
+          // seek + play; the poll-loop safety nudge will recover if the
+          // immediate play() doesn't take (e.g. player stuck in `ended`).
+          pendingLoad.current = null;
+        } else {
+          pendingLoad.current = { seekMs: effIn(c), autoplay };
+          player.replace(newSrc);
+          currentSourceRef.current = newSrc;
+          // If readyToPlay never fires within 1.5s (cached asset, error,
+          // etc.), force-clear pendingLoad so the fallbacks aren't gated
+          // forever. The safety nudge will pick up from here.
+          pendingLoadTimer.current = setTimeout(() => {
+            pendingLoad.current = null;
+            pendingLoadTimer.current = null;
+          }, 1500);
+        }
         player.volume = c.audio_volume ?? 1;
         player.playbackRate = speedRef.current;
-        // Best-effort immediate seek/play in case the source is already
-        // loaded (same file, or cached); statusChange will retry once the
-        // new asset becomes readyToPlay.
+        // Best-effort immediate seek/play. For same-source this is the
+        // primary mechanism; for cross-source it's a hint that gets
+        // retried once statusChange reports readyToPlay.
         try {
           player.currentTime = effIn(c) / 1000;
         } catch {
