@@ -134,74 +134,148 @@ final class NleEngine {
     return a
   }
 
+  /// Monotonic build id — every setClips() bumps this, and the async
+  /// composition build only commits if its id is still current. Prevents
+  /// a slow build from a stale clip list overwriting a newer one.
+  private var buildId: Int = 0
+
   private func rebuildComposition() {
+    buildId += 1
+    let myBuildId = buildId
+
+    // Preserve current playback position so a rebuild during scrub /
+    // trim doesn't snap the playhead back to zero.
+    let previousTime = player.currentTime()
+    let wasPlaying = player.timeControlStatus == .playing
+
     if let endObs = endObs { NotificationCenter.default.removeObserver(endObs) }
     statusObs?.invalidate()
     rateObs?.invalidate()
 
-    let comp = AVMutableComposition()
-    let videoTrack = comp.addMutableTrack(
-      withMediaType: .video,
-      preferredTrackID: kCMPersistentTrackID_Invalid
-    )
-    let audioTrack = comp.addMutableTrack(
-      withMediaType: .audio,
-      preferredTrackID: kCMPersistentTrackID_Invalid
-    )
-
-    var insertionTime = CMTime.zero
-    for c in clips {
-      let a = asset(for: c.url)
-      let start = CMTime(value: CMTimeValue(c.inMs), timescale: 1000)
-      let duration = CMTime(value: CMTimeValue(max(0, c.outMs - c.inMs)), timescale: 1000)
-      let range = CMTimeRange(start: start, duration: duration)
-
-      if let v = a.tracks(withMediaType: .video).first, let videoTrack = videoTrack {
-        try? videoTrack.insertTimeRange(range, of: v, at: insertionTime)
-      }
-      if let au = a.tracks(withMediaType: .audio).first, let audioTrack = audioTrack {
-        try? audioTrack.insertTimeRange(range, of: au, at: insertionTime)
-      }
-      insertionTime = insertionTime + duration
-    }
-
-    let item = AVPlayerItem(asset: comp)
-    item.audioMix = buildAudioMix(in: comp)
-    self.item = item
-
-    statusObs = item.observe(\.status, options: [.new]) { [weak self] item, _ in
-      guard let self = self else { return }
-      switch item.status {
-      case .readyToPlay:
-        self.emit("onStatusChange", ["status": "readyToPlay"])
-      case .failed:
-        self.emit(
-          "onStatusChange",
-          [
-            "status": "error",
-            "error": item.error?.localizedDescription ?? "unknown",
-          ]
-        )
-      case .unknown:
-        self.emit("onStatusChange", ["status": "loading"])
-      @unknown default:
-        break
-      }
-    }
-    rateObs = player.observe(\.rate, options: [.new]) { [weak self] player, _ in
-      guard let self = self else { return }
-      self.emit("onPlayingChange", ["isPlaying": player.rate != 0])
-    }
-    endObs = NotificationCenter.default.addObserver(
-      forName: .AVPlayerItemDidPlayToEndTime,
-      object: item,
-      queue: .main
-    ) { [weak self] _ in
-      self?.emit("onPlayToEnd", [:])
-    }
-
-    player.replaceCurrentItem(with: item)
     emit("onStatusChange", ["status": "loading"])
+
+    let snapshot = clips
+    Task { [weak self] in
+      guard let self = self else { return }
+      let comp = AVMutableComposition()
+      let videoTrack = comp.addMutableTrack(
+        withMediaType: .video,
+        preferredTrackID: kCMPersistentTrackID_Invalid
+      )
+      let audioTrack = comp.addMutableTrack(
+        withMediaType: .audio,
+        preferredTrackID: kCMPersistentTrackID_Invalid
+      )
+
+      var insertionTime = CMTime.zero
+      var insertedVideo = false
+      for c in snapshot {
+        let a = self.asset(for: c.url)
+        // Load tracks async — AVURLAsset.tracks(withMediaType:) is not
+        // guaranteed to be populated synchronously, even for local
+        // files, which silently dropped the inserted time range and
+        // left the composition empty (= prior frame stuck on screen).
+        let videos: [AVAssetTrack]
+        let audios: [AVAssetTrack]
+        do {
+          videos = try await a.loadTracks(withMediaType: .video)
+          audios = try await a.loadTracks(withMediaType: .audio)
+        } catch {
+          self.emit(
+            "onStatusChange",
+            ["status": "error", "error": error.localizedDescription]
+          )
+          return
+        }
+
+        let start = CMTime(value: CMTimeValue(c.inMs), timescale: 1000)
+        let duration = CMTime(
+          value: CMTimeValue(max(0, c.outMs - c.inMs)),
+          timescale: 1000
+        )
+        let range = CMTimeRange(start: start, duration: duration)
+
+        if let v = videos.first, let videoTrack = videoTrack {
+          do {
+            try videoTrack.insertTimeRange(range, of: v, at: insertionTime)
+            insertedVideo = true
+          } catch {
+            // Skip just this clip; keep building.
+          }
+        }
+        if let au = audios.first, let audioTrack = audioTrack {
+          try? audioTrack.insertTimeRange(range, of: au, at: insertionTime)
+        }
+        insertionTime = insertionTime + duration
+      }
+
+      // Drop this build if the clip list moved on while we were loading.
+      await MainActor.run {
+        guard self.buildId == myBuildId else { return }
+
+        if !insertedVideo {
+          self.emit(
+            "onStatusChange",
+            ["status": "error", "error": "composition has no video"]
+          )
+          return
+        }
+
+        let item = AVPlayerItem(asset: comp)
+        item.audioMix = self.buildAudioMix(in: comp)
+        self.item = item
+
+        self.statusObs = item.observe(\.status, options: [.new]) { [weak self] item, _ in
+          guard let self = self else { return }
+          switch item.status {
+          case .readyToPlay:
+            self.emit("onStatusChange", ["status": "readyToPlay"])
+          case .failed:
+            self.emit(
+              "onStatusChange",
+              [
+                "status": "error",
+                "error": item.error?.localizedDescription ?? "unknown",
+              ]
+            )
+          case .unknown:
+            self.emit("onStatusChange", ["status": "loading"])
+          @unknown default:
+            break
+          }
+        }
+        self.rateObs = self.player.observe(\.rate, options: [.new]) { [weak self] player, _ in
+          guard let self = self else { return }
+          self.emit("onPlayingChange", ["isPlaying": player.rate != 0])
+        }
+        self.endObs = NotificationCenter.default.addObserver(
+          forName: .AVPlayerItemDidPlayToEndTime,
+          object: item,
+          queue: .main
+        ) { [weak self] _ in
+          self?.emit("onPlayToEnd", [:])
+        }
+
+        self.player.replaceCurrentItem(with: item)
+
+        // Restore playback position after the new item is ready. clamp
+        // into the new composed duration in case a trim shortened the
+        // timeline past where we were.
+        let clampedMs = min(
+          max(0, CMTimeGetSeconds(previousTime) * 1000.0),
+          self.totalMs
+        )
+        let restoreTime = CMTime(value: CMTimeValue(clampedMs), timescale: 1000)
+        self.player.seek(
+          to: restoreTime,
+          toleranceBefore: .zero,
+          toleranceAfter: .zero
+        ) { [weak self] _ in
+          guard let self = self else { return }
+          if wasPlaying { self.player.play() }
+        }
+      }
+    }
   }
 
   private func buildAudioMix(in composition: AVComposition? = nil) -> AVAudioMix? {

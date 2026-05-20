@@ -135,6 +135,11 @@ class NleEngine(
 
   @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
   private fun rebuildSource() {
+    // Preserve playback position across the rebuild so a trim commit
+    // doesn't snap the playhead back to zero.
+    val previousMs = player.currentPosition
+    val wasPlaying = player.playWhenReady
+
     val factory = DefaultDataSource.Factory(context)
     val concat = ConcatenatingMediaSource2.Builder()
     for (c in clips) {
@@ -149,6 +154,10 @@ class NleEngine(
     val source = concat.build()
     player.setMediaSource(source)
     player.prepare()
+
+    val clamped = previousMs.coerceIn(0, totalMs)
+    player.seekTo(clamped)
+    player.playWhenReady = wasPlaying
   }
 
   // --- Time emit loop -------------------------------------------------

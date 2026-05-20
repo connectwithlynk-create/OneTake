@@ -237,6 +237,12 @@ export default function ManualEditScreen() {
   // composition is rebuilt on any structural change (split, delete,
   // reorder, trim); the user only sees a brief load while the new
   // composition primes — boundary cuts within it are seamless.
+  //
+  // We diff against the last-pushed signature so we don't rebuild on
+  // every re-render (trim drag updates lots of unrelated state). The
+  // signature captures id + uri + in/out + volume — the fields that
+  // shape the composition.
+  const lastPushRef = useRef<string>('');
   useEffect(() => {
     if (included.length === 0) return;
     const composed: NleClipShape[] = included.map((c) => ({
@@ -246,6 +252,11 @@ export default function ManualEditScreen() {
       outMs: effOut(c),
       volume: c.audio_volume ?? 1,
     }));
+    const sig = composed
+      .map((c) => `${c.id}:${c.inMs}:${c.outMs}:${c.volume ?? 1}:${c.uri}`)
+      .join('|');
+    if (sig === lastPushRef.current) return;
+    lastPushRef.current = sig;
     player.setClips(composed);
   }, [included, player]);
 
