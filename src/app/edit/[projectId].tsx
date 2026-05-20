@@ -790,8 +790,11 @@ export default function ManualEditScreen() {
   // ----- timeline scroll (centered playhead model) -----
   const scrollRef = useRef<ScrollView>(null);
   const userScrolling = useRef(false);
+  // Timeline width is exactly the composed length. No trailing pad — the
+  // ScrollView's contentContainerStyle paddingLeft/Right already gives
+  // the centered playhead room to reach either end of the timeline.
   const timelineW = useMemo(
-    () => Math.max(800, totalMs * pxPerMs + 200),
+    () => Math.max(1, totalMs * pxPerMs),
     [totalMs, pxPerMs]
   );
 
@@ -1100,15 +1103,11 @@ export default function ManualEditScreen() {
               >
                 {included.map((c, idx) => {
                   const baseLeft = cumulative[idx] * pxPerMs;
-                  // Strict proportional width: short clips look short, long
-                  // ones look long. Tiny floor only so a 0-len clip is still
-                  // tappable.
-                  const baseW = Math.max(4, effLen(c) * pxPerMs);
-                  // Live-trim reflow: the trimmed clip gets dxIn/dxOut
-                  // applied; clips AFTER it shift by dxOut so they stay
-                  // glued to the moving right edge during an OUT drag (the
-                  // IN edge in the current visual keeps the right edge
-                  // anchored, so no shift is needed for IN).
+                  // Exact proportional width so each clip ends graphically
+                  // where it actually ends. No tap-area floor — the
+                  // selection still works on a 1px cell, just gets harder
+                  // to hit at extreme zoom-out.
+                  const baseW = effLen(c) * pxPerMs;
                   let dispLeft = baseLeft;
                   let dispW = baseW;
                   if (trimDrag) {
@@ -1117,8 +1116,10 @@ export default function ManualEditScreen() {
                     );
                     if (idx === trimIdx) {
                       dispLeft = baseLeft + trimDrag.dxIn;
+                      // Keep a small min during an active trim drag so the
+                      // user can see what they're trimming.
                       dispW = Math.max(
-                        48,
+                        24,
                         baseW - trimDrag.dxIn + trimDrag.dxOut
                       );
                     } else if (idx > trimIdx) {
@@ -1163,7 +1164,9 @@ export default function ManualEditScreen() {
                 {included.map((c, idx) => {
                   if (c.audio_detached !== 1) return null;
                   const baseLeft = cumulative[idx] * pxPerMs;
-                  const baseW = Math.max(4, effLen(c) * pxPerMs);
+                  // Match the clip width exactly so the audio block ends
+                  // where the clip ends.
+                  const baseW = effLen(c) * pxPerMs;
                   let dispLeft = baseLeft;
                   let dispW = baseW;
                   if (trimDrag) {
@@ -1173,7 +1176,7 @@ export default function ManualEditScreen() {
                     if (idx === trimIdx) {
                       dispLeft = baseLeft + trimDrag.dxIn;
                       dispW = Math.max(
-                        48,
+                        24,
                         baseW - trimDrag.dxIn + trimDrag.dxOut
                       );
                     } else if (idx > trimIdx) {
