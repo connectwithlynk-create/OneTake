@@ -44,6 +44,7 @@ import {
 } from '@/lib/filestore';
 import { id as newId } from '@/lib/id';
 import {
+  addClip,
   addOverlay,
   createSubjectOverlay,
   deleteClip,
@@ -54,6 +55,7 @@ import {
   listClips,
   listOverlays,
   removeSubjectOverlayFor,
+  reorderProjectClips,
   replaceClipFile,
   setCaptionSettings,
   setClipAudioDetached,
@@ -65,6 +67,7 @@ import {
   splitClipAt,
   updateOverlay,
 } from '@/lib/repo';
+import { rateClip } from '@/lib/rating';
 import { invalidate, useData } from '@/lib/store';
 import { maybeTranscribe } from '@/lib/transcribe';
 import {
@@ -488,6 +491,48 @@ export default function ManualEditScreen() {
   // Cut Silences state. 0 = default breath buffer; positive keeps
   // more silence, negative trims deeper into the talk.
   const [silencesOffset, setSilencesOffset] = useState(0);
+
+  // Reorder-drag state for the main clip strip. fromIdx = which cell
+  // the user is long-press-dragging; dx = current translation. The
+  // cell renders lifted at left + dx; release decides which slot to
+  // drop it into.
+  const [reorderDrag, setReorderDrag] = useState<{
+    fromIdx: number;
+    dx: number;
+  } | null>(null);
+  /** Commit the drop. Maps the dragged cell's CENTER (in composed-
+   *  timeline px) to the slot whose midpoint it crossed, then writes
+   *  the new order via reorderProjectClips. */
+  async function commitReorder(fromIdx: number, dx: number) {
+    if (fromIdx < 0 || fromIdx >= included.length) return;
+    const c = included[fromIdx];
+    const myCenter =
+      cumulative[fromIdx] * pxPerMs + (effLen(c) * pxPerMs) / 2 + dx;
+    let dropIdx = fromIdx;
+    for (let i = 0; i < included.length; i++) {
+      const cLeft = cumulative[i] * pxPerMs;
+      const cMid = cLeft + (effLen(included[i]) * pxPerMs) / 2;
+      if (myCenter < cMid) {
+        dropIdx = i;
+        break;
+      }
+      dropIdx = i;
+    }
+    // Dropping just to the right of yourself = no-op (Array.splice
+    // would put it back in the same slot).
+    if (dropIdx === fromIdx) return;
+    const ids = included.map((cl) => cl.id);
+    const [moved] = ids.splice(fromIdx, 1);
+    // splice after-removal indices: if dropping forward of fromIdx
+    // the index already accounts for the removal.
+    const insertAt = dropIdx > fromIdx ? dropIdx : dropIdx;
+    ids.splice(insertAt, 0, moved);
+    // Reorder invalidates history (splits + reorder don't undo cleanly
+    // together).
+    clearHistory();
+    await reorderProjectClips(projectId, ids);
+    invalidate();
+  }
   const [silencesApplying, setSilencesApplying] = useState(false);
   const [silencesResult, setSilencesResult] = useState<
     { removedMs: number; trimmedClips: number } | null
@@ -950,6 +995,49 @@ export default function ManualEditScreen() {
     setOverlayModal(false);
   }
 
+  /** Pick a video from the camera roll and append it to the project's
+   *  MAIN TRACK as a new clip at the end. Used by the Media button on
+   *  the global action bar and the "+" cell at the end of the main
+   *  clip strip. Persists the file into the clips/ dir so the picker
+   *  uri's lifecycle doesn't matter. */
+  async function addClipToMainTrack() {
+    try {
+      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!perm.granted) return;
+      const res = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['videos'],
+        allowsMultipleSelection: true,
+        quality: 1,
+      });
+      if (res.canceled || !res.assets || res.assets.length === 0) return;
+      // Wipe history — multi-clip imports are hard to undo cleanly.
+      clearHistory();
+      for (const a of res.assets) {
+        const clipId = newId();
+        const uri = persistClip(a.uri, clipId);
+        const durationMs = Math.round(a.duration ?? 0);
+        const rating = rateClip({
+          clipId,
+          durationMs,
+          source: 'imported',
+        });
+        await addClip(
+          projectId,
+          uri,
+          durationMs,
+          rating.verdict,
+          rating.tag,
+          clipId
+        );
+        // Background — transcript drives captions later.
+        void maybeTranscribe(clipId);
+      }
+      invalidate();
+    } catch {
+      /* picker errors swallowed; nothing to roll back */
+    }
+  }
+
   // Pick an image or video from the photo library and add it as a media
   // overlay starting at the current playhead. The file is copied into the
   // app's overlays/ dir so it survives photo-library cleanup, and undo
@@ -1151,11 +1239,11 @@ export default function ManualEditScreen() {
   // ----- timeline scroll (centered playhead model) -----
   const scrollRef = useRef<ScrollView>(null);
   const userScrolling = useRef(false);
-  // Timeline width is exactly the composed length. No trailing pad — the
-  // ScrollView's contentContainerStyle paddingLeft/Right already gives
-  // the centered playhead room to reach either end of the timeline.
+  // Timeline width = composed length + headroom for the tail "+" cell.
+  // The ScrollView's contentContainerStyle paddingLeft/Right already
+  // gives the centered playhead room to reach either end.
   const timelineW = useMemo(
-    () => Math.max(1, totalMs * pxPerMs),
+    () => Math.max(1, totalMs * pxPerMs) + CLIP_H + 16,
     [totalMs, pxPerMs]
   );
 
@@ -1497,6 +1585,12 @@ export default function ManualEditScreen() {
                   const baseW = effLen(c) * pxPerMs;
                   let dispLeft = baseLeft;
                   let dispW = baseW;
+                  // Reorder drag: shift just the dragged cell by dx;
+                  // other cells stay put (the visual reflow happens on
+                  // commit). Keeps the drop-target math simple.
+                  if (reorderDrag && reorderDrag.fromIdx === idx) {
+                    dispLeft = baseLeft + reorderDrag.dx;
+                  }
                   if (trimDrag) {
                     const trimIdx = included.findIndex(
                       (x) => x.id === trimDrag.id
@@ -1528,6 +1622,7 @@ export default function ManualEditScreen() {
                       selected={c.id === selectedId}
                       snapInPx={snapInPx}
                       snapOutPx={snapOutPx}
+                      reordering={reorderDrag?.fromIdx === idx}
                       onSelect={() => selectClip(c.id)}
                       onTrimChange={(dxIn, dxOut) =>
                         setTrimDrag({ id: c.id, dxIn, dxOut })
@@ -1536,9 +1631,32 @@ export default function ManualEditScreen() {
                       onTrimRelease={(newIn, newOut) =>
                         persistTrim(newIn, newOut)
                       }
+                      onReorderStart={() =>
+                        setReorderDrag({ fromIdx: idx, dx: 0 })
+                      }
+                      onReorderMove={(dx) =>
+                        setReorderDrag({ fromIdx: idx, dx })
+                      }
+                      onReorderEnd={() => {
+                        const r = reorderDrag;
+                        setReorderDrag(null);
+                        if (r) void commitReorder(r.fromIdx, r.dx);
+                      }}
                     />
                   );
                 })}
+                {/* Tail "+" cell — opens the picker to append more clips
+                    to the end of the main track. Sits right after the
+                    last clip in the same coordinate space. */}
+                <Pressable
+                  style={[
+                    styles.addClipCell,
+                    { left: totalMs * pxPerMs + 4 },
+                  ]}
+                  onPress={addClipToMainTrack}
+                >
+                  <Ionicons name="add" size={20} color={palette.lime} />
+                </Pressable>
               </View>
 
               {/* Audio strip: a violet block per detached clip */}
@@ -1879,6 +1997,7 @@ export default function ManualEditScreen() {
               setBottomMode={setBottomMode}
               setOverlayModal={setOverlayModal}
               addMediaOverlay={addMediaOverlay}
+              addClipToMainTrack={addClipToMainTrack}
               openCaptionsPanel={() => {
                 // Re-attempt transcription for any clip that still has no
                 // word timings — captions are empty until words exist.
@@ -1998,10 +2117,14 @@ function ClipCell({
   selected,
   snapInPx,
   snapOutPx,
+  reordering,
   onSelect,
   onTrimChange,
   onTrimEnd,
   onTrimRelease,
+  onReorderStart,
+  onReorderMove,
+  onReorderEnd,
 }: {
   clip: Clip;
   left: number;
@@ -2012,12 +2135,18 @@ function ClipCell({
   // edge aligns with the playhead.
   snapInPx: number;
   snapOutPx: number;
+  /** True while this cell is the one being long-press-dragged for
+   *  reorder. Lifts it visually so the user sees they "have" it. */
+  reordering?: boolean;
   onSelect: () => void;
   // Fired on every pan update so the parent can reflow the rest of the
   // timeline in lockstep with the drag.
   onTrimChange: (dxIn: number, dxOut: number) => void;
   onTrimEnd: () => void;
   onTrimRelease: (newIn: number, newOut: number) => void;
+  onReorderStart: () => void;
+  onReorderMove: (dx: number) => void;
+  onReorderEnd: () => void;
 }) {
   const inMs = effIn(clip);
   const outMs = effOut(clip);
@@ -2050,6 +2179,29 @@ function ClipCell({
   onTrimEndRef.current = onTrimEnd;
   const onTrimReleaseRef = useRef(onTrimRelease);
   onTrimReleaseRef.current = onTrimRelease;
+  // Reorder callbacks — pinned to refs so the gesture doesn't rebuild
+  // across renders (would lose any in-flight long-press-pan).
+  const onReorderStartRef = useRef(onReorderStart);
+  onReorderStartRef.current = onReorderStart;
+  const onReorderMoveRef = useRef(onReorderMove);
+  onReorderMoveRef.current = onReorderMove;
+  const onReorderEndRef = useRef(onReorderEnd);
+  onReorderEndRef.current = onReorderEnd;
+
+  // Long-press + pan to drag this cell into a new slot on the main
+  // track. Tap stays for select; the 300ms long-press latency keeps
+  // casual taps from triggering reorder.
+  const reorderGesture = useMemo(
+    () =>
+      Gesture.Pan()
+        .activateAfterLongPress(300)
+        .onStart(() => onReorderStartRef.current())
+        .onUpdate((g) => onReorderMoveRef.current(g.translationX))
+        .onEnd(() => onReorderEndRef.current())
+        .onFinalize(() => onReorderEndRef.current())
+        .runOnJS(true),
+    []
+  );
 
   // Snap window: within ~10px of the playhead the handle latches to it.
   const SNAP_PX = 10;
@@ -2110,21 +2262,23 @@ function ClipCell({
   const excluded = clip.excluded === 1;
 
   return (
-    <Pressable
-      onPress={onSelect}
-      style={[
-        styles.cell,
-        {
-          left,
-          width,
-          opacity: excluded ? 0.4 : 1,
-        },
-        selected && styles.cellSelected,
-      ]}
-    >
-      <View style={StyleSheet.absoluteFill}>
-        <ClipVideo uri={clip.file_uri} style={StyleSheet.absoluteFill} />
-      </View>
+    <GestureDetector gesture={reorderGesture}>
+      <Pressable
+        onPress={onSelect}
+        style={[
+          styles.cell,
+          {
+            left,
+            width,
+            opacity: excluded ? 0.4 : 1,
+          },
+          selected && styles.cellSelected,
+          reordering && styles.cellReordering,
+        ]}
+      >
+        <View style={StyleSheet.absoluteFill}>
+          <ClipVideo uri={clip.file_uri} style={StyleSheet.absoluteFill} />
+        </View>
       <View style={styles.cellBadge}>
         <Text style={styles.cellBadgeText}>
           {(effLen(clip) / 1000).toFixed(1)}s
@@ -2152,7 +2306,8 @@ function ClipCell({
           </GestureDetector>
         </>
       ) : null}
-    </Pressable>
+      </Pressable>
+    </GestureDetector>
   );
 }
 
@@ -2562,6 +2717,7 @@ type GlobalActionsProps = {
   setBottomMode: React.Dispatch<React.SetStateAction<BottomMode>>;
   setOverlayModal: (v: boolean) => void;
   addMediaOverlay: () => void;
+  addClipToMainTrack: () => void;
   openCaptionsPanel: () => void;
   captionsActive: boolean;
   onRecordTab: () => void;
@@ -2573,7 +2729,7 @@ function GlobalActions(p: GlobalActionsProps) {
       <ActionBtn
         icon="add-outline"
         label="Media"
-        onPress={p.addMediaOverlay}
+        onPress={p.addClipToMainTrack}
       />
       <ActionBtn
         icon="videocam-outline"
@@ -3876,6 +4032,20 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: palette.border,
   },
+  // Tail "+" cell on the main clip strip — same height as cells,
+  // square footprint, lime-tinted to read as "add."
+  addClipCell: {
+    position: 'absolute',
+    top: 0,
+    width: CLIP_H,
+    height: CLIP_H,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: `${palette.lime}55`,
+    backgroundColor: `${palette.lime}14`,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   cellSelected: {
     borderColor: palette.lime,
     borderWidth: 2,
@@ -3883,6 +4053,16 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.5,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 0 },
+  },
+  // Lift the cell while it's being long-press-dragged for reorder.
+  cellReordering: {
+    transform: [{ scale: 1.06 }],
+    zIndex: 50,
+    shadowColor: '#000',
+    shadowOpacity: 0.5,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 12,
   },
 
   // Audio chips on the audio track (violet, faux waveform)
