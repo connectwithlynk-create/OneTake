@@ -54,6 +54,7 @@ import {
   getProject,
   listClips,
   listOverlays,
+  pruneMissingClips,
   removeSubjectOverlayFor,
   reorderProjectClips,
   replaceClipFile,
@@ -190,6 +191,19 @@ export default function ManualEditScreen() {
 
   const { data: project } = useData(() => getProject(projectId), [projectId]);
   const { data: clipsDb } = useData(() => listClips(projectId), [projectId]);
+
+  // Self-heal: prior versions of deleteClip orphaned files referenced
+  // by splits / duplicates, leaving clip rows pointing at gone files.
+  // On editor mount, scan for those and drop the dangling rows.
+  useEffect(() => {
+    let alive = true;
+    pruneMissingClips(projectId).then((n) => {
+      if (alive && n > 0) invalidate();
+    });
+    return () => {
+      alive = false;
+    };
+  }, [projectId]);
   const { data: overlaysDb } = useData(
     () => listOverlays(projectId),
     [projectId]

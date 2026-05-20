@@ -1,9 +1,14 @@
+import { File } from 'expo-file-system';
 import type * as SQLite from 'expo-sqlite';
 
 import { autoMetaTags, autoName, stringifyMeta } from './autotag';
 import { getDb } from './db';
 import { ephemeralExpiry } from './ephemeral';
-import { deleteClipFile, deleteOverlayMediaFile } from './filestore';
+import {
+  deleteClipFile,
+  deleteOverlayMediaFile,
+  resolveClipUri,
+} from './filestore';
 import { id } from './id';
 import { palette } from '../theme';
 import type {
@@ -337,6 +342,45 @@ export async function setTag(clipId: string, tag: ClipTag) {
     clipId
   );
   await touch(db, 'clips', clipId);
+}
+
+/** Drop clip rows whose source file no longer exists on disk. Called
+ *  on editor mount as a self-heal so a previously-buggy deleteClip
+ *  (which orphaned files referenced by splits / duplicates) doesn't
+ *  brick the editor forever. Returns the number of rows removed. */
+export async function pruneMissingClips(projectId: string): Promise<number> {
+  const db = await getDb();
+  const rows = await db.getAllAsync<{ id: string; file_uri: string }>(
+    'SELECT id, file_uri FROM clips WHERE project_id = ?',
+    projectId
+  );
+  let removed = 0;
+  for (const r of rows) {
+    if (!r.file_uri) {
+      await db.runAsync('DELETE FROM clips WHERE id = ?', r.id);
+      removed += 1;
+      continue;
+    }
+    // Use expo-file-system synchronously via the same resolver the
+    // native player would. If the file doesn't exist, the clip is
+    // unplayable and can't recover; drop the row.
+    let exists = false;
+    try {
+      exists = new File(resolveClipUri(r.file_uri)).exists;
+    } catch {
+      exists = false;
+    }
+    if (!exists) {
+      await db.runAsync('DELETE FROM clips WHERE id = ?', r.id);
+      // Cascade-drop any subject overlay pointing at this clip too.
+      await db.runAsync(
+        "DELETE FROM overlays WHERE source_clip_id = ? AND kind = 'subject'",
+        r.id
+      );
+      removed += 1;
+    }
+  }
+  return removed;
 }
 
 export async function deleteClip(clipId: string, fileUri: string) {
