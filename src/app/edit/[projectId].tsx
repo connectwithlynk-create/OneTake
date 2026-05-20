@@ -1,4 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
+import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import React, {
@@ -9,21 +11,33 @@ import React, {
   useState,
 } from 'react';
 import {
-  LayoutChangeEvent,
   Modal,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
   PanResponder,
   Pressable,
-  ScrollView,
+  StyleProp,
   StyleSheet,
   Text,
   TextInput,
   View,
+  ViewStyle,
 } from 'react-native';
+import {
+  Gesture,
+  GestureDetector,
+  ScrollView,
+} from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ClipVideo } from '@/components/clip-video';
 import { Loading } from '@/components/ui';
-import { resolveClipUri } from '@/lib/filestore';
+import {
+  persistOverlayMedia,
+  resolveClipUri,
+  resolveOverlayMediaUri,
+} from '@/lib/filestore';
+import { id as newId } from '@/lib/id';
 import {
   addOverlay,
   deleteClip,
@@ -32,18 +46,22 @@ import {
   listClips,
   listOverlays,
   setClipExcluded,
+  setClipMirrored,
   setClipTrim,
   setClipVolume,
   splitClipAt,
   updateOverlay,
 } from '@/lib/repo';
 import { invalidate, useData } from '@/lib/store';
+import { maybeTranscribe } from '@/lib/transcribe';
 import { palette, radius, space } from '@/theme';
 import type { Clip, Overlay, WordTiming } from '@/lib/types';
 
 // === Timeline geometry =====================================================
 // 60 px per second feels close to CapCut's default density.
-const PX_PER_MS = 0.06;
+const DEFAULT_PX_PER_MS = 0.06;
+const MIN_PX_PER_MS = 0.015; // ~15 px/s — very zoomed out
+const MAX_PX_PER_MS = 0.3; // ~300 px/s — very zoomed in
 const RULER_H = 22;
 const SUBS_H = 30;
 const OVRL_H = 30;
@@ -51,7 +69,6 @@ const CLIP_H = 64;
 const TRACK_GAP = 6;
 const TRACK_BLOCK_H =
   RULER_H + TRACK_GAP + SUBS_H + TRACK_GAP + OVRL_H + TRACK_GAP + CLIP_H;
-const SPEEDS = [0.5, 1, 1.25, 1.5, 2];
 
 function mmss(ms: number): string {
   const s = Math.max(0, Math.floor(ms / 1000));
@@ -95,10 +112,10 @@ export default function ManualEditScreen() {
     if (overlaysDb) setOverlays(overlaysDb);
   }, [overlaysDb]);
 
-  const included = useMemo(
-    () => clips.filter((c) => c.excluded === 0),
-    [clips]
-  );
+  // Excluded clips are no longer removed from the playable timeline — the
+  // "hide" toggle now just dims them visually (in the timeline cell and in
+  // the live preview). They still occupy their slot, still play through.
+  const included = clips;
   const cumulative = useMemo(() => {
     const out: number[] = [0];
     for (let i = 0; i < included.length; i++) {
@@ -108,12 +125,81 @@ export default function ManualEditScreen() {
   }, [included]);
   const totalMs = cumulative[cumulative.length - 1] ?? 0;
 
-  // ----- selection -----
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  useEffect(() => {
-    if (!selectedId && included.length > 0) setSelectedId(included[0].id);
-  }, [included, selectedId]);
+  // ----- selection (tap-only; never set by scrub or auto-advance) -----
+  // A single selection across all timeline elements. Clip and overlay
+  // selections are mutually exclusive — picking one clears the other so
+  // the action bar always reflects a single target.
+  type SelectionKind = 'clip' | 'overlay';
+  const [selection, setSelection] = useState<{
+    kind: SelectionKind;
+    id: string;
+  } | null>(null);
+  const selectClip = useCallback((id: string) => {
+    setSelection({ kind: 'clip', id });
+  }, []);
+  const selectOverlay = useCallback((id: string) => {
+    setSelection({ kind: 'overlay', id });
+  }, []);
+  const clearSelection = useCallback(() => setSelection(null), []);
+  const selectedId = selection?.kind === 'clip' ? selection.id : null;
+  const selectedOverlayId =
+    selection?.kind === 'overlay' ? selection.id : null;
   const selected = clips.find((c) => c.id === selectedId) ?? null;
+  const selectedOverlay =
+    overlays.find((o) => o.id === selectedOverlayId) ?? null;
+
+  // Kick off transcription for any clip missing word timings. The captions
+  // feature renders nothing until transcript_words is populated, so without
+  // this trigger captions stayed permanently empty whenever transcription
+  // failed (or skipped) at import time. Best-effort; no-ops without
+  // Supabase + Clerk configured.
+  useEffect(() => {
+    if (!clipsDb) return;
+    for (const c of clipsDb) {
+      if (!c.transcript_words) void maybeTranscribe(c.id);
+    }
+  }, [clipsDb]);
+
+  // ----- undo / redo command stack -----
+  // Each command stores its own forward + inverse closures over the values
+  // captured at issue time. `do` runs immediately and pushes to the undo
+  // stack; `undo` runs the inverse and moves the command to the redo stack.
+  type Cmd = { do: () => Promise<void>; undo: () => Promise<void> };
+  const undoStack = useRef<Cmd[]>([]);
+  const redoStack = useRef<Cmd[]>([]);
+  // Bump on stack mutation so the toolbar tints recompute.
+  const [historyTick, setHistoryTick] = useState(0);
+  const bumpHistory = () => setHistoryTick((n) => n + 1);
+  const runCmd = useCallback(async (cmd: Cmd) => {
+    await cmd.do();
+    undoStack.current.push(cmd);
+    redoStack.current = [];
+    bumpHistory();
+  }, []);
+  const doUndo = useCallback(async () => {
+    const cmd = undoStack.current.pop();
+    if (!cmd) return;
+    await cmd.undo();
+    redoStack.current.push(cmd);
+    bumpHistory();
+  }, []);
+  const doRedo = useCallback(async () => {
+    const cmd = redoStack.current.pop();
+    if (!cmd) return;
+    await cmd.do();
+    undoStack.current.push(cmd);
+    bumpHistory();
+  }, []);
+  const clearHistory = useCallback(() => {
+    undoStack.current = [];
+    redoStack.current = [];
+    bumpHistory();
+  }, []);
+  // Re-read after each mutation so disabled state is current.
+  const canUndo = undoStack.current.length > 0;
+  const canRedo = redoStack.current.length > 0;
+  // Touch `historyTick` so the lints/optimizer keep the read in deps.
+  void historyTick;
 
   // ----- player engine -----
   const player = useVideoPlayer(null, (p) => {
@@ -122,10 +208,52 @@ export default function ManualEditScreen() {
   });
   const [playing, setPlaying] = useState(false);
   const [globalMs, setGlobalMs] = useState(0);
+  const globalMsRef = useRef(0);
+  globalMsRef.current = globalMs;
   const activeIdx = useRef<number>(0);
   const [speed, setSpeed] = useState(1);
   const speedRef = useRef(1);
   speedRef.current = speed;
+
+  // ----- zoom + viewport (centered playhead model) -----
+  const [pxPerMs, setPxPerMs] = useState(DEFAULT_PX_PER_MS);
+  const pxPerMsRef = useRef(pxPerMs);
+  pxPerMsRef.current = pxPerMs;
+  const [viewportW, setViewportW] = useState(0);
+  const viewportWRef = useRef(0);
+  viewportWRef.current = viewportW;
+
+  // After `player.replace(uri)` returns, the new asset is still loading.
+  // Setting currentTime / calling play() immediately often lands on the
+  // previous (or null) source, which is the source of the "playback breaks
+  // when entering a new clip" symptom: the trim point gets ignored, the
+  // first frames of the new clip are skipped, and play() silently stalls.
+  // We queue the desired post-load action here and apply it from the
+  // statusChange listener below once the player reports 'readyToPlay'.
+  const pendingLoad = useRef<{ seekMs: number; autoplay: boolean } | null>(
+    null
+  );
+
+  useEffect(() => {
+    const sub = player.addListener(
+      'statusChange',
+      (ev: { status?: string }) => {
+        if (ev?.status !== 'readyToPlay') return;
+        const pl = pendingLoad.current;
+        if (!pl) return;
+        pendingLoad.current = null;
+        try {
+          player.currentTime = pl.seekMs / 1000;
+          if (pl.autoplay) player.play();
+        } catch {
+          /* ignore */
+        }
+      }
+    );
+    return () => {
+      sub.remove();
+    };
+  }, [player]);
 
   const loadActive = useCallback(
     (idx: number, autoplay: boolean) => {
@@ -133,12 +261,31 @@ export default function ManualEditScreen() {
       if (!c) return;
       activeIdx.current = idx;
       try {
+        pendingLoad.current = { seekMs: effIn(c), autoplay };
         player.replace(resolveClipUri(c.file_uri));
-        player.currentTime = effIn(c) / 1000;
         player.volume = c.audio_volume ?? 1;
         player.playbackRate = speedRef.current;
-        if (autoplay) player.play();
-        else player.pause();
+        // Best-effort immediate seek/play in case the source is already
+        // loaded (same file, or cached); statusChange will retry once the
+        // new asset becomes readyToPlay.
+        try {
+          player.currentTime = effIn(c) / 1000;
+        } catch {
+          /* not ready */
+        }
+        if (autoplay) {
+          try {
+            player.play();
+          } catch {
+            /* */
+          }
+        } else {
+          try {
+            player.pause();
+          } catch {
+            /* */
+          }
+        }
       } catch {
         /* player not ready */
       }
@@ -157,6 +304,127 @@ export default function ManualEditScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedId]);
 
+  // Load the first clip's source on entry so the preview isn't blank, without
+  // touching `selectedId` (selection is tap-only).
+  const sourceLoaded = useRef(false);
+  useEffect(() => {
+    if (sourceLoaded.current) return;
+    if (included.length === 0) return;
+    sourceLoaded.current = true;
+    loadActive(0, false);
+  }, [included, loadActive]);
+
+  // Find which included clip a global ms maps into, returning [idx, localMs].
+  const idxAt = useCallback(
+    (ms: number): { idx: number; localMs: number } => {
+      const target = clamp(ms, 0, totalMs);
+      if (included.length === 0) return { idx: 0, localMs: 0 };
+      let idx = included.length - 1;
+      for (let i = 0; i < included.length; i++) {
+        if (target < cumulative[i + 1]) {
+          idx = i;
+          break;
+        }
+      }
+      const c = included[idx];
+      const localMs = effIn(c) + (target - cumulative[idx]);
+      return { idx, localMs };
+    },
+    [included, cumulative, totalMs]
+  );
+
+  // Deferred clip swap: while scrubbing we never call `player.replace()` (that
+  // re-loads the asset and causes the freeze the user saw). Instead we record
+  // the clip index the scrub last landed on and commit the swap once the
+  // scroll settles.
+  const pendingSwap = useRef<number | null>(null);
+
+  // Seek the player to a global timeline ms. With `deferSwap`, cross-clip
+  // scrubs only freeze the current player at the nearest boundary frame and
+  // record the pending clip; the actual replace happens on scroll settle.
+  const seekToGlobalMs = useCallback(
+    (ms: number, deferSwap = false) => {
+      if (included.length === 0) return;
+      const target = clamp(ms, 0, totalMs);
+      const { idx, localMs } = idxAt(target);
+      const c = included[idx];
+      if (!c) return;
+      setGlobalMs(target);
+
+      if (idx === activeIdx.current) {
+        pendingSwap.current = null;
+        try {
+          player.currentTime = localMs / 1000;
+        } catch {
+          /* not ready */
+        }
+        return;
+      }
+
+      if (deferSwap) {
+        pendingSwap.current = idx;
+        // Freeze the current player on the nearest frame so the preview
+        // doesn't black-flash mid-scrub.
+        const cur = included[activeIdx.current];
+        if (cur) {
+          const freeze =
+            idx > activeIdx.current
+              ? Math.max(effIn(cur), effOut(cur) - 30)
+              : effIn(cur);
+          try {
+            player.currentTime = freeze / 1000;
+          } catch {
+            /* not ready */
+          }
+        }
+        return;
+      }
+
+      // Immediate swap (e.g. tap on a clip).
+      activeIdx.current = idx;
+      pendingSwap.current = null;
+      try {
+        player.replace(resolveClipUri(c.file_uri));
+        player.volume = c.audio_volume ?? 1;
+        player.playbackRate = speedRef.current;
+        player.currentTime = localMs / 1000;
+        player.pause();
+      } catch {
+        /* not ready */
+      }
+    },
+    [included, cumulative, totalMs, idxAt, player]
+  );
+
+  // Commit a pending cross-clip swap that was deferred during scrubbing.
+  const commitPendingSwap = useCallback(() => {
+    const idx = pendingSwap.current;
+    if (idx === null) return;
+    pendingSwap.current = null;
+    const c = included[idx];
+    if (!c) return;
+    const { localMs } = idxAt(globalMsRef.current);
+    activeIdx.current = idx;
+    try {
+      pendingLoad.current = { seekMs: localMs, autoplay: false };
+      player.replace(resolveClipUri(c.file_uri));
+      player.volume = c.audio_volume ?? 1;
+      player.playbackRate = speedRef.current;
+      try {
+        player.currentTime = localMs / 1000;
+      } catch {
+        /* not ready */
+      }
+      try {
+        player.pause();
+      } catch {
+        /* not ready */
+      }
+    } catch {
+      /* not ready */
+    }
+  }, [included, idxAt, player]);
+
   // Engine loop: poll player time, advance at clip bounds.
   useEffect(() => {
     if (included.length === 0) return;
@@ -164,6 +432,9 @@ export default function ManualEditScreen() {
     const t = setInterval(() => {
       try {
         setPlaying(player.playing);
+        // While the user is dragging the timeline, seek drives globalMs.
+        // Skip player-driven updates so they don't fight the scrub.
+        if (userScrolling.current) return;
         const idx = activeIdx.current;
         const c = included[idx];
         if (!c) return;
@@ -172,8 +443,15 @@ export default function ManualEditScreen() {
         const inMs = effIn(c);
         if (tMs >= outMs - 30) {
           if (idx + 1 < included.length) {
-            loadActive(idx + 1, player.playing);
-            setSelectedId(included[idx + 1].id);
+            // Capture wasPlaying BEFORE replace() — player.playing flips to
+            // false while the new source loads, and reading it after the
+            // call would always paused-pin the next clip.
+            const wasPlaying = player.playing;
+            loadActive(idx + 1, wasPlaying);
+            // Jump the playhead to the boundary immediately so the UI
+            // doesn't visibly freeze on the 100ms poll gap while the new
+            // source loads.
+            setGlobalMs(cumulative[idx + 1]);
           } else {
             player.pause();
             setGlobalMs(totalMs);
@@ -201,9 +479,9 @@ export default function ManualEditScreen() {
   }
 
   // ----- bottom-bar modes (Volume / Speed open inline panels) -----
-  const [bottomMode, setBottomMode] = useState<'none' | 'volume' | 'speed'>(
-    'none'
-  );
+  const [bottomMode, setBottomMode] = useState<
+    'none' | 'volume' | 'speed' | 'size'
+  >('none');
 
   async function doSplit() {
     if (!selected) return;
@@ -211,20 +489,95 @@ export default function ManualEditScreen() {
     if (idx < 0) return;
     const atLocal = Math.max(0, globalMs - cumulative[idx]); // ms within the effective selected clip
     const res = await splitClipAt(selected.id, atLocal);
-    if (res) invalidate();
+    if (res) {
+      // Split has no inverse (no merge primitive) — wipe history so the user
+      // doesn't get a partial-undo into an inconsistent state.
+      clearHistory();
+      invalidate();
+    }
   }
 
   async function doDelete() {
     if (!selected) return;
+    // Delete removes the underlying file too — irreversible. Wipe history.
+    clearHistory();
     await deleteClip(selected.id, selected.file_uri);
-    setSelectedId(null);
+    clearSelection();
     invalidate();
+  }
+
+  // Unified delete for whatever's selected (clip, text overlay, or media
+  // overlay). Overlay deletes are undoable; clip deletes wipe history because
+  // we don't have an inverse for the file removal.
+  async function doDeleteSelection() {
+    if (selectedOverlay) {
+      await removeOverlay(selectedOverlay);
+      clearSelection();
+      return;
+    }
+    if (selected) {
+      await doDelete();
+    }
   }
 
   async function toggleExclude() {
     if (!selected) return;
-    await setClipExcluded(selected.id, selected.excluded === 1 ? 0 : 1);
-    invalidate();
+    const clipId = selected.id;
+    const prev = selected.excluded === 1 ? 1 : 0;
+    const next: 0 | 1 = prev === 1 ? 0 : 1;
+    await runCmd({
+      do: async () => {
+        await setClipExcluded(clipId, next);
+        invalidate();
+      },
+      undo: async () => {
+        await setClipExcluded(clipId, prev);
+        invalidate();
+      },
+    });
+  }
+
+  async function toggleMirror() {
+    if (!selected) return;
+    const clipId = selected.id;
+    const prev: 0 | 1 = selected.mirrored === 1 ? 1 : 0;
+    const next: 0 | 1 = prev === 1 ? 0 : 1;
+    await runCmd({
+      do: async () => {
+        await setClipMirrored(clipId, next);
+        invalidate();
+      },
+      undo: async () => {
+        await setClipMirrored(clipId, prev);
+        invalidate();
+      },
+    });
+  }
+
+  async function toggleMute() {
+    if (!selected) return;
+    const clipId = selected.id;
+    const prev = selected.audio_volume ?? 1;
+    const next = prev > 0 ? 0 : 1;
+    const applyTo = (val: number) => {
+      try {
+        if (included[activeIdx.current]?.id === clipId) player.volume = val;
+      } catch {
+        /* ignore */
+      }
+    };
+    await runCmd({
+      do: async () => {
+        await setClipVolume(clipId, next);
+        applyTo(next);
+        invalidate();
+      },
+      undo: async () => {
+        await setClipVolume(clipId, prev);
+        applyTo(prev);
+        invalidate();
+      },
+    });
   }
 
   function doSpeed(s: number) {
@@ -239,21 +592,67 @@ export default function ManualEditScreen() {
   async function changeVolume(v: number) {
     if (!selected) return;
     const clipId = selected.id;
-    await setClipVolume(clipId, v);
-    try {
-      // only honor for the *currently playing* clip
-      if (included[activeIdx.current]?.id === clipId) player.volume = v;
-    } catch {
-      /* ignore */
-    }
-    invalidate();
+    const prev = selected.audio_volume ?? 1;
+    const applyTo = (val: number) => {
+      try {
+        if (included[activeIdx.current]?.id === clipId) player.volume = val;
+      } catch {
+        /* ignore */
+      }
+    };
+    await runCmd({
+      do: async () => {
+        await setClipVolume(clipId, v);
+        applyTo(v);
+        invalidate();
+      },
+      undo: async () => {
+        await setClipVolume(clipId, prev);
+        applyTo(prev);
+        invalidate();
+      },
+    });
   }
 
   // ----- trim drag (selected clip in strip) -----
+  // Live drag deltas live in the parent so the rest of the timeline (clips
+  // after the trimmed one) can reflow in lockstep with the OUT handle, and
+  // so the gesture has access to globalMs for snap-to-playhead.
+  const [trimDrag, setTrimDrag] = useState<{
+    id: string;
+    dxIn: number;
+    dxOut: number;
+  } | null>(null);
+
   async function persistTrim(inMs: number, outMs: number) {
     if (!selected) return;
-    await setClipTrim(selected.id, Math.round(inMs), Math.round(outMs));
-    invalidate();
+    const clipId = selected.id;
+    const prevIn = selected.in_ms ?? 0;
+    const prevOut = selected.out_ms ?? selected.duration_ms;
+    const newIn = Math.round(inMs);
+    const newOut = Math.round(outMs);
+    await runCmd({
+      do: async () => {
+        // Optimistic local update so the cell doesn't briefly snap back to
+        // its old size between trimDrag clearing and clipsDb refetching.
+        setClips((prev) =>
+          prev.map((c) =>
+            c.id === clipId ? { ...c, in_ms: newIn, out_ms: newOut } : c
+          )
+        );
+        await setClipTrim(clipId, newIn, newOut);
+        invalidate();
+      },
+      undo: async () => {
+        setClips((prev) =>
+          prev.map((c) =>
+            c.id === clipId ? { ...c, in_ms: prevIn, out_ms: prevOut } : c
+          )
+        );
+        await setClipTrim(clipId, prevIn, prevOut);
+        invalidate();
+      },
+    });
   }
 
   // ----- text overlays -----
@@ -270,15 +669,203 @@ export default function ManualEditScreen() {
       totalMs > 0 ? totalMs : start + 3000,
       globalMs + 3000
     );
-    await addOverlay(projectId, { text, start_ms: start, end_ms: end });
+    // `addOverlay` returns the new overlay id; capture it so undo can target
+    // the exact row (and redo can re-create with the same id-like body).
+    // addOverlay assigns a fresh id each call, so on redo we have to
+    // re-capture both id and snapshot to keep delete-by-id consistent.
+    let createdId: string | null = null;
+    let createdSnap: Overlay | null = null;
+    await runCmd({
+      do: async () => {
+        const re = createdSnap
+          ? await addOverlay(projectId, createdSnap)
+          : await addOverlay(projectId, {
+              text,
+              start_ms: start,
+              end_ms: end,
+            });
+        createdId = re.id;
+        createdSnap = re;
+        invalidate();
+      },
+      undo: async () => {
+        if (createdId) {
+          await deleteOverlay(createdId);
+          invalidate();
+        }
+      },
+    });
     setOverlayDraft('');
     setOverlayModal(false);
-    invalidate();
   }
+
+  // Pick an image or video from the photo library and add it as a media
+  // overlay starting at the current playhead. The file is copied into the
+  // app's overlays/ dir so it survives photo-library cleanup, and undo
+  // wipes both the row and the on-disk file (via deleteOverlay).
+  async function addMediaOverlay() {
+    try {
+      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!perm.granted) return;
+      const res = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images', 'videos'],
+        allowsMultipleSelection: false,
+        quality: 1,
+      });
+      if (res.canceled || !res.assets || res.assets.length === 0) return;
+      const asset = res.assets[0];
+      const isVideo =
+        asset.type === 'video' ||
+        /\.(mp4|mov|m4v)$/i.test(asset.uri ?? '');
+      const overlayId = newId();
+      // Pull the extension off the picker uri; fall back per kind so the
+      // saved file is always playable/displayable.
+      const m = (asset.uri ?? '').match(/\.[a-zA-Z0-9]+$/);
+      const ext = m ? m[0] : isVideo ? '.mp4' : '.jpg';
+      const rel = persistOverlayMedia(asset.uri, overlayId, ext);
+      const start = globalMs;
+      // Image overlays default to 4s; video overlays default to the asset's
+      // own duration (or 5s if unknown).
+      const assetDurationMs = isVideo
+        ? Math.max(1000, Math.round((asset.duration ?? 5) * 1000))
+        : 4000;
+      const end = Math.min(
+        totalMs > 0 ? totalMs : start + assetDurationMs,
+        start + assetDurationMs
+      );
+      let createdId: string | null = null;
+      let createdSnap: Overlay | null = null;
+      await runCmd({
+        do: async () => {
+          const re = createdSnap
+            ? await addOverlay(projectId, createdSnap)
+            : await addOverlay(projectId, {
+                kind: isVideo ? 'video' : 'image',
+                file_uri: rel,
+                start_ms: start,
+                end_ms: end,
+              });
+          createdId = re.id;
+          createdSnap = re;
+          invalidate();
+        },
+        undo: async () => {
+          if (createdId) {
+            await deleteOverlay(createdId);
+            invalidate();
+          }
+        },
+      });
+    } catch {
+      /* picker failure — surface nothing, the user can retry */
+    }
+  }
+
+  // Persist an overlay duration change (chip trim). Optimistic local
+  // update so the chip width doesn't briefly snap back to its pre-drag
+  // size while the DB write resolves.
+  async function persistOverlayDuration(
+    o: Overlay,
+    newStart: number,
+    newEnd: number
+  ) {
+    const id = o.id;
+    const prevStart = o.start_ms;
+    const prevEnd = o.end_ms;
+    const start = Math.round(newStart);
+    const end = Math.round(newEnd);
+    if (start === prevStart && end === prevEnd) return;
+    await runCmd({
+      do: async () => {
+        setOverlays((s) =>
+          s.map((x) =>
+            x.id === id ? { ...x, start_ms: start, end_ms: end } : x
+          )
+        );
+        await updateOverlay(id, { start_ms: start, end_ms: end });
+        invalidate();
+      },
+      undo: async () => {
+        setOverlays((s) =>
+          s.map((x) =>
+            x.id === id
+              ? { ...x, start_ms: prevStart, end_ms: prevEnd }
+              : x
+          )
+        );
+        await updateOverlay(id, { start_ms: prevStart, end_ms: prevEnd });
+        invalidate();
+      },
+    });
+  }
+
+  // Persist a scale change. For text overlays we drive `size` (font px);
+  // for media we drive `scale` (0..1 fraction of preview width).
+  async function persistOverlaySize(o: Overlay, value: number) {
+    const id = o.id;
+    const isMedia = o.kind === 'image' || o.kind === 'video';
+    const prev = isMedia ? o.scale : o.size;
+    if (prev === value) return;
+    const patch = isMedia ? { scale: value } : { size: value };
+    const prevPatch = isMedia ? { scale: prev } : { size: prev };
+    await runCmd({
+      do: async () => {
+        setOverlays((s) =>
+          s.map((x) => (x.id === id ? { ...x, ...patch } : x))
+        );
+        await updateOverlay(id, patch);
+        invalidate();
+      },
+      undo: async () => {
+        setOverlays((s) =>
+          s.map((x) => (x.id === id ? { ...x, ...prevPatch } : x))
+        );
+        await updateOverlay(id, prevPatch);
+        invalidate();
+      },
+    });
+  }
+
   async function moveOverlay(o: Overlay, x: number, y: number) {
-    await updateOverlay(o.id, { x, y });
-    setOverlays((s) => s.map((it) => (it.id === o.id ? { ...it, x, y } : it)));
-    invalidate();
+    const id = o.id;
+    const prevX = o.x;
+    const prevY = o.y;
+    await runCmd({
+      do: async () => {
+        await updateOverlay(id, { x, y });
+        setOverlays((s) =>
+          s.map((it) => (it.id === id ? { ...it, x, y } : it))
+        );
+        invalidate();
+      },
+      undo: async () => {
+        await updateOverlay(id, { x: prevX, y: prevY });
+        setOverlays((s) =>
+          s.map((it) =>
+            it.id === id ? { ...it, x: prevX, y: prevY } : it
+          )
+        );
+        invalidate();
+      },
+    });
+  }
+  async function removeOverlay(o: Overlay) {
+    // Track currentId so do/undo/redo always hit the live row id
+    // (addOverlay generates a new id on each re-add).
+    let currentId = o.id;
+    const snap: Overlay = { ...o };
+    await runCmd({
+      do: async () => {
+        await deleteOverlay(currentId);
+        setOverlays((s) => s.filter((x) => x.id !== currentId));
+        invalidate();
+      },
+      undo: async () => {
+        const re = await addOverlay(projectId, { ...snap });
+        currentId = re.id;
+        invalidate();
+      },
+    });
   }
 
   // ----- subtitles (synced caption under preview) -----
@@ -316,20 +903,85 @@ export default function ManualEditScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeWords, subsOn, globalMs]);
 
-  // ----- timeline scroll -----
+  // Which clip is under the playhead right now (drives preview dimming for
+  // the show/hide toggle — excluded clips render at 0.4 opacity).
+  const currentIdx = useMemo(() => {
+    if (included.length === 0) return -1;
+    for (let i = 0; i < included.length; i++) {
+      if (globalMs < cumulative[i + 1]) return i;
+    }
+    return included.length - 1;
+  }, [globalMs, included, cumulative]);
+  const activeDim =
+    currentIdx >= 0 ? included[currentIdx]?.excluded === 1 : false;
+  const activeMirrored =
+    currentIdx >= 0 ? included[currentIdx]?.mirrored === 1 : false;
+
+  // ----- timeline scroll (centered playhead model) -----
   const scrollRef = useRef<ScrollView>(null);
   const userScrolling = useRef(false);
   const timelineW = useMemo(
-    () => Math.max(800, totalMs * PX_PER_MS + 200),
-    [totalMs]
+    () => Math.max(800, totalMs * pxPerMs + 200),
+    [totalMs, pxPerMs]
   );
 
-  // Keep the playhead in view as time advances (unless the user is scrolling).
+  // Keep the time-under-playhead pinned to viewport center while playing.
+  // When the user is dragging the timeline, they own scroll position.
   useEffect(() => {
     if (userScrolling.current) return;
-    const x = globalMs * PX_PER_MS - 80;
+    if (viewportW === 0) return;
+    const x = globalMs * pxPerMs;
     scrollRef.current?.scrollTo({ x: Math.max(0, x), animated: false });
-  }, [globalMs]);
+  }, [globalMs, pxPerMs, viewportW]);
+
+  // While the user drags the timeline, drive the player from scroll offset.
+  // `deferSwap` means cross-clip transitions don't trigger an expensive
+  // `player.replace()` mid-scroll; the swap happens once scrolling stops.
+  const onTimelineScroll = useCallback(
+    (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+      if (!userScrolling.current) return;
+      const x = e.nativeEvent.contentOffset.x;
+      const ms = x / pxPerMsRef.current;
+      seekToGlobalMs(ms, true);
+    },
+    [seekToGlobalMs]
+  );
+
+  // Settle-scroll timer: onScrollEndDrag fires when the finger lifts, even if
+  // momentum is about to start. We wait briefly to see if momentum begins; if
+  // it does, onMomentumScrollBegin cancels this timer and the real end fires
+  // on onMomentumScrollEnd.
+  const scrubEndTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const endScrub = useCallback(() => {
+    if (scrubEndTimer.current) {
+      clearTimeout(scrubEndTimer.current);
+      scrubEndTimer.current = null;
+    }
+    userScrolling.current = false;
+    commitPendingSwap();
+  }, [commitPendingSwap]);
+
+  // Pinch-to-zoom on the timeline. `runOnJS(true)` is required because
+  // Reanimated is installed — without it, gesture callbacks default to
+  // worklets and our React state setters silently fail.
+  const pinchBaseline = useRef(DEFAULT_PX_PER_MS);
+  const pinchGesture = useMemo(
+    () =>
+      Gesture.Pinch()
+        .onBegin(() => {
+          pinchBaseline.current = pxPerMsRef.current;
+        })
+        .onUpdate((e) => {
+          const next = clamp(
+            pinchBaseline.current * e.scale,
+            MIN_PX_PER_MS,
+            MAX_PX_PER_MS
+          );
+          if (next !== pxPerMsRef.current) setPxPerMs(next);
+        })
+        .runOnJS(true),
+    []
+  );
 
   if (!project || !clipsDb) {
     return (
@@ -376,7 +1028,13 @@ export default function ManualEditScreen() {
         <View style={styles.previewFrame}>
           <VideoView
             player={player}
-            style={StyleSheet.absoluteFill}
+            style={[
+              StyleSheet.absoluteFill,
+              {
+                opacity: activeDim ? 0.4 : 1,
+                transform: activeMirrored ? [{ scaleX: -1 }] : [],
+              },
+            ]}
             nativeControls={false}
             contentFit="contain"
           />
@@ -386,12 +1044,11 @@ export default function ManualEditScreen() {
               <DraggableOverlay
                 key={o.id}
                 overlay={o}
+                selected={o.id === selectedOverlayId}
+                onSelect={() => selectOverlay(o.id)}
                 onMove={(x, y) => moveOverlay(o, x, y)}
-                onDelete={async () => {
-                  await deleteOverlay(o.id);
-                  setOverlays((s) => s.filter((x) => x.id !== o.id));
-                  invalidate();
-                }}
+                onResize={(v) => persistOverlaySize(o, v)}
+                onDelete={() => removeOverlay(o)}
               />
             ))}
           {subtitleNow ? (
@@ -433,141 +1090,216 @@ export default function ManualEditScreen() {
           <Text style={styles.timeNow}>{mmss(globalMs)}</Text>
           <Text style={styles.timeTotal}>{mmss(totalMs)}</Text>
         </View>
-        <Pressable style={styles.iconCircle} hitSlop={6}>
-          <Ionicons name="arrow-undo" size={18} color={palette.textFaint} />
+        <Pressable
+          style={styles.iconCircle}
+          hitSlop={6}
+          onPress={canUndo ? doUndo : undefined}
+        >
+          <Ionicons
+            name="arrow-undo"
+            size={18}
+            color={canUndo ? palette.text : palette.textFaint}
+          />
         </Pressable>
-        <Pressable style={styles.iconCircle} hitSlop={6}>
-          <Ionicons name="arrow-redo" size={18} color={palette.textFaint} />
+        <Pressable
+          style={styles.iconCircle}
+          hitSlop={6}
+          onPress={canRedo ? doRedo : undefined}
+        >
+          <Ionicons
+            name="arrow-redo"
+            size={18}
+            color={canRedo ? palette.text : palette.textFaint}
+          />
         </Pressable>
       </View>
 
       {/* ===== Multi-track timeline ================================== */}
-      <ScrollView
-        ref={scrollRef}
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        onScrollBeginDrag={() => {
-          userScrolling.current = true;
-        }}
-        onMomentumScrollEnd={() => {
-          userScrolling.current = false;
-        }}
-        onScrollEndDrag={() => {
-          setTimeout(() => {
-            userScrolling.current = false;
-          }, 800);
-        }}
-        style={styles.timelineScroll}
-        contentContainerStyle={{ paddingHorizontal: 16 }}
-      >
+      <GestureDetector gesture={pinchGesture}>
         <View
-          style={{
-            width: timelineW,
-            height: TRACK_BLOCK_H,
-            position: 'relative',
-          }}
+          style={styles.timelineWrap}
+          onLayout={(e) => setViewportW(e.nativeEvent.layout.width)}
         >
-          {/* Ruler */}
-          <View style={[styles.ruler, { width: timelineW }]}>
-            {ticks.map((s) => (
+          <ScrollView
+            ref={scrollRef}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            scrollEventThrottle={16}
+            onScroll={onTimelineScroll}
+            onScrollBeginDrag={() => {
+              userScrolling.current = true;
+              if (scrubEndTimer.current) {
+                clearTimeout(scrubEndTimer.current);
+                scrubEndTimer.current = null;
+              }
+              try {
+                player.pause();
+              } catch {
+                /* ignore */
+              }
+            }}
+            onScrollEndDrag={() => {
+              // Wait briefly for momentum to begin; if it doesn't, end the
+              // scrub and commit the deferred clip swap.
+              if (scrubEndTimer.current) clearTimeout(scrubEndTimer.current);
+              scrubEndTimer.current = setTimeout(endScrub, 120);
+            }}
+            onMomentumScrollBegin={() => {
+              if (scrubEndTimer.current) {
+                clearTimeout(scrubEndTimer.current);
+                scrubEndTimer.current = null;
+              }
+            }}
+            onMomentumScrollEnd={endScrub}
+            style={styles.timelineScroll}
+            contentContainerStyle={{
+              paddingLeft: viewportW / 2,
+              paddingRight: viewportW / 2,
+            }}
+          >
+            <Pressable
+              onPress={clearSelection}
+              style={{
+                width: timelineW,
+                height: TRACK_BLOCK_H,
+                position: 'relative',
+              }}
+            >
+              {/* Ruler */}
+              <View style={[styles.ruler, { width: timelineW }]}>
+                {ticks.map((s) => (
+                  <View
+                    key={s}
+                    style={[
+                      styles.rulerTick,
+                      { left: s * 1000 * pxPerMs - 0.5 },
+                    ]}
+                  >
+                    <Text style={styles.rulerLabel}>{s}s</Text>
+                  </View>
+                ))}
+              </View>
+
+              {/* Subtitles row */}
               <View
-                key={s}
                 style={[
-                  styles.rulerTick,
-                  { left: s * 1000 * PX_PER_MS - 0.5 },
+                  styles.trackRow,
+                  { top: RULER_H + TRACK_GAP, height: SUBS_H },
                 ]}
               >
-                <Text style={styles.rulerLabel}>{s}s</Text>
+                {renderSubtitleChips(included, cumulative, pxPerMs)}
               </View>
-            ))}
-          </View>
 
-          {/* Subtitles row */}
-          <View
-            style={[
-              styles.trackRow,
-              { top: RULER_H + TRACK_GAP, height: SUBS_H },
-            ]}
-          >
-            {renderSubtitleChips(included, cumulative)}
-          </View>
-
-          {/* Overlays row */}
-          <View
-            style={[
-              styles.trackRow,
-              {
-                top: RULER_H + TRACK_GAP + SUBS_H + TRACK_GAP,
-                height: OVRL_H,
-              },
-            ]}
-          >
-            {overlays.map((o) => (
+              {/* Overlays row */}
               <View
-                key={o.id}
                 style={[
-                  styles.overlayChip,
+                  styles.trackRow,
                   {
-                    left: o.start_ms * PX_PER_MS,
-                    width: Math.max(40, (o.end_ms - o.start_ms) * PX_PER_MS),
+                    top: RULER_H + TRACK_GAP + SUBS_H + TRACK_GAP,
+                    height: OVRL_H,
                   },
                 ]}
               >
-                <Text numberOfLines={1} style={styles.overlayChipText}>
-                  {o.text}
-                </Text>
+                {overlays.map((o) => (
+                  <OverlayChip
+                    key={o.id}
+                    overlay={o}
+                    pxPerMs={pxPerMs}
+                    selected={o.id === selectedOverlayId}
+                    onSelect={() => selectOverlay(o.id)}
+                    onTrimRelease={(s, e) =>
+                      persistOverlayDuration(o, s, e)
+                    }
+                  />
+                ))}
+                <Pressable
+                  style={styles.overlayAddBtn}
+                  onPress={() => setOverlayModal(true)}
+                >
+                  <Ionicons name="add" size={14} color={palette.purple} />
+                </Pressable>
               </View>
-            ))}
-            <Pressable
-              style={styles.overlayAddBtn}
-              onPress={() => setOverlayModal(true)}
-            >
-              <Ionicons name="add" size={14} color={palette.purple} />
-            </Pressable>
-          </View>
 
-          {/* Clip strip */}
-          <View
-            style={[
-              styles.trackRow,
-              {
-                top:
-                  RULER_H +
-                  TRACK_GAP +
-                  SUBS_H +
-                  TRACK_GAP +
-                  OVRL_H +
-                  TRACK_GAP,
-                height: CLIP_H,
-              },
-            ]}
-          >
-            {included.map((c, idx) => {
-              const left = cumulative[idx] * PX_PER_MS;
-              const width = Math.max(48, effLen(c) * PX_PER_MS);
-              return (
-                <ClipCell
-                  key={c.id}
-                  clip={c}
-                  left={left}
-                  width={width}
-                  selected={c.id === selectedId}
-                  onSelect={() => setSelectedId(c.id)}
-                  onTrimRelease={(newIn, newOut) =>
-                    persistTrim(newIn, newOut)
+              {/* Clip strip */}
+              <View
+                style={[
+                  styles.trackRow,
+                  {
+                    top:
+                      RULER_H +
+                      TRACK_GAP +
+                      SUBS_H +
+                      TRACK_GAP +
+                      OVRL_H +
+                      TRACK_GAP,
+                    height: CLIP_H,
+                  },
+                ]}
+              >
+                {included.map((c, idx) => {
+                  const baseLeft = cumulative[idx] * pxPerMs;
+                  // Strict proportional width: short clips look short, long
+                  // ones look long. Tiny floor only so a 0-len clip is still
+                  // tappable.
+                  const baseW = Math.max(4, effLen(c) * pxPerMs);
+                  // Live-trim reflow: the trimmed clip gets dxIn/dxOut
+                  // applied; clips AFTER it shift by dxOut so they stay
+                  // glued to the moving right edge during an OUT drag (the
+                  // IN edge in the current visual keeps the right edge
+                  // anchored, so no shift is needed for IN).
+                  let dispLeft = baseLeft;
+                  let dispW = baseW;
+                  if (trimDrag) {
+                    const trimIdx = included.findIndex(
+                      (x) => x.id === trimDrag.id
+                    );
+                    if (idx === trimIdx) {
+                      dispLeft = baseLeft + trimDrag.dxIn;
+                      dispW = Math.max(
+                        48,
+                        baseW - trimDrag.dxIn + trimDrag.dxOut
+                      );
+                    } else if (idx > trimIdx) {
+                      dispLeft = baseLeft + trimDrag.dxOut;
+                    }
                   }
-                />
-              );
-            })}
-          </View>
+                  // Snap targets (in translationX terms) for this clip's
+                  // handles — align the new IN/OUT edge with the playhead.
+                  const snapInPx = (globalMs - cumulative[idx]) * pxPerMs;
+                  const snapOutPx =
+                    (globalMs - (cumulative[idx] + effLen(c))) * pxPerMs;
+                  return (
+                    <ClipCell
+                      key={c.id}
+                      clip={c}
+                      left={dispLeft}
+                      width={dispW}
+                      pxPerMs={pxPerMs}
+                      selected={c.id === selectedId}
+                      snapInPx={snapInPx}
+                      snapOutPx={snapOutPx}
+                      onSelect={() => selectClip(c.id)}
+                      onTrimChange={(dxIn, dxOut) =>
+                        setTrimDrag({ id: c.id, dxIn, dxOut })
+                      }
+                      onTrimEnd={() => setTrimDrag(null)}
+                      onTrimRelease={(newIn, newOut) =>
+                        persistTrim(newIn, newOut)
+                      }
+                    />
+                  );
+                })}
+              </View>
+            </Pressable>
+          </ScrollView>
 
-          {/* Playhead */}
+          {/* Centered playhead — fixed in viewport, content scrolls under it */}
           <View
             pointerEvents="none"
             style={[
-              styles.playhead,
+              styles.playheadCenter,
               {
-                left: globalMs * PX_PER_MS - 0.5,
+                left: Math.max(0, viewportW / 2 - 0.5),
                 height: TRACK_BLOCK_H + 12,
               },
             ]}
@@ -575,7 +1307,7 @@ export default function ManualEditScreen() {
             <View style={styles.playheadCap} />
           </View>
         </View>
-      </ScrollView>
+      </GestureDetector>
 
       {/* ===== Optional inline panel (Volume / Speed) ================ */}
       {bottomMode === 'volume' && selected ? (
@@ -592,55 +1324,114 @@ export default function ManualEditScreen() {
           onClose={() => setBottomMode('none')}
         />
       ) : null}
+      {bottomMode === 'size' && selectedOverlay ? (
+        <OverlaySizePanel
+          overlay={selectedOverlay}
+          onCommit={(v) => persistOverlaySize(selectedOverlay, v)}
+          onClose={() => setBottomMode('none')}
+        />
+      ) : null}
 
-      {/* ===== Bottom action bar ===================================== */}
+      {/* ===== Bottom action bar (horizontally scrollable) =========== */}
       <View style={styles.actionBar}>
-        <Pressable
-          onPress={() => router.back()}
-          style={styles.actionBack}
-          hitSlop={6}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.actionScrollContent}
         >
-          <Ionicons name="chevron-back" size={22} color={palette.text} />
-        </Pressable>
-        <ActionBtn
-          icon="cut-outline"
-          label="Split"
-          onPress={doSplit}
-          disabled={!selected}
-        />
-        <ActionBtn
-          icon="volume-medium-outline"
-          label="Volume"
-          onPress={() =>
-            setBottomMode((m) => (m === 'volume' ? 'none' : 'volume'))
-          }
-          active={bottomMode === 'volume'}
-          disabled={!selected}
-        />
-        <ActionBtn
-          icon="speedometer-outline"
-          label="Speed"
-          onPress={() =>
-            setBottomMode((m) => (m === 'speed' ? 'none' : 'speed'))
-          }
-          active={bottomMode === 'speed'}
-        />
-        <ActionBtn
-          icon={
-            selected && selected.excluded === 1
-              ? 'eye-off-outline'
-              : 'eye-outline'
-          }
-          label={selected && selected.excluded === 1 ? 'Hidden' : 'Show'}
-          onPress={toggleExclude}
-          disabled={!selected}
-        />
-        <ActionBtn
-          icon="trash-outline"
-          label="Delete"
-          onPress={doDelete}
-          disabled={!selected}
-        />
+          <ActionBtn
+            icon="cut-outline"
+            label="Split"
+            onPress={doSplit}
+            disabled={!selected}
+          />
+          <ActionBtn
+            icon="text-outline"
+            label="Text"
+            onPress={() => setOverlayModal(true)}
+          />
+          <ActionBtn
+            icon="images-outline"
+            label="Media"
+            onPress={addMediaOverlay}
+          />
+          <ActionBtn
+            icon="chatbubble-ellipses-outline"
+            label="Captions"
+            onPress={() => {
+              setSubsOn((v) => !v);
+              // Re-attempt transcription for any clip that still has no
+              // word timings. Without this, captions stay empty whenever
+              // server transcription failed silently at import.
+              for (const c of clips) {
+                if (!c.transcript_words) void maybeTranscribe(c.id);
+              }
+            }}
+            active={subsOn}
+          />
+          <ActionBtn
+            icon="volume-medium-outline"
+            label="Volume"
+            onPress={() =>
+              setBottomMode((m) => (m === 'volume' ? 'none' : 'volume'))
+            }
+            active={bottomMode === 'volume'}
+            disabled={!selected}
+          />
+          <ActionBtn
+            icon="speedometer-outline"
+            label="Speed"
+            onPress={() =>
+              setBottomMode((m) => (m === 'speed' ? 'none' : 'speed'))
+            }
+            active={bottomMode === 'speed'}
+          />
+          <ActionBtn
+            icon="resize-outline"
+            label="Size"
+            onPress={() =>
+              setBottomMode((m) => (m === 'size' ? 'none' : 'size'))
+            }
+            active={bottomMode === 'size'}
+            disabled={!selectedOverlay}
+          />
+          <ActionBtn
+            icon="swap-horizontal-outline"
+            label="Mirror"
+            onPress={toggleMirror}
+            active={!!selected && selected.mirrored === 1}
+            disabled={!selected}
+          />
+          <ActionBtn
+            icon={
+              selected && (selected.audio_volume ?? 1) === 0
+                ? 'volume-mute-outline'
+                : 'volume-high-outline'
+            }
+            label={
+              selected && (selected.audio_volume ?? 1) === 0 ? 'Muted' : 'Mute'
+            }
+            onPress={toggleMute}
+            active={!!selected && (selected.audio_volume ?? 1) === 0}
+            disabled={!selected}
+          />
+          <ActionBtn
+            icon={
+              selected && selected.excluded === 1
+                ? 'eye-off-outline'
+                : 'eye-outline'
+            }
+            label={selected && selected.excluded === 1 ? 'Hidden' : 'Show'}
+            onPress={toggleExclude}
+            disabled={!selected}
+          />
+          <ActionBtn
+            icon="trash-outline"
+            label="Delete"
+            onPress={doDeleteSelection}
+            disabled={!selected && !selectedOverlay}
+          />
+        </ScrollView>
       </View>
 
       {/* ===== Add-overlay modal ===================================== */}
@@ -689,7 +1480,11 @@ export default function ManualEditScreen() {
 // ============================================================
 // Subtitle chip placement (one chip per word, time-positioned)
 // ============================================================
-function renderSubtitleChips(included: Clip[], cumulative: number[]) {
+function renderSubtitleChips(
+  included: Clip[],
+  cumulative: number[],
+  pxPerMs: number
+) {
   const out: React.ReactNode[] = [];
   for (let i = 0; i < included.length; i++) {
     const c = included[i];
@@ -711,13 +1506,13 @@ function renderSubtitleChips(included: Clip[], cumulative: number[]) {
       if (weMs < inMs || wsMs > outMs) continue;
       const startGlobal = base + Math.max(0, wsMs - inMs);
       const endGlobal = base + Math.max(0, Math.min(outMs, weMs) - inMs);
-      const width = Math.max(20, (endGlobal - startGlobal) * PX_PER_MS);
+      const width = Math.max(20, (endGlobal - startGlobal) * pxPerMs);
       out.push(
         <View
           key={`${c.id}-${j}`}
           style={[
             styles.subChip,
-            { left: startGlobal * PX_PER_MS, width },
+            { left: startGlobal * pxPerMs, width },
           ]}
         >
           <Text numberOfLines={1} style={styles.subChipText}>
@@ -737,58 +1532,105 @@ function ClipCell({
   clip,
   left,
   width,
+  pxPerMs,
   selected,
+  snapInPx,
+  snapOutPx,
   onSelect,
+  onTrimChange,
+  onTrimEnd,
   onTrimRelease,
 }: {
   clip: Clip;
   left: number;
   width: number;
+  pxPerMs: number;
   selected: boolean;
+  // Snap targets in translationX (px) terms — the dx where the new IN/OUT
+  // edge aligns with the playhead.
+  snapInPx: number;
+  snapOutPx: number;
   onSelect: () => void;
+  // Fired on every pan update so the parent can reflow the rest of the
+  // timeline in lockstep with the drag.
+  onTrimChange: (dxIn: number, dxOut: number) => void;
+  onTrimEnd: () => void;
   onTrimRelease: (newIn: number, newOut: number) => void;
 }) {
-  // Live drag deltas in px; converted to ms on release. Width changes live;
-  // surrounding clips re-flow on persistence.
-  const [dxIn, setDxIn] = useState(0);
-  const [dxOut, setDxOut] = useState(0);
   const inMs = effIn(clip);
   const outMs = effOut(clip);
+  // pxPerMs and the trim bounds can change between drag start and release
+  // (pinch zoom mid-trim, or stale closure when the gesture re-uses memo),
+  // so read live values via refs at release time.
+  const pxPerMsRef = useRef(pxPerMs);
+  pxPerMsRef.current = pxPerMs;
+  const inMsRef = useRef(inMs);
+  inMsRef.current = inMs;
+  const outMsRef = useRef(outMs);
+  outMsRef.current = outMs;
+  const durationRef = useRef(clip.duration_ms);
+  durationRef.current = clip.duration_ms;
+  const snapInRef = useRef(snapInPx);
+  snapInRef.current = snapInPx;
+  const snapOutRef = useRef(snapOutPx);
+  snapOutRef.current = snapOutPx;
 
-  const inPan = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
-      onPanResponderMove: (_, g) => setDxIn(g.dx),
-      onPanResponderRelease: (_, g) => {
-        const dMs = g.dx / PX_PER_MS;
-        const newIn = clamp(inMs + dMs, 0, outMs - 200);
-        setDxIn(0);
-        onTrimRelease(newIn, outMs);
-      },
-      onPanResponderTerminate: () => setDxIn(0),
-    })
-  ).current;
-  const outPan = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
-      onPanResponderMove: (_, g) => setDxOut(g.dx),
-      onPanResponderRelease: (_, g) => {
-        const dMs = g.dx / PX_PER_MS;
-        const newOut = clamp(outMs + dMs, inMs + 200, clip.duration_ms);
-        setDxOut(0);
-        onTrimRelease(inMs, newOut);
-      },
-      onPanResponderTerminate: () => setDxOut(0),
-    })
-  ).current;
+  // Snap window: within ~10px of the playhead the handle latches to it.
+  const SNAP_PX = 10;
+  const applySnap = (dx: number, target: number) =>
+    Math.abs(dx - target) < SNAP_PX ? target : dx;
 
-  const liveLeft = left + (selected ? dxIn : 0);
-  const liveW = Math.max(
-    48,
-    width - (selected ? dxIn : 0) + (selected ? dxOut : 0)
+  // RNGH Gesture.Pan (not PanResponder): RNGH's ScrollView won't yield to
+  // PanResponder children, which is why the old trim handles never fired.
+  // Pan gestures inside the same gesture system coordinate properly — the
+  // child pan claims touches that start on the handle.
+  const inPan = useMemo(
+    () =>
+      Gesture.Pan()
+        .minDistance(0)
+        .onUpdate((g) => {
+          const dx = applySnap(g.translationX, snapInRef.current);
+          onTrimChange(dx, 0);
+        })
+        .onEnd((g) => {
+          const dx = applySnap(g.translationX, snapInRef.current);
+          const dMs = dx / pxPerMsRef.current;
+          const newIn = clamp(
+            inMsRef.current + dMs,
+            0,
+            outMsRef.current - 200
+          );
+          onTrimRelease(newIn, outMsRef.current);
+          onTrimEnd();
+        })
+        .onFinalize(() => onTrimEnd())
+        .runOnJS(true),
+    [onTrimChange, onTrimEnd, onTrimRelease]
   );
+  const outPan = useMemo(
+    () =>
+      Gesture.Pan()
+        .minDistance(0)
+        .onUpdate((g) => {
+          const dx = applySnap(g.translationX, snapOutRef.current);
+          onTrimChange(0, dx);
+        })
+        .onEnd((g) => {
+          const dx = applySnap(g.translationX, snapOutRef.current);
+          const dMs = dx / pxPerMsRef.current;
+          const newOut = clamp(
+            outMsRef.current + dMs,
+            inMsRef.current + 200,
+            durationRef.current
+          );
+          onTrimRelease(inMsRef.current, newOut);
+          onTrimEnd();
+        })
+        .onFinalize(() => onTrimEnd())
+        .runOnJS(true),
+    [onTrimChange, onTrimEnd, onTrimRelease]
+  );
+
   const excluded = clip.excluded === 1;
 
   return (
@@ -797,8 +1639,8 @@ function ClipCell({
       style={[
         styles.cell,
         {
-          left: liveLeft,
-          width: liveW,
+          left,
+          width,
           opacity: excluded ? 0.4 : 1,
         },
         selected && styles.cellSelected,
@@ -814,26 +1656,140 @@ function ClipCell({
       </View>
       {selected ? (
         <>
-          <View
-            {...inPan.panHandlers}
-            style={[styles.trimHandle, styles.trimHandleLeft]}
-          >
-            <Ionicons
-              name="chevron-back"
-              size={14}
-              color={palette.onBright}
+          <GestureDetector gesture={inPan}>
+            <View style={[styles.trimHandle, styles.trimHandleLeft]}>
+              <Ionicons
+                name="chevron-back"
+                size={14}
+                color={palette.onBright}
+              />
+            </View>
+          </GestureDetector>
+          <GestureDetector gesture={outPan}>
+            <View style={[styles.trimHandle, styles.trimHandleRight]}>
+              <Ionicons
+                name="chevron-forward"
+                size={14}
+                color={palette.onBright}
+              />
+            </View>
+          </GestureDetector>
+        </>
+      ) : null}
+    </Pressable>
+  );
+}
+
+// Timeline chip for a project overlay (text or media). When selected, two
+// edge handles let the user trim start_ms / end_ms; gestures release through
+// onTrimRelease so the parent can persist + invalidate.
+function OverlayChip({
+  overlay,
+  pxPerMs,
+  selected,
+  onSelect,
+  onTrimRelease,
+}: {
+  overlay: Overlay;
+  pxPerMs: number;
+  selected: boolean;
+  onSelect: () => void;
+  onTrimRelease: (newStart: number, newEnd: number) => void;
+}) {
+  const [dxStart, setDxStart] = useState(0);
+  const [dxEnd, setDxEnd] = useState(0);
+  // Live refs so the gesture's onEnd closure reads the latest bounds even
+  // if the props changed mid-drag (pinch zoom, sibling chip selection).
+  const pxPerMsRef = useRef(pxPerMs);
+  pxPerMsRef.current = pxPerMs;
+  const startRef = useRef(overlay.start_ms);
+  startRef.current = overlay.start_ms;
+  const endRef = useRef(overlay.end_ms);
+  endRef.current = overlay.end_ms;
+
+  const startPan = useMemo(
+    () =>
+      Gesture.Pan()
+        .minDistance(0)
+        .onUpdate((g) => setDxStart(g.translationX))
+        .onEnd((g) => {
+          const dMs = g.translationX / pxPerMsRef.current;
+          const newStart = Math.max(
+            0,
+            Math.min(endRef.current - 200, startRef.current + dMs)
+          );
+          setDxStart(0);
+          onTrimRelease(newStart, endRef.current);
+        })
+        .onFinalize(() => setDxStart(0))
+        .runOnJS(true),
+    [onTrimRelease]
+  );
+
+  const endPan = useMemo(
+    () =>
+      Gesture.Pan()
+        .minDistance(0)
+        .onUpdate((g) => setDxEnd(g.translationX))
+        .onEnd((g) => {
+          const dMs = g.translationX / pxPerMsRef.current;
+          const newEnd = Math.max(
+            startRef.current + 200,
+            endRef.current + dMs
+          );
+          setDxEnd(0);
+          onTrimRelease(startRef.current, newEnd);
+        })
+        .onFinalize(() => setDxEnd(0))
+        .runOnJS(true),
+    [onTrimRelease]
+  );
+
+  const isMedia = overlay.kind === 'image' || overlay.kind === 'video';
+  const baseLeft = overlay.start_ms * pxPerMs;
+  const baseW = Math.max(40, (overlay.end_ms - overlay.start_ms) * pxPerMs);
+  const liveLeft = baseLeft + (selected ? dxStart : 0);
+  const liveW = Math.max(
+    32,
+    baseW - (selected ? dxStart : 0) + (selected ? dxEnd : 0)
+  );
+
+  return (
+    <Pressable
+      onPress={onSelect}
+      style={[
+        styles.overlayChip,
+        isMedia && styles.overlayChipMedia,
+        selected && styles.overlayChipSelected,
+        { left: liveLeft, width: liveW },
+      ]}
+    >
+      {isMedia ? (
+        <Ionicons
+          name={overlay.kind === 'video' ? 'videocam' : 'image-outline'}
+          size={12}
+          color={palette.onBright}
+        />
+      ) : null}
+      <Text numberOfLines={1} style={styles.overlayChipText}>
+        {isMedia
+          ? overlay.kind === 'video'
+            ? 'Video'
+            : 'Image'
+          : overlay.text}
+      </Text>
+      {selected ? (
+        <>
+          <GestureDetector gesture={startPan}>
+            <View
+              style={[styles.overlayTrim, styles.overlayTrimLeft]}
             />
-          </View>
-          <View
-            {...outPan.panHandlers}
-            style={[styles.trimHandle, styles.trimHandleRight]}
-          >
-            <Ionicons
-              name="chevron-forward"
-              size={14}
-              color={palette.onBright}
+          </GestureDetector>
+          <GestureDetector gesture={endPan}>
+            <View
+              style={[styles.overlayTrim, styles.overlayTrimRight]}
             />
-          </View>
+          </GestureDetector>
         </>
       ) : null}
     </Pressable>
@@ -870,6 +1826,84 @@ function ActionBtn({
   );
 }
 
+// Smooth pageX-based slider. Avoids the jitter from `nativeEvent.locationX`
+// (which switches reference frames as the touch moves over child views).
+function SmoothSlider({
+  value,
+  min,
+  max,
+  fillColor,
+  onChanging,
+  onCommit,
+}: {
+  value: number;
+  min: number;
+  max: number;
+  fillColor: string;
+  onChanging?: (v: number) => void;
+  onCommit: (v: number) => void;
+}) {
+  const [local, setLocal] = useState(value);
+  useEffect(() => setLocal(value), [value]);
+  const localRef = useRef(local);
+  localRef.current = local;
+
+  const trackRef = useRef<View>(null);
+  const trackBox = useRef({ x: 0, w: 0 });
+  const measure = useCallback(() => {
+    trackRef.current?.measureInWindow((x, _y, w) => {
+      trackBox.current = { x, w };
+    });
+  }, []);
+
+  const fromPageX = (pageX: number): number => {
+    const { x, w } = trackBox.current;
+    if (w <= 0) return localRef.current;
+    const t = clamp((pageX - x) / w, 0, 1);
+    return min + t * (max - min);
+  };
+
+  const pan = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: (e) => {
+        measure();
+        const v = fromPageX(e.nativeEvent.pageX);
+        setLocal(v);
+        onChanging?.(v);
+      },
+      onPanResponderMove: (e) => {
+        const v = fromPageX(e.nativeEvent.pageX);
+        setLocal(v);
+        onChanging?.(v);
+      },
+      onPanResponderRelease: () => onCommit(localRef.current),
+      onPanResponderTerminate: () => onCommit(localRef.current),
+    })
+  ).current;
+
+  const frac = clamp((local - min) / (max - min), 0, 1);
+
+  return (
+    <View
+      ref={trackRef}
+      style={styles.sliderTrack}
+      {...pan.panHandlers}
+      onLayout={measure}
+    >
+      <View style={styles.sliderBg} />
+      <View
+        style={[
+          styles.sliderFill,
+          { width: `${frac * 100}%`, backgroundColor: fillColor },
+        ]}
+      />
+      <View style={[styles.sliderThumb, { left: `${frac * 100}%` }]} />
+    </View>
+  );
+}
+
 function VolumePanel({
   value,
   onChange,
@@ -879,48 +1913,30 @@ function VolumePanel({
   onChange: (v: number) => void;
   onClose: () => void;
 }) {
-  const [local, setLocal] = useState(value);
-  useEffect(() => setLocal(value), [value]);
-  const trackW = useRef(0);
-  const localRef = useRef(local);
-  localRef.current = local;
-  const pan = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
-      onPanResponderMove: (e) => {
-        const w = trackW.current;
-        if (w <= 0) return;
-        setLocal(clamp(e.nativeEvent.locationX / w, 0, 1));
-      },
-      onPanResponderRelease: () => onChange(localRef.current),
-    })
-  ).current;
+  const [display, setDisplay] = useState(value);
+  useEffect(() => setDisplay(value), [value]);
   return (
     <View style={styles.bottomPanel}>
       <View style={styles.bottomPanelHead}>
         <Text style={styles.bottomPanelTitle}>Volume</Text>
-        <Text style={styles.bottomPanelValue}>{Math.round(local * 100)}%</Text>
+        <Text style={styles.bottomPanelValue}>
+          {Math.round(display * 100)}%
+        </Text>
         <Pressable onPress={onClose} hitSlop={6}>
           <Ionicons name="close" size={20} color={palette.textFaint} />
         </Pressable>
       </View>
-      <View
-        style={styles.sliderTrack}
-        {...pan.panHandlers}
-        onLayout={(e: LayoutChangeEvent) => {
-          trackW.current = e.nativeEvent.layout.width;
+      <SmoothSlider
+        value={value}
+        min={0}
+        max={1}
+        fillColor={palette.purple}
+        onChanging={setDisplay}
+        onCommit={(v) => {
+          setDisplay(v);
+          onChange(v);
         }}
-      >
-        <View style={styles.sliderBg} />
-        <View
-          style={[
-            styles.sliderFill,
-            { width: `${local * 100}%`, backgroundColor: palette.purple },
-          ]}
-        />
-        <View style={[styles.sliderThumb, { left: `${local * 100}%` }]} />
-      </View>
+      />
     </View>
   );
 }
@@ -934,33 +1950,28 @@ function SpeedPanel({
   onChange: (v: number) => void;
   onClose: () => void;
 }) {
+  const [display, setDisplay] = useState(value);
+  useEffect(() => setDisplay(value), [value]);
   return (
     <View style={styles.bottomPanel}>
       <View style={styles.bottomPanelHead}>
         <Text style={styles.bottomPanelTitle}>Speed</Text>
-        <Text style={styles.bottomPanelValue}>{value}x</Text>
+        <Text style={styles.bottomPanelValue}>{display.toFixed(2)}x</Text>
         <Pressable onPress={onClose} hitSlop={6}>
           <Ionicons name="close" size={20} color={palette.textFaint} />
         </Pressable>
       </View>
-      <View style={styles.speedRow}>
-        {SPEEDS.map((s) => (
-          <Pressable
-            key={s}
-            onPress={() => onChange(s)}
-            style={[styles.speedChip, value === s && styles.speedChipActive]}
-          >
-            <Text
-              style={[
-                styles.speedChipText,
-                value === s && styles.speedChipTextActive,
-              ]}
-            >
-              {s}x
-            </Text>
-          </Pressable>
-        ))}
-      </View>
+      <SmoothSlider
+        value={value}
+        min={0.5}
+        max={2}
+        fillColor={palette.yellow}
+        onChanging={(v) => setDisplay(v)}
+        onCommit={(v) => {
+          setDisplay(v);
+          onChange(v);
+        }}
+      />
       <Text style={styles.bottomPanelHint}>
         Preview-only; not persisted and not yet honored by export.
       </Text>
@@ -968,43 +1979,149 @@ function SpeedPanel({
   );
 }
 
+// Adjusts the selected overlay's visual size. Text overlays drive `size`
+// (font px, 12-72); media overlays drive `scale` (0..1 fraction of preview
+// width). Single panel handles both so the action bar stays uncluttered.
+function OverlaySizePanel({
+  overlay,
+  onCommit,
+  onClose,
+}: {
+  overlay: Overlay;
+  onCommit: (value: number) => void;
+  onClose: () => void;
+}) {
+  const isMedia = overlay.kind === 'image' || overlay.kind === 'video';
+  const min = isMedia ? 0.1 : 12;
+  const max = isMedia ? 1 : 72;
+  const value = isMedia ? overlay.scale : overlay.size;
+  const [display, setDisplay] = useState(value);
+  useEffect(() => setDisplay(value), [value]);
+  return (
+    <View style={styles.bottomPanel}>
+      <View style={styles.bottomPanelHead}>
+        <Text style={styles.bottomPanelTitle}>
+          {isMedia ? 'Scale' : 'Text size'}
+        </Text>
+        <Text style={styles.bottomPanelValue}>
+          {isMedia ? `${Math.round(display * 100)}%` : `${Math.round(display)}px`}
+        </Text>
+        <Pressable onPress={onClose} hitSlop={6}>
+          <Ionicons name="close" size={20} color={palette.textFaint} />
+        </Pressable>
+      </View>
+      <SmoothSlider
+        value={value}
+        min={min}
+        max={max}
+        fillColor={palette.purple}
+        onChanging={setDisplay}
+        onCommit={(v) => {
+          setDisplay(v);
+          onCommit(v);
+        }}
+      />
+    </View>
+  );
+}
+
 function DraggableOverlay({
   overlay,
+  selected,
+  onSelect,
   onMove,
+  onResize,
   onDelete,
 }: {
   overlay: Overlay;
+  selected: boolean;
+  onSelect: () => void;
   onMove: (x: number, y: number) => void;
+  // Commit a new visual size. Text overlays drive `size` (font px, 12-72);
+  // media overlays drive `scale` (0..1 fraction of preview width).
+  onResize: (value: number) => void;
   onDelete: () => void;
 }) {
+  const isMedia = overlay.kind === 'image' || overlay.kind === 'video';
+  const minValue = isMedia ? 0.1 : 12;
+  const maxValue = isMedia ? 1 : 72;
+  const propValue = isMedia ? overlay.scale : overlay.size;
+
   const layout = useRef({ w: 0, h: 0 });
-  const start = useRef({ x: overlay.x, y: overlay.y });
-  const local = useRef({ x: overlay.x, y: overlay.y });
+
+  // Live position + size during gestures. Refs let the gesture closures read
+  // the latest value without resubscribing the gesture on every render.
   const [pos, setPos] = useState({ x: overlay.x, y: overlay.y });
+  const posRef = useRef(pos);
+  posRef.current = pos;
   useEffect(() => {
     setPos({ x: overlay.x, y: overlay.y });
-    local.current = { x: overlay.x, y: overlay.y };
   }, [overlay.x, overlay.y]);
 
-  const pan = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onPanResponderGrant: () => {
-        start.current = { ...local.current };
-      },
-      onPanResponderMove: (_, g) => {
-        const { w, h } = layout.current;
-        if (w <= 0 || h <= 0) return;
-        const x = clamp(start.current.x + g.dx / w, 0.02, 0.98);
-        const y = clamp(start.current.y + g.dy / h, 0.02, 0.98);
-        local.current = { x, y };
-        setPos({ x, y });
-      },
-      onPanResponderRelease: () => {
-        onMove(local.current.x, local.current.y);
-      },
-    })
-  ).current;
+  const [value, setValue] = useState(propValue);
+  const valueRef = useRef(value);
+  valueRef.current = value;
+  useEffect(() => {
+    setValue(propValue);
+  }, [propValue]);
+
+  // Snapshot of pos/value taken at gesture start so each pan/pinch update is
+  // applied against a stable origin (not the prior frame).
+  const panBase = useRef({ x: overlay.x, y: overlay.y });
+  const pinchBase = useRef(propValue);
+
+  // 1-finger drag. minDistance lets short taps reach the close button's
+  // Pressable instead of being eaten by the pan.
+  const panGesture = useMemo(
+    () =>
+      Gesture.Pan()
+        .minDistance(4)
+        .onBegin(() => {
+          panBase.current = { ...posRef.current };
+          onSelect();
+        })
+        .onUpdate((g) => {
+          const { w, h } = layout.current;
+          if (w <= 0 || h <= 0) return;
+          const x = clamp(panBase.current.x + g.translationX / w, 0.02, 0.98);
+          const y = clamp(panBase.current.y + g.translationY / h, 0.02, 0.98);
+          setPos({ x, y });
+        })
+        .onEnd(() => {
+          onMove(posRef.current.x, posRef.current.y);
+        })
+        .runOnJS(true),
+    [onMove, onSelect]
+  );
+
+  // 2-finger pinch resize. Runs simultaneously with pan so two-finger
+  // gestures both scale and reposition the overlay (CapCut-style).
+  const pinchGesture = useMemo(
+    () =>
+      Gesture.Pinch()
+        .onBegin(() => {
+          pinchBase.current = valueRef.current;
+          onSelect();
+        })
+        .onUpdate((g) => {
+          const next = clamp(
+            pinchBase.current * g.scale,
+            minValue,
+            maxValue
+          );
+          setValue(next);
+        })
+        .onEnd(() => {
+          onResize(valueRef.current);
+        })
+        .runOnJS(true),
+    [minValue, maxValue, onResize, onSelect]
+  );
+
+  const composedGesture = useMemo(
+    () => Gesture.Simultaneous(panGesture, pinchGesture),
+    [panGesture, pinchGesture]
+  );
 
   return (
     <View
@@ -1017,28 +2134,87 @@ function DraggableOverlay({
       }}
       pointerEvents="box-none"
     >
-      <View
-        {...pan.panHandlers}
-        style={[
-          styles.overlayBox,
-          { left: `${pos.x * 100}%`, top: `${pos.y * 100}%` },
-        ]}
-      >
-        <Text
-          style={{
-            color: overlay.color,
-            fontSize: overlay.size,
-            fontWeight: '900',
-            textAlign: 'center',
-          }}
+      <GestureDetector gesture={composedGesture}>
+        <View
+          style={[
+            isMedia ? styles.overlayMediaBox : styles.overlayBox,
+            // Media overlays render at a fraction of the preview frame width
+            // (`scale`). The transform centers the box on (x, y) so dragging
+            // moves the center rather than the top-left corner.
+            isMedia && { width: `${Math.max(0.1, value) * 100}%` },
+            { left: `${pos.x * 100}%`, top: `${pos.y * 100}%` },
+            selected && styles.overlaySelected,
+          ]}
         >
-          {overlay.text}
-        </Text>
-        <Pressable style={styles.overlayDel} onPress={onDelete} hitSlop={6}>
-          <Ionicons name="close" size={12} color="#fff" />
-        </Pressable>
-      </View>
+          {isMedia && overlay.file_uri ? (
+            <OverlayMedia overlay={overlay} />
+          ) : (
+            <Text
+              style={{
+                color: overlay.color,
+                fontSize: value,
+                fontWeight: '900',
+                textAlign: 'center',
+              }}
+            >
+              {overlay.text}
+            </Text>
+          )}
+          {selected ? (
+            <Pressable
+              style={styles.overlayDel}
+              onPress={onDelete}
+              hitSlop={6}
+            >
+              <Ionicons name="close" size={12} color="#fff" />
+            </Pressable>
+          ) : null}
+        </View>
+      </GestureDetector>
     </View>
+  );
+}
+
+// Picture-in-picture media for an overlay. Images render via expo-image
+// (cached, low-overhead). Videos use a dedicated muted, looping player so
+// they don't fight the main timeline player's source/time.
+function OverlayMedia({ overlay }: { overlay: Overlay }) {
+  if (overlay.kind === 'video' && overlay.file_uri) {
+    return (
+      <OverlayVideo
+        uri={resolveOverlayMediaUri(overlay.file_uri)}
+        style={styles.overlayMediaInner}
+      />
+    );
+  }
+  return (
+    <Image
+      source={{ uri: resolveOverlayMediaUri(overlay.file_uri ?? '') }}
+      style={styles.overlayMediaInner}
+      contentFit="contain"
+    />
+  );
+}
+
+function OverlayVideo({
+  uri,
+  style,
+}: {
+  uri: string;
+  style: StyleProp<ViewStyle>;
+}) {
+  const player = useVideoPlayer(uri, (p) => {
+    p.muted = true;
+    p.loop = true;
+    p.play();
+  });
+  return (
+    <VideoView
+      player={player}
+      style={style}
+      nativeControls={false}
+      contentFit="contain"
+    />
   );
 }
 
@@ -1169,7 +2345,8 @@ const styles = StyleSheet.create({
   },
 
   // Timeline scroll
-  timelineScroll: { flexGrow: 0, marginTop: 4 },
+  timelineWrap: { position: 'relative', marginTop: 4 },
+  timelineScroll: { flexGrow: 0 },
 
   // Ruler
   ruler: {
@@ -1218,11 +2395,32 @@ const styles = StyleSheet.create({
     height: 22,
     borderRadius: 6,
     backgroundColor: palette.purple,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 4,
     paddingHorizontal: 6,
   },
+  // Media overlays get a distinct color so users can tell them apart from
+  // text overlays at a glance.
+  overlayChipMedia: { backgroundColor: palette.blue },
+  overlayChipSelected: {
+    borderWidth: 2,
+    borderColor: palette.yellow,
+  },
   overlayChipText: { color: palette.onBright, fontSize: 11, fontWeight: '800' },
+  // Trim handles that appear on the selected overlay chip's edges. Slightly
+  // overhanging so they're easier to grab on a 22px chip.
+  overlayTrim: {
+    position: 'absolute',
+    top: -3,
+    bottom: -3,
+    width: 10,
+    backgroundColor: palette.yellow,
+    borderRadius: 3,
+  },
+  overlayTrimLeft: { left: -5 },
+  overlayTrimRight: { right: -5 },
   overlayAddBtn: {
     position: 'absolute',
     right: 0,
@@ -1271,8 +2469,8 @@ const styles = StyleSheet.create({
   trimHandleLeft: { left: 0 },
   trimHandleRight: { right: 0 },
 
-  // Playhead
-  playhead: {
+  // Playhead — fixed at viewport center, timeline scrolls under it
+  playheadCenter: {
     position: 'absolute',
     top: -6,
     width: 1,
@@ -1299,13 +2497,18 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: palette.border,
     marginTop: 'auto',
+    marginBottom: 18,
   },
-  actionBack: { paddingHorizontal: 8, paddingVertical: 6 },
+  actionScrollContent: {
+    alignItems: 'center',
+    paddingHorizontal: 4,
+  },
   actionBtn: {
-    flex: 1,
+    minWidth: 64,
+    paddingHorizontal: 6,
+    paddingVertical: 4,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 4,
   },
   actionLbl: { fontSize: 10, fontWeight: '700', marginTop: 2 },
 
@@ -1380,6 +2583,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
   },
+  // Media overlay container — `width` is set per-overlay from `scale`.
+  // aspectRatio holds a usable preview frame; inner Image/Video uses
+  // contentFit='contain' so the media never stretches.
+  overlayMediaBox: {
+    position: 'absolute',
+    aspectRatio: 9 / 16,
+    // Center the box on the (x, y) anchor point so dragging tracks the
+    // center of the media, not its top-left. RN ≥ 0.74 supports
+    // percentage-based transforms.
+    transform: [{ translateX: '-50%' }, { translateY: '-50%' }],
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  overlayMediaInner: { width: '100%', height: '100%' },
+  overlaySelected: {
+    borderWidth: 2,
+    borderColor: palette.yellow,
+  },
   overlayDel: {
     position: 'absolute',
     top: -10,
@@ -1390,6 +2612,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.6)',
     alignItems: 'center',
     justifyContent: 'center',
+    zIndex: 5,
   },
 
   // Modal

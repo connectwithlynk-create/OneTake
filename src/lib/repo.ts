@@ -3,7 +3,7 @@ import type * as SQLite from 'expo-sqlite';
 import { autoMetaTags, autoName, stringifyMeta } from './autotag';
 import { getDb } from './db';
 import { ephemeralExpiry } from './ephemeral';
-import { deleteClipFile } from './filestore';
+import { deleteClipFile, deleteOverlayMediaFile } from './filestore';
 import { id } from './id';
 import { palette } from '../theme';
 import type {
@@ -13,6 +13,7 @@ import type {
   Inspiration,
   MetaTag,
   Overlay,
+  OverlayKind,
   Project,
   ProjectStatus,
   ProjectType,
@@ -471,45 +472,57 @@ export async function listOverlays(projectId: string): Promise<Overlay[]> {
 export async function addOverlay(
   projectId: string,
   args: {
-    text: string;
+    kind?: OverlayKind;
+    text?: string;
+    file_uri?: string | null;
     start_ms: number;
     end_ms: number;
     x?: number;
     y?: number;
     color?: string;
     size?: number;
+    scale?: number;
   }
 ): Promise<Overlay> {
   const db = await getDb();
   const now = Date.now();
+  const kind: OverlayKind = args.kind ?? 'text';
+  // Media overlays default to a centered, larger position so they read as
+  // picture-in-picture rather than a footer caption.
+  const defaultY = kind === 'text' ? 0.82 : 0.3;
   const o: Overlay = {
     id: id(),
     project_id: projectId,
-    kind: 'text',
-    text: args.text,
+    kind,
+    text: args.text ?? '',
+    file_uri: args.file_uri ?? null,
     start_ms: args.start_ms,
     end_ms: args.end_ms,
     x: args.x ?? 0.5,
-    y: args.y ?? 0.82,
+    y: args.y ?? defaultY,
     color: args.color ?? '#ffffff',
     size: args.size ?? 22,
+    scale: args.scale ?? 0.4,
     created_at: now,
     owner: null,
     updated_at: now,
     sync_status: 'local',
   };
   await db.runAsync(
-    `INSERT INTO overlays (id, project_id, kind, text, start_ms, end_ms, x, y, color, size, created_at, updated_at, sync_status)
-     VALUES (?, ?, 'text', ?, ?, ?, ?, ?, ?, ?, ?, ?, 'local')`,
+    `INSERT INTO overlays (id, project_id, kind, text, file_uri, start_ms, end_ms, x, y, color, size, scale, created_at, updated_at, sync_status)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'local')`,
     o.id,
     o.project_id,
+    o.kind,
     o.text,
+    o.file_uri,
     o.start_ms,
     o.end_ms,
     o.x,
     o.y,
     o.color,
     o.size,
+    o.scale,
     o.created_at,
     o.updated_at
   );
@@ -519,7 +532,17 @@ export async function addOverlay(
 export async function updateOverlay(
   overlayId: string,
   patch: Partial<
-    Pick<Overlay, 'text' | 'start_ms' | 'end_ms' | 'x' | 'y' | 'color' | 'size'>
+    Pick<
+      Overlay,
+      | 'text'
+      | 'start_ms'
+      | 'end_ms'
+      | 'x'
+      | 'y'
+      | 'color'
+      | 'size'
+      | 'scale'
+    >
   >
 ) {
   const db = await getDb();
@@ -537,7 +560,14 @@ export async function updateOverlay(
 
 export async function deleteOverlay(overlayId: string) {
   const db = await getDb();
+  // Reclaim the on-disk media file for image/video overlays so deleted
+  // overlays don't leave orphan files in the app document dir.
+  const row = await db.getFirstAsync<{ file_uri: string | null }>(
+    'SELECT file_uri FROM overlays WHERE id = ?',
+    overlayId
+  );
   await db.runAsync('DELETE FROM overlays WHERE id = ?', overlayId);
+  if (row?.file_uri) deleteOverlayMediaFile(row.file_uri);
 }
 
 export async function setClipMirrored(clipId: string, mirrored: 0 | 1) {

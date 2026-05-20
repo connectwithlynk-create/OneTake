@@ -75,18 +75,29 @@ export interface Collection extends SyncFields {
   created_at: number;
 }
 
-/** Project-level text overlay (rendered over preview in [start_ms, end_ms]). */
+export type OverlayKind = 'text' | 'image' | 'video';
+
+/** Project-level overlay (rendered over preview in [start_ms, end_ms]).
+ *  Either a text overlay (text+color+size) or a media overlay (file_uri+scale).
+ *  Media overlays sit on top of the main clip track; their file lives under
+ *  the app document dir alongside clip files. */
 export interface Overlay extends SyncFields {
   id: string;
   project_id: string;
-  kind: 'text';
-  text: string;
+  kind: OverlayKind;
+  text: string; // empty string for media overlays
+  /** Relative path under app document dir for image/video overlays. Null for text. */
+  file_uri: string | null;
   start_ms: number;
   end_ms: number;
   x: number; // 0..1 normalized
   y: number; // 0..1 normalized
   color: string;
+  /** Font size px for text; for media this column is unused (see `scale`). */
   size: number;
+  /** Media overlay width as a fraction of the preview width (0..1).
+   *  Unused for text overlays. */
+  scale: number;
   created_at: number;
 }
 

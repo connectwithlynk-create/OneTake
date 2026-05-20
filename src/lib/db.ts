@@ -108,12 +108,14 @@ CREATE TABLE IF NOT EXISTS overlays (
   project_id TEXT NOT NULL,
   kind TEXT NOT NULL,
   text TEXT NOT NULL,
+  file_uri TEXT,
   start_ms INTEGER NOT NULL,
   end_ms INTEGER NOT NULL,
   x REAL NOT NULL DEFAULT 0.5,
   y REAL NOT NULL DEFAULT 0.82,
   color TEXT NOT NULL DEFAULT '#ffffff',
   size INTEGER NOT NULL DEFAULT 22,
+  scale REAL NOT NULL DEFAULT 0.4,
   created_at INTEGER NOT NULL,
   owner TEXT,
   updated_at INTEGER NOT NULL DEFAULT 0,
@@ -208,6 +210,10 @@ async function migrate(db: SQLite.SQLiteDatabase) {
   await addColumn(db, 'clips', 'out_ms', 'INTEGER');
   await addColumn(db, 'clips', 'audio_volume', 'REAL NOT NULL DEFAULT 1.0');
   await addColumn(db, 'clips', 'transcript_words', 'TEXT');
+  // overlays: media-overlay columns. Old DBs created before the editor
+  // supported image/video overlays only have the text-overlay columns.
+  await addColumn(db, 'overlays', 'file_uri', 'TEXT');
+  await addColumn(db, 'overlays', 'scale', 'REAL NOT NULL DEFAULT 0.4');
   // projects / collections / inspiration
   for (const t of ['projects', 'collections', 'inspiration']) {
     await addColumn(db, t, 'owner', 'TEXT');

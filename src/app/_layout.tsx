@@ -40,7 +40,10 @@ function Nav() {
       <Stack.Screen name="new-project" />
       <Stack.Screen name="inspiration-add" options={{ presentation: 'modal' }} />
       <Stack.Screen name="project/[id]" />
-      <Stack.Screen name="edit/[projectId]" />
+      <Stack.Screen
+        name="edit/[projectId]"
+        options={{ gestureEnabled: false, fullScreenGestureEnabled: false }}
+      />
       <Stack.Screen name="capture/[projectId]" />
       <Stack.Screen name="player" options={{ presentation: 'modal' }} />
       <Stack.Screen name="prompt" />
