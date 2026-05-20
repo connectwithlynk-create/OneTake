@@ -1,17 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { ScrollView, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import {
-  AppText,
-  Button,
-  EmptyState,
-  Header,
-  IconButton,
-  Loading,
-  Screen,
-} from '@/components/ui';
+import { Chip, EmptyState, IconButton, Loading, MediaPlaceholder, Screen } from '@/components/ui';
 import {
   deleteCollection,
   getCollection,
@@ -20,7 +12,9 @@ import {
   unfiledCount,
 } from '@/lib/repo';
 import { invalidate, useData } from '@/lib/store';
-import { palette, radius, space } from '@/theme';
+import { font, palette } from '@/theme';
+
+const TINTS = ['magenta', 'lime', 'cool', 'gold', 'violet', 'warm'] as const;
 
 export default function CollectionScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -48,69 +42,73 @@ export default function CollectionScreen() {
   }
 
   return (
-    <Screen>
-      <Header
-        title={editing ? '' : col.name}
-        back
-        right={
-          <IconButton
-            name="trash"
-            tone="clear"
-            color={palette.red}
-            onPress={removeCollection}
-          />
-        }
-      />
-
-      {editing ? (
-        <View style={{ flexDirection: 'row', gap: space.sm, marginBottom: space.lg }}>
-          <TextInput
-            value={name}
-            onChangeText={setName}
-            autoFocus
-            placeholder={col.name}
-            placeholderTextColor={palette.textFaint}
-            style={{
-              flex: 1,
-              backgroundColor: palette.surface,
-              borderRadius: radius.md,
-              borderWidth: 1,
-              borderColor: palette.border,
-              color: palette.text,
-              fontSize: 16,
-              fontWeight: '700',
-              padding: space.lg,
-            }}
-          />
-          <IconButton name="checkmark" tone="accent" onPress={saveName} />
-        </View>
-      ) : (
-        <View style={{ flexDirection: 'row', gap: space.sm, marginBottom: space.lg }}>
-          <IconButton
-            name="create"
-            tone="surface"
+    <Screen pad={false}>
+      <View style={s.head}>
+        <IconButton
+          name="chevron-back"
+          tone="surface"
+          size={38}
+          onPress={() => router.back()}
+        />
+        {editing ? (
+          <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <TextInput
+              value={name}
+              onChangeText={setName}
+              autoFocus
+              placeholder={col.name}
+              placeholderTextColor={palette.text3}
+              style={s.titleInput}
+              onSubmitEditing={saveName}
+              returnKeyType="done"
+            />
+          </View>
+        ) : (
+          <Pressable
+            style={s.titleWrap}
             onPress={() => {
               setName(col.name);
               setEditing(true);
             }}
-          />
-          {(unfiled ?? 0) > 0 && (
-            <View style={{ flex: 1 }}>
-              <Button
-                label={`Sort ${unfiled} reels in here`}
-                tone="accent"
-                icon="layers"
-                onPress={() =>
-                  router.push({
-                    pathname: '/swipe/[collectionId]',
-                    params: { collectionId: id },
-                  })
-                }
-              />
-            </View>
-          )}
-        </View>
-      )}
+          >
+            <Text style={s.title} numberOfLines={1}>
+              {col.name}
+            </Text>
+          </Pressable>
+        )}
+        <IconButton
+          name="trash-outline"
+          tone="danger"
+          size={38}
+          onPress={removeCollection}
+        />
+      </View>
+
+      <View style={s.metaRow}>
+        <Chip label={`${items?.length ?? 0} REELS`} mono color={palette.cyan} />
+        <Chip label="STYLE: FAST CUTS" mono color={palette.magenta} />
+      </View>
+
+      {(unfiled ?? 0) > 0 ? (
+        <Pressable
+          style={s.sortCta}
+          onPress={() =>
+            router.push({
+              pathname: '/swipe/[collectionId]',
+              params: { collectionId: id },
+            })
+          }
+        >
+          <View style={s.sortIcon}>
+            <Ionicons name="layers" size={18} color={palette.lime} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={s.sortTitle}>Sort {unfiled} unfiled reels in here</Text>
+            <Text style={s.sortSub}>Swipe right to save, left to discard.</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={14} color={palette.lime} />
+        </Pressable>
+      ) : null}
 
       {!items || items.length === 0 ? (
         <EmptyState
@@ -121,31 +119,20 @@ export default function CollectionScreen() {
       ) : (
         <ScrollView
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: space.xxl * 2 }}
+          contentContainerStyle={{ paddingHorizontal: 18, paddingBottom: 30 }}
         >
-          <View
-            style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.md }}
-          >
-            {items.map((it) => (
-              <View key={it.id} style={{ width: '47%' }}>
-                <View
-                  style={{
-                    height: 150,
-                    borderRadius: radius.lg,
-                    backgroundColor: it.thumb_color,
-                    padding: space.md,
-                    justifyContent: 'flex-end',
-                  }}
-                >
-                  <Ionicons
-                    name="play-circle"
-                    size={26}
-                    color={palette.onBright}
+          <View style={s.grid}>
+            {items.map((it, i) => (
+              <View key={it.id} style={s.gridCell}>
+                <View style={s.gridFrame}>
+                  <MediaPlaceholder
+                    variant={TINTS[i % TINTS.length]}
+                    label={it.note ?? it.source_url}
                   />
+                  <View style={s.playPill}>
+                    <Ionicons name="play" size={9} color="#fff" />
+                  </View>
                 </View>
-                <AppText kind="dim" numberOfLines={1} style={{ marginTop: space.xs }}>
-                  {it.note || it.source_url}
-                </AppText>
               </View>
             ))}
           </View>
@@ -154,3 +141,96 @@ export default function CollectionScreen() {
     </Screen>
   );
 }
+
+const s = StyleSheet.create({
+  head: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  titleWrap: { flex: 1, alignItems: 'center' },
+  title: {
+    fontFamily: font.displayHeavy,
+    fontWeight: '700',
+    fontSize: 17,
+    color: '#fff',
+  },
+  titleInput: {
+    flex: 1,
+    backgroundColor: palette.bg1,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    color: '#fff',
+    fontFamily: font.bodyBold,
+    fontSize: 16,
+    fontWeight: '700',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  metaRow: {
+    paddingHorizontal: 18,
+    paddingBottom: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  sortCta: {
+    marginHorizontal: 18,
+    marginBottom: 16,
+    padding: 14,
+    borderRadius: 16,
+    backgroundColor: `${palette.lime}12`,
+    borderWidth: 1,
+    borderColor: `${palette.lime}55`,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  sortIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    backgroundColor: `${palette.lime}22`,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sortTitle: {
+    fontFamily: font.bodyBold,
+    fontSize: 13.5,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  sortSub: {
+    fontFamily: font.body,
+    fontSize: 11.5,
+    color: palette.text3,
+    marginTop: 1,
+  },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  gridCell: {
+    width: '31.5%',
+    aspectRatio: 9 / 14,
+  },
+  gridFrame: {
+    flex: 1,
+    borderRadius: 12,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
+    position: 'relative',
+  },
+  playPill: {
+    position: 'absolute',
+    bottom: 4,
+    right: 4,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});

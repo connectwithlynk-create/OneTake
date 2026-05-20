@@ -1,24 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback } from 'react';
-import { FlatList, Pressable, StyleSheet, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { AppText, EmptyState, Loading, Screen } from '@/components/ui';
+import { EmptyState, Hero, Loading, Screen, StatusPill } from '@/components/ui';
 import { listProjects } from '@/lib/repo';
 import { invalidate, useData } from '@/lib/store';
-import { palette, radius, space } from '@/theme';
-import type { ProjectStatus } from '@/lib/types';
-
-const STATUS_LABEL: Record<ProjectStatus, string> = {
-  recording: 'Recording',
-  processing: 'Processing',
-  ready: 'Ready',
-};
-const STATUS_COLOR: Record<ProjectStatus, string> = {
-  recording: palette.yellow,
-  processing: palette.blue,
-  ready: palette.purple,
-};
+import { relativeAge } from '@/lib/time';
+import type { Project } from '@/lib/types';
+import { font, palette } from '@/theme';
 
 export default function ProjectsScreen() {
   const router = useRouter();
@@ -31,126 +21,140 @@ export default function ProjectsScreen() {
   );
 
   return (
-    <Screen>
-      <View style={{ paddingTop: space.lg, paddingBottom: space.lg }}>
-        <AppText kind="hero">Projects</AppText>
-        <AppText kind="dim" style={{ marginTop: space.xs }}>
-          Film it. Know instantly. Ship it.
-        </AppText>
-      </View>
+    <Screen pad={false}>
+      <Hero title="Projects" sub="Film it. Know instantly. Ship it." />
 
       <FlatList
-          key="projects-grid-2col"
-          data={projects ?? []}
-          keyExtractor={(p) => p.id}
-          numColumns={2}
-          showsVerticalScrollIndicator={false}
-          columnWrapperStyle={{ gap: space.md }}
-          contentContainerStyle={{
-            gap: space.md,
-            paddingBottom: space.xxl,
-            flexGrow: 1,
-          }}
-          ListEmptyComponent={
-            loading && !projects ? (
-              <Loading />
-            ) : (
-              <EmptyState
-                icon="videocam"
-                title="No projects yet"
-                subtitle="Start a talking-head shoot or write a prompt. Tap New to begin."
-              />
-            )
-          }
-          renderItem={({ item }) => {
-            const color = STATUS_COLOR[item.status];
-            return (
-              <Pressable
-                style={styles.reel}
-                onPress={() =>
-                  router.push({
-                    pathname: '/project/[id]',
-                    params: { id: item.id },
-                  })
-                }
-              >
-                {/* thumbnail band */}
-                <View style={[styles.thumb, { backgroundColor: color }]}>
-                  <View style={styles.thumbScrim} />
-                  <Ionicons
-                    name={item.type === 'prompt' ? 'sparkles' : 'film'}
-                    size={44}
-                    color={palette.onBright}
-                    style={{ opacity: 0.45 }}
-                  />
-                  <View style={styles.statusPill}>
-                    <View style={[styles.dot, { backgroundColor: color }]} />
-                    <AppText kind="caption" style={{ color: '#fff' }}>
-                      {STATUS_LABEL[item.status].toUpperCase()}
-                    </AppText>
-                  </View>
-                  <Ionicons
-                    name="play-circle"
-                    size={26}
-                    color={palette.onBright}
-                    style={styles.play}
-                  />
-                </View>
-                {/* info */}
-                <View style={styles.info}>
-                  <AppText kind="subtitle" numberOfLines={1}>
-                    {item.title}
-                  </AppText>
-                  <AppText kind="dim" numberOfLines={1}>
-                    {item.type === 'prompt' ? 'Prompt' : 'Talking-head'} ·{' '}
-                    {new Date(item.created_at).toLocaleDateString()}
-                  </AppText>
-                </View>
-              </Pressable>
-            );
-          }}
-        />
+        key="projects-grid"
+        data={projects ?? []}
+        keyExtractor={(p) => p.id}
+        numColumns={2}
+        showsVerticalScrollIndicator={false}
+        columnWrapperStyle={{ gap: 12 }}
+        contentContainerStyle={{
+          gap: 12,
+          paddingHorizontal: 18,
+          paddingBottom: 130,
+          flexGrow: 1,
+        }}
+        ListEmptyComponent={
+          loading && !projects ? (
+            <Loading />
+          ) : (
+            <EmptyState
+              icon="videocam"
+              title="No projects yet"
+              subtitle="Start a talking-head shoot or write a prompt. Tap New to begin."
+            />
+          )
+        }
+        renderItem={({ item, index }) => (
+          <ProjectCard
+            item={item}
+            index={index}
+            onPress={() =>
+              router.push({ pathname: '/project/[id]', params: { id: item.id } })
+            }
+          />
+        )}
+      />
     </Screen>
   );
 }
 
-const styles = StyleSheet.create({
-  reel: {
+const TILE_TINT: Record<string, string> = {
+  'lime': palette.lime,
+  'cyan': palette.cyan,
+  'magenta': palette.magenta,
+  'gold': palette.gold,
+  'violet': palette.violet,
+  'coral': palette.coral,
+};
+const TINT_ORDER = ['lime', 'magenta', 'cyan', 'gold', 'violet', 'coral'] as const;
+
+function ProjectCard({
+  item,
+  onPress,
+  index,
+}: {
+  item: Project;
+  onPress: () => void;
+  index: number;
+}) {
+  const tint = TILE_TINT[TINT_ORDER[index % TINT_ORDER.length]];
+  return (
+    <Pressable style={s.card} onPress={onPress}>
+      <View
+        style={[
+          s.thumb,
+          {
+            backgroundColor: `${tint}10`,
+            borderBottomWidth: 1,
+            borderColor: `${tint}22`,
+          },
+        ]}
+      >
+        <View style={s.thumbInner}>
+          <Ionicons
+            name={item.type === 'prompt' ? 'sparkles' : 'film'}
+            size={36}
+            color={`${tint}55`}
+          />
+        </View>
+        <View style={s.statusOverlay}>
+          <StatusPill s={item.status} />
+        </View>
+        <View style={s.play}>
+          <Ionicons name="play" size={11} color="#fff" />
+        </View>
+      </View>
+      <View style={s.info}>
+        <Text style={s.title} numberOfLines={1}>
+          {item.title}
+        </Text>
+        <Text style={s.meta} numberOfLines={1}>
+          {item.type === 'prompt' ? 'Prompt' : 'Talking-head'} ·{' '}
+          {relativeAge(item.created_at)}
+        </Text>
+      </View>
+    </Pressable>
+  );
+}
+
+const s = StyleSheet.create({
+  card: {
     flex: 1,
-    maxWidth: '48%',
+    maxWidth: '48.5%',
     aspectRatio: 9 / 16,
-    borderRadius: radius.lg,
+    borderRadius: 18,
     overflow: 'hidden',
-    backgroundColor: palette.surface,
+    backgroundColor: palette.bg1,
     borderWidth: 1,
-    borderColor: palette.border,
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   thumb: {
+    flex: 1,
+    backgroundColor: palette.bg2,
+    position: 'relative',
+  },
+  thumbInner: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  thumbScrim: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.20)',
-  },
-  statusPill: {
+  statusOverlay: { position: 'absolute', top: 8, left: 8 },
+  play: {
     position: 'absolute',
-    top: space.sm,
-    left: space.sm,
-    flexDirection: 'row',
+    bottom: 8,
+    right: 8,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(0,0,0,0.55)',
     alignItems: 'center',
-    gap: 5,
-    backgroundColor: 'rgba(0,0,0,0.45)',
-    paddingHorizontal: space.sm,
-    paddingVertical: 4,
-    borderRadius: radius.pill,
+    justifyContent: 'center',
   },
-  dot: { width: 7, height: 7, borderRadius: 4 },
-  play: { position: 'absolute', bottom: space.sm, right: space.sm },
-  info: {
-    paddingHorizontal: space.md,
-    paddingVertical: space.md,
-    gap: 2,
-  },
+  info: { paddingHorizontal: 12, paddingVertical: 10 },
+  title: { fontFamily: font.bodyBold, fontWeight: '700', fontSize: 13, color: '#fff' },
+  meta: { fontFamily: font.body, fontSize: 11, color: palette.text3, marginTop: 2 },
 });

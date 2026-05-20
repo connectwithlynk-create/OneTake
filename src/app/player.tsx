@@ -9,26 +9,23 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  Text,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { AppText } from '@/components/ui';
+import { IconButton, MonoLabel, TagPill, VerdictPill } from '@/components/ui';
 import { resolveClipUri } from '@/lib/filestore';
 import { getClip, setClipMirrored, setTag } from '@/lib/repo';
-import { palette, radius, space, tagColor } from '@/theme';
-import type { ClipTag } from '@/lib/types';
+import type { Clip, ClipTag } from '@/lib/types';
+import { font, palette } from '@/theme';
 
 function mmss(s: number): string {
   if (!Number.isFinite(s) || s < 0) s = 0;
   const m = Math.floor(s / 60);
-  return `${m}:${Math.floor(s % 60)
-    .toString()
-    .padStart(2, '0')}`;
+  return `${m}:${Math.floor(s % 60).toString().padStart(2, '0')}`;
 }
 
-/** Custom in-app clip viewer: contained (not fullscreen), no Apple native
- *  controls. Our own play/pause + draggable scrubber. */
 export default function PlayerScreen() {
   const { uri, title, id } = useLocalSearchParams<{
     uri?: string;
@@ -47,39 +44,36 @@ export default function PlayerScreen() {
   const [muted, setMuted] = useState(false);
   const [cur, setCur] = useState(0);
   const [dur, setDur] = useState(0);
-  const [scrub, setScrub] = useState<number | null>(null); // 0..1 while dragging
-  const [transcript, setTranscript] = useState<string | null>(null);
+  const [scrub, setScrub] = useState<number | null>(null);
+  const [clip, setClip] = useState<Clip | null>(null);
   const [showTx, setShowTx] = useState(false);
   const [tag, setTagState] = useState<ClipTag | null>(null);
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'done'>('idle');
   const [mirrored, setMirroredState] = useState(false);
 
-  // Load the clip's transcript + current tag (only when opened with an id).
   useEffect(() => {
     let alive = true;
     if (!id) {
-      setTranscript(null);
+      setClip(null);
       setTagState(null);
       return;
     }
     getClip(id)
       .then((c) => {
         if (!alive) return;
-        setTranscript(c?.transcript?.trim() || null);
+        setClip(c);
         setTagState(c?.tag ?? null);
         setMirroredState((c?.mirrored ?? 0) === 1);
       })
       .catch(() => {
-        if (alive) {
-          setTranscript(null);
-          setTagState(null);
-          setMirroredState(false);
-        }
+        if (alive) setClip(null);
       });
     return () => {
       alive = false;
     };
   }, [id]);
+
+  const transcript = clip?.transcript?.trim() || null;
 
   async function saveToCameraRoll() {
     if (!uri || saveState === 'saving') return;
@@ -101,7 +95,7 @@ export default function PlayerScreen() {
   async function flipMirror() {
     if (!id) return;
     const next = !mirrored;
-    setMirroredState(next); // optimistic
+    setMirroredState(next);
     try {
       await setClipMirrored(id, next ? 1 : 0);
     } catch {
@@ -113,15 +107,14 @@ export default function PlayerScreen() {
     if (!id || !tag) return;
     const next: ClipTag = tag === 'talking' ? 'broll' : 'talking';
     const prev = tag;
-    setTagState(next); // optimistic
+    setTagState(next);
     try {
       await setTag(id, next);
     } catch {
-      setTagState(prev); // revert
+      setTagState(prev);
     }
   }
 
-  // Poll the player's synchronous props (avoids event-name guesswork).
   useEffect(() => {
     const t = setInterval(() => {
       try {
@@ -129,7 +122,7 @@ export default function PlayerScreen() {
         setCur(player.currentTime ?? 0);
         setDur(player.duration ?? 0);
       } catch {
-        /* player not ready */
+        /* not ready */
       }
     }, 250);
     return () => clearInterval(t);
@@ -182,68 +175,46 @@ export default function PlayerScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
-      <View style={styles.header}>
-        <Pressable style={styles.iconBtn} onPress={() => router.back()}>
-          <Ionicons name="chevron-down" size={22} color={palette.text} />
-        </Pressable>
-        <AppText kind="subtitle" numberOfLines={1} style={{ flex: 1 }}>
+    <SafeAreaView style={s.root} edges={['top', 'bottom']}>
+      <View style={s.header}>
+        <IconButton name="chevron-down" tone="surface" size={38} onPress={() => router.back()} />
+        <Text style={s.title} numberOfLines={1}>
           {title ?? 'Clip'}
-        </AppText>
-        {tag && (
-          <Pressable
-            style={[styles.tagPill, { borderColor: tagColor[tag] }]}
-            onPress={flipTag}
-            hitSlop={6}
-          >
-            <AppText
-              kind="caption"
-              style={[styles.tagPillText, { color: tagColor[tag] }]}
-            >
-              {tag === 'talking' ? 'TALKING' : 'B-ROLL'}
-            </AppText>
+        </Text>
+        {tag ? (
+          <Pressable onPress={flipTag} hitSlop={6}>
+            <TagPill t={tag} />
           </Pressable>
-        )}
-        <Pressable
-          style={styles.iconBtn}
+        ) : null}
+        <IconButton
+          name="swap-horizontal"
+          tone={mirrored ? 'accent' : 'surface'}
+          size={38}
           onPress={flipMirror}
-          disabled={!id}
-        >
-          <Ionicons
-            name="swap-horizontal"
-            size={20}
-            color={mirrored ? palette.purple : palette.text}
-          />
-        </Pressable>
-        <Pressable
-          style={styles.iconBtn}
+        />
+        <IconButton
+          name={
+            saveState === 'done'
+              ? 'checkmark'
+              : saveState === 'saving'
+              ? 'hourglass-outline'
+              : 'download-outline'
+          }
+          tone={saveState === 'done' ? 'accent' : 'surface'}
+          size={38}
           onPress={saveToCameraRoll}
-          disabled={!uri || saveState === 'saving'}
-        >
-          <Ionicons
-            name={
-              saveState === 'done'
-                ? 'checkmark'
-                : saveState === 'saving'
-                ? 'hourglass-outline'
-                : 'download-outline'
-            }
-            size={20}
-            color={saveState === 'done' ? palette.yellow : palette.text}
-          />
-        </Pressable>
-        <Pressable style={styles.iconBtn} onPress={toggleMute}>
-          <Ionicons
-            name={muted ? 'volume-mute' : 'volume-high'}
-            size={20}
-            color={palette.text}
-          />
-        </Pressable>
+        />
+        <IconButton
+          name={muted ? 'volume-mute' : 'volume-high'}
+          tone="surface"
+          size={38}
+          onPress={toggleMute}
+        />
       </View>
 
-      <Pressable style={styles.stage} onPress={toggle}>
+      <Pressable style={s.stage} onPress={toggle}>
         {uri ? (
-          <View style={styles.frame}>
+          <View style={s.frame}>
             <VideoView
               player={player}
               style={[
@@ -253,124 +224,127 @@ export default function PlayerScreen() {
               nativeControls={false}
               contentFit="contain"
             />
+
+            {clip ? (
+              <View style={s.verdictOverlay}>
+                <VerdictPill v={clip.verdict} />
+              </View>
+            ) : null}
+
             {!playing && (
-              <View style={styles.playOverlay} pointerEvents="none">
-                <View style={styles.bigPlay}>
-                  <Ionicons name="play" size={30} color={palette.onBright} />
+              <View style={s.playOverlay} pointerEvents="none">
+                <View style={s.bigPlay}>
+                  <Ionicons name="play" size={22} color={palette.onBright} />
                 </View>
               </View>
             )}
 
-            {playing && transcript && (
+            {transcript ? (
               <Pressable
-                style={styles.txBtn}
+                style={s.txBtn}
                 onPress={() => setShowTx((v) => !v)}
                 hitSlop={8}
               >
                 <Ionicons
-                  name={showTx ? 'close' : 'document-text'}
-                  size={16}
+                  name={showTx ? 'close' : 'document-text-outline'}
+                  size={14}
                   color="#fff"
                 />
               </Pressable>
-            )}
+            ) : null}
 
-            {playing && transcript && showTx && (
-              <View style={styles.txPanel}>
-                <AppText kind="caption" style={styles.txLabel}>
-                  TRANSCRIPT
-                </AppText>
-                <ScrollView
-                  style={{ flex: 1 }}
-                  showsVerticalScrollIndicator={false}
-                >
-                  <AppText kind="body" style={styles.txText}>
-                    {transcript}
-                  </AppText>
+            {transcript && showTx ? (
+              <View style={s.txPanel}>
+                <MonoLabel style={{ marginBottom: 8 }}>TRANSCRIPT</MonoLabel>
+                <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+                  <Text style={s.txText}>{transcript}</Text>
                 </ScrollView>
               </View>
-            )}
+            ) : null}
           </View>
         ) : (
-          <AppText kind="dim">Clip unavailable.</AppText>
+          <Text style={{ color: palette.text2, fontFamily: font.body }}>
+            Clip unavailable.
+          </Text>
         )}
       </Pressable>
 
-      <View style={styles.controls}>
-        <Pressable style={styles.playBtn} onPress={toggle}>
+      <View style={s.controls}>
+        <Pressable style={s.playBtn} onPress={toggle}>
           <Ionicons
             name={playing ? 'pause' : 'play'}
-            size={22}
+            size={16}
             color={palette.onBright}
           />
         </Pressable>
 
         <View style={{ flex: 1, gap: 6 }}>
           <View
-            style={styles.track}
+            style={s.track}
             onLayout={(e: LayoutChangeEvent) => {
               trackW.current = e.nativeEvent.layout.width;
             }}
             {...pan.panHandlers}
           >
-            <View style={styles.trackBg} />
-            <View style={[styles.fill, { width: `${progress * 100}%` }]} />
-            <View style={[styles.thumb, { left: `${progress * 100}%` }]} />
+            <View style={s.trackBg} />
+            <View style={[s.fill, { width: `${progress * 100}%` }]} />
+            <View style={[s.thumbDot, { left: `${progress * 100}%` }]} />
           </View>
-          <View style={styles.times}>
-            <AppText kind="caption" style={{ color: palette.textDim }}>
-              {mmss(scrub != null ? scrub * dur : cur)}
-            </AppText>
-            <AppText kind="caption" style={{ color: palette.textDim }}>
-              {mmss(dur)}
-            </AppText>
+          <View style={s.times}>
+            <Text style={s.timeText}>{mmss(scrub != null ? scrub * dur : cur)}</Text>
+            <Text style={s.timeText}>{mmss(dur)}</Text>
           </View>
         </View>
       </View>
+
+      {transcript ? (
+        <View style={s.txCard}>
+          <MonoLabel style={{ marginBottom: 8 }}>
+            TRANSCRIPT · WORD-LEVEL
+          </MonoLabel>
+          <ScrollView style={{ maxHeight: 130 }}>
+            <Text style={s.txCardBody}>{transcript}</Text>
+          </ScrollView>
+        </View>
+      ) : null}
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
+const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: palette.bg },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: space.md,
-    paddingHorizontal: space.lg,
-    paddingVertical: space.md,
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
   },
-  iconBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: palette.surfaceHi,
-    alignItems: 'center',
-    justifyContent: 'center',
+  title: {
+    flex: 1,
+    fontFamily: font.displayHeavy,
+    fontWeight: '700',
+    fontSize: 16,
+    color: '#fff',
   },
-  tagPill: {
-    paddingHorizontal: space.md,
-    paddingVertical: 6,
-    borderRadius: 999,
-    borderWidth: 1.5,
-  },
-  tagPillText: { fontSize: 11, fontWeight: '800', letterSpacing: 0.4 },
   stage: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: space.lg,
+    paddingHorizontal: 18,
+    paddingTop: 12,
   },
   frame: {
     width: '100%',
     aspectRatio: 9 / 16,
     maxHeight: '100%',
-    borderRadius: radius.xl,
+    borderRadius: 24,
     overflow: 'hidden',
     backgroundColor: '#000',
     borderWidth: 1,
-    borderColor: palette.border,
+    borderColor: 'rgba(255,255,255,0.08)',
   },
+  verdictOverlay: { position: 'absolute', top: 14, right: 14 },
   playOverlay: {
     ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
@@ -380,14 +354,17 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: palette.purple,
+    backgroundColor: palette.lime,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: palette.lime,
+    shadowOpacity: 0.6,
+    shadowRadius: 24,
   },
   txBtn: {
     position: 'absolute',
-    bottom: 10,
-    left: 10,
+    bottom: 14,
+    left: 14,
     width: 34,
     height: 34,
     borderRadius: 17,
@@ -402,60 +379,72 @@ const styles = StyleSheet.create({
     bottom: 0,
     maxHeight: '55%',
     backgroundColor: 'rgba(0,0,0,0.82)',
-    paddingHorizontal: space.lg,
-    paddingTop: space.md,
-    paddingBottom: space.lg,
-    borderTopLeftRadius: radius.lg,
-    borderTopRightRadius: radius.lg,
+    paddingHorizontal: 18,
+    paddingTop: 14,
+    paddingBottom: 18,
+    borderTopLeftRadius: 22,
+    borderTopRightRadius: 22,
   },
-  txLabel: {
-    color: palette.textDim,
-    letterSpacing: 1,
-    marginBottom: space.sm,
-  },
-  txText: { color: '#fff', lineHeight: 22 },
+  txText: { color: '#fff', fontFamily: font.body, fontSize: 14, lineHeight: 22 },
   controls: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: space.lg,
-    paddingHorizontal: space.xl,
-    paddingTop: space.lg,
-    paddingBottom: space.md,
+    gap: 14,
+    paddingHorizontal: 18,
+    paddingTop: 20,
+    paddingBottom: 12,
   },
   playBtn: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: palette.purple,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: palette.lime,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: palette.lime,
+    shadowOpacity: 0.5,
+    shadowRadius: 16,
   },
-  track: {
-    height: 24,
-    justifyContent: 'center',
-  },
+  track: { height: 24, justifyContent: 'center' },
   trackBg: {
     position: 'absolute',
     left: 0,
     right: 0,
     height: 5,
     borderRadius: 3,
-    backgroundColor: palette.surfaceHi,
+    backgroundColor: 'rgba(255,255,255,0.10)',
   },
   fill: {
     position: 'absolute',
     left: 0,
     height: 5,
     borderRadius: 3,
-    backgroundColor: palette.purple,
+    backgroundColor: palette.lime,
   },
-  thumb: {
+  thumbDot: {
     position: 'absolute',
-    width: 14,
-    height: 14,
+    width: 13,
+    height: 13,
     borderRadius: 7,
-    marginLeft: -7,
-    backgroundColor: palette.text,
+    marginLeft: -6.5,
+    top: -4,
+    backgroundColor: '#fff',
   },
   times: { flexDirection: 'row', justifyContent: 'space-between' },
+  timeText: { fontFamily: font.mono, fontSize: 11, color: palette.text2 },
+  txCard: {
+    marginHorizontal: 18,
+    marginBottom: 18,
+    padding: 16,
+    backgroundColor: palette.bg1,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
+  },
+  txCardBody: {
+    fontFamily: font.body,
+    fontSize: 14,
+    color: palette.text2,
+    lineHeight: 22,
+  },
 });

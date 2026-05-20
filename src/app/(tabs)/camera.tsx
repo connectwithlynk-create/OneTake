@@ -17,12 +17,13 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  Text,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ClipVideo } from '@/components/clip-video';
-import { AppText, Button } from '@/components/ui';
+import { Button, MonoLabel } from '@/components/ui';
 import { persistClip } from '@/lib/filestore';
 import { id } from '@/lib/id';
 import { rateClip } from '@/lib/rating';
@@ -31,7 +32,7 @@ import { classifySpeech } from '@/lib/speech';
 import { invalidate, useData } from '@/lib/store';
 import { relativeAge } from '@/lib/time';
 import { maybeTranscribe } from '@/lib/transcribe';
-import { palette, radius, space } from '@/theme';
+import { font, palette } from '@/theme';
 
 interface Pending {
   tempUri: string;
@@ -40,10 +41,6 @@ interface Pending {
   facing: 'front' | 'back';
 }
 
-/**
- * Snapchat-style opening view: full-screen camera, big record button,
- * post-record sheet to send the take into an existing or new project.
- */
 export default function CameraTab() {
   const router = useRouter();
   const cam = useRef<CameraView>(null);
@@ -73,21 +70,17 @@ export default function CameraTab() {
   if (!ready) {
     return (
       <SafeAreaView style={[styles.black, styles.center]}>
-        <Ionicons name="videocam-off" size={48} color={palette.purple} />
-        <AppText
-          kind="subtitle"
-          style={{ marginTop: space.lg, textAlign: 'center' }}
-        >
-          Camera and mic access needed
-        </AppText>
-        <AppText
-          kind="dim"
-          style={{ textAlign: 'center', marginVertical: space.md }}
-        >
+        <View style={styles.permIcon}>
+          <Ionicons name="videocam-off" size={32} color={palette.lime} />
+        </View>
+        <Text style={styles.permTitle}>Camera and mic access needed</Text>
+        <Text style={styles.permBody}>
           OneTake opens to the camera. Grant access to shoot.
-        </AppText>
+        </Text>
         <Button
           label="Grant access"
+          icon="checkmark"
+          full
           onPress={async () => {
             if (!camPerm.granted) await reqCam();
             if (!micPerm.granted) await reqMic();
@@ -219,22 +212,35 @@ export default function CameraTab() {
           style={styles.round}
           onPress={() => setFacing((f) => (f === 'front' ? 'back' : 'front'))}
         >
-          <Ionicons name="camera-reverse" size={22} color="#fff" />
+          <Ionicons name="camera-reverse" size={20} color="#fff" />
         </Pressable>
       </SafeAreaView>
 
+      {!pending && !recording && (
+        <View style={styles.hintWrap} pointerEvents="none">
+          <View style={styles.hint}>
+            <Text style={styles.hintText}>HOLD TO RECORD · TAP FOR FILE</Text>
+          </View>
+        </View>
+      )}
+
       {!pending && (
         <View style={styles.recWrap}>
-          <Pressable onPress={recording ? stop : record} style={styles.recOuter}>
+          <View style={{ width: 44 }} />
+          <Pressable
+            onPress={recording ? stop : record}
+            style={[styles.recOuter, recording && styles.recOuterActive]}
+          >
             <View
               style={[
                 styles.recInner,
-                recording
-                  ? { borderRadius: 8, width: 32, height: 32 }
-                  : { borderRadius: 28, width: 56, height: 56 },
+                recording && { borderRadius: 6, width: 28, height: 28 },
               ]}
             />
           </Pressable>
+          <View style={styles.counter}>
+            <Text style={styles.counterText}>3</Text>
+          </View>
         </View>
       )}
 
@@ -242,47 +248,45 @@ export default function CameraTab() {
         <View style={styles.sheet}>
           <SafeAreaView edges={['top', 'bottom']} style={{ flex: 1 }}>
             <View style={styles.sheetHead}>
-              <Pressable style={styles.round} onPress={discard} hitSlop={6}>
-                <Ionicons name="close" size={22} color="#fff" />
+              <Pressable style={styles.headBtn} onPress={discard} hitSlop={6}>
+                <Ionicons name="close" size={16} color="#fff" />
               </Pressable>
-              <AppText kind="subtitle" style={{ color: '#fff' }}>
-                Save to
-              </AppText>
-              <View style={{ width: 44 }} />
+              <Text style={styles.sheetTitle}>Save to</Text>
+              <View style={{ width: 40 }} />
             </View>
 
             <View style={styles.previewWrap}>
-              <ClipVideo
-                uri={pending.tempUri}
-                autoplay
-                style={styles.preview}
-              />
-            </View>
-
-            <View style={styles.actionsRow}>
-              <View style={{ flex: 1 }}>
-                <Button
-                  label="New project"
-                  icon="add"
-                  tone="accent"
-                  disabled={saving}
-                  onPress={saveToNew}
+              <View style={styles.previewFrame}>
+                <ClipVideo
+                  uri={pending.tempUri}
+                  autoplay
+                  style={styles.preview}
                 />
               </View>
             </View>
 
-            <AppText kind="caption" style={styles.listLabel}>
-              EXISTING PROJECTS
-            </AppText>
+            <View style={styles.actionsRow}>
+              <Button
+                label="New project"
+                icon="add"
+                full
+                disabled={saving}
+                onPress={saveToNew}
+              />
+            </View>
+
+            <View style={{ paddingHorizontal: 18, paddingBottom: 10 }}>
+              <MonoLabel>EXISTING PROJECTS</MonoLabel>
+            </View>
 
             {projects && projects.length > 0 ? (
               <FlatList
                 data={projects}
                 keyExtractor={(p) => p.id}
                 contentContainerStyle={{
-                  gap: space.sm,
-                  paddingHorizontal: space.lg,
-                  paddingBottom: space.lg,
+                  gap: 8,
+                  paddingHorizontal: 14,
+                  paddingBottom: 16,
                 }}
                 renderItem={({ item }) => (
                   <Pressable
@@ -291,30 +295,28 @@ export default function CameraTab() {
                     disabled={saving}
                   >
                     <View style={{ flex: 1 }}>
-                      <AppText kind="body" numberOfLines={1}>
+                      <Text style={styles.rowTitle} numberOfLines={1}>
                         {item.title}
-                      </AppText>
-                      <AppText kind="caption" style={{ color: palette.textFaint }}>
+                      </Text>
+                      <Text style={styles.rowMeta}>
                         {item.type === 'prompt' ? 'Prompt' : 'Talking-head'} ·{' '}
                         {relativeAge(item.created_at)}
-                      </AppText>
+                      </Text>
                     </View>
                     <Ionicons
                       name="arrow-forward"
-                      size={20}
-                      color={palette.purple}
+                      size={18}
+                      color={palette.lime}
                     />
                   </Pressable>
                 )}
               />
             ) : (
-              <ScrollView
-                contentContainerStyle={{ padding: space.lg, alignItems: 'center' }}
-              >
-                <AppText kind="dim" style={{ textAlign: 'center' }}>
-                  No projects yet. Tap “New project” above to save this clip
+              <ScrollView contentContainerStyle={{ padding: 20, alignItems: 'center' }}>
+                <Text style={styles.empty}>
+                  No projects yet. Tap &quot;New project&quot; above to save this clip
                   into a fresh one.
-                </AppText>
+                </Text>
               </ScrollView>
             )}
           </SafeAreaView>
@@ -327,80 +329,173 @@ export default function CameraTab() {
 const styles = StyleSheet.create({
   black: { flex: 1, backgroundColor: '#000' },
   center: {
+    flex: 1,
+    backgroundColor: palette.bg,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: space.xl,
+    paddingHorizontal: 24,
+    gap: 12,
+  },
+  permIcon: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    backgroundColor: `${palette.lime}22`,
+    borderWidth: 1,
+    borderColor: `${palette.lime}55`,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  permTitle: {
+    fontFamily: font.displayHeavy,
+    fontSize: 22,
+    color: '#fff',
+    textAlign: 'center',
+    letterSpacing: -0.4,
+  },
+  permBody: {
+    fontFamily: font.body,
+    fontSize: 14,
+    color: palette.text2,
+    textAlign: 'center',
+    marginBottom: 16,
   },
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: space.lg,
-    paddingTop: space.sm,
+    paddingHorizontal: 18,
+    paddingTop: 14,
   },
   round: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: 'rgba(0,0,0,0.45)',
+    backgroundColor: 'rgba(8,8,15,0.55)',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  hintWrap: {
+    position: 'absolute',
+    top: '46%',
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+  },
+  hint: {
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 999,
+    backgroundColor: 'rgba(8,8,15,0.6)',
+    borderWidth: 1,
+    borderColor: `${palette.lime}55`,
+  },
+  hintText: {
+    color: palette.lime,
+    fontFamily: font.monoBold,
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 1,
   },
   recWrap: {
     position: 'absolute',
     left: 0,
     right: 0,
-    bottom: space.lg,
+    bottom: 30,
+    paddingHorizontal: 38,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
   },
   recOuter: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 84,
+    height: 84,
+    borderRadius: 42,
+    backgroundColor: palette.lime,
+    alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 5,
-    borderColor: '#fff',
+    borderColor: 'rgba(8,8,15,0.6)',
+    shadowColor: palette.lime,
+    shadowOpacity: 0.7,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 16,
+  },
+  recOuterActive: {
+    backgroundColor: palette.coral,
+    shadowColor: palette.coral,
+  },
+  recInner: {
+    width: 28,
+    height: 28,
+    borderRadius: 7,
+    backgroundColor: palette.onBright,
+  },
+  counter: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: 'rgba(8,8,15,0.55)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  recInner: { backgroundColor: palette.red },
+  counterText: {
+    color: '#fff',
+    fontFamily: font.displayHeavy,
+    fontWeight: '800',
+    fontSize: 12,
+  },
   sheet: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(8,6,20,0.96)',
+    backgroundColor: 'rgba(8,6,20,0.97)',
   },
   sheetHead: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: space.lg,
-    paddingVertical: space.md,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
   },
-  previewWrap: { alignItems: 'center', paddingHorizontal: space.xl },
-  preview: {
-    width: '52%',
+  headBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sheetTitle: {
+    color: '#fff',
+    fontFamily: font.displayHeavy,
+    fontWeight: '700',
+    fontSize: 18,
+  },
+  previewWrap: { alignItems: 'center', paddingVertical: 16 },
+  previewFrame: {
+    width: '46%',
     aspectRatio: 9 / 16,
-    borderRadius: radius.xl,
+    borderRadius: 22,
     overflow: 'hidden',
     backgroundColor: '#111',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
   },
-  actionsRow: {
-    flexDirection: 'row',
-    paddingHorizontal: space.lg,
-    paddingTop: space.lg,
-  },
-  listLabel: {
-    paddingHorizontal: space.lg,
-    paddingTop: space.lg,
-    paddingBottom: space.sm,
-    color: palette.textFaint,
-  },
+  preview: { width: '100%', height: '100%' },
+  actionsRow: { paddingHorizontal: 18, paddingTop: 6, paddingBottom: 18 },
   projectRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: space.md,
-    backgroundColor: palette.surface,
-    borderRadius: radius.md,
+    gap: 12,
+    backgroundColor: palette.bg1,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: palette.border,
-    padding: space.md,
+    borderColor: 'rgba(255,255,255,0.06)',
+    paddingVertical: 12,
+    paddingHorizontal: 14,
   },
+  rowTitle: { color: '#fff', fontFamily: font.bodyBold, fontSize: 14, fontWeight: '600' },
+  rowMeta: { color: palette.text3, fontFamily: font.body, fontSize: 11, marginTop: 2 },
+  empty: { color: palette.text2, fontFamily: font.body, textAlign: 'center' },
 });

@@ -54,7 +54,7 @@ import {
 } from '@/lib/repo';
 import { invalidate, useData } from '@/lib/store';
 import { maybeTranscribe } from '@/lib/transcribe';
-import { palette, radius, space } from '@/theme';
+import { font, palette, radius, space } from '@/theme';
 import type { Clip, Overlay, WordTiming } from '@/lib/types';
 
 // === Timeline geometry =====================================================
@@ -2025,6 +2025,28 @@ function OverlaySizePanel({
   );
 }
 
+// Snap-to-align targets for overlay drag. Normalized 0..1 positions —
+// center and rule-of-thirds along each axis. Pinch-scale uses a single
+// fit-to-width latch at 1.0 for media overlays (no equivalent for text
+// since font size is a unitless preference).
+const ALIGN_TARGETS_POS = [0.5, 1 / 3, 2 / 3];
+const ALIGN_THRESHOLD_POS = 0.022; // ~2.2% of preview width
+const ALIGN_SCALE_TARGETS_MEDIA = [0.5, 1];
+const ALIGN_SCALE_THRESHOLD_MEDIA = 0.04;
+
+function snapTo(
+  v: number,
+  targets: number[],
+  threshold: number
+): { value: number; idx: number | null } {
+  for (let i = 0; i < targets.length; i++) {
+    if (Math.abs(v - targets[i]) < threshold) {
+      return { value: targets[i], idx: i };
+    }
+  }
+  return { value: v, idx: null };
+}
+
 function DraggableOverlay({
   overlay,
   selected,
@@ -2065,6 +2087,12 @@ function DraggableOverlay({
     setValue(propValue);
   }, [propValue]);
 
+  // Which align target is currently latched (null = none). Drives the on-
+  // canvas guide lines so the user sees exactly what they snapped to.
+  const [snapX, setSnapX] = useState<number | null>(null);
+  const [snapY, setSnapY] = useState<number | null>(null);
+  const [snapScale, setSnapScale] = useState<number | null>(null);
+
   // Snapshot of pos/value taken at gesture start so each pan/pinch update is
   // applied against a stable origin (not the prior frame).
   const panBase = useRef({ x: overlay.x, y: overlay.y });
@@ -2083,12 +2111,28 @@ function DraggableOverlay({
         .onUpdate((g) => {
           const { w, h } = layout.current;
           if (w <= 0 || h <= 0) return;
-          const x = clamp(panBase.current.x + g.translationX / w, 0.02, 0.98);
-          const y = clamp(panBase.current.y + g.translationY / h, 0.02, 0.98);
-          setPos({ x, y });
+          const rawX = clamp(
+            panBase.current.x + g.translationX / w,
+            0.02,
+            0.98
+          );
+          const rawY = clamp(
+            panBase.current.y + g.translationY / h,
+            0.02,
+            0.98
+          );
+          const sx = snapTo(rawX, ALIGN_TARGETS_POS, ALIGN_THRESHOLD_POS);
+          const sy = snapTo(rawY, ALIGN_TARGETS_POS, ALIGN_THRESHOLD_POS);
+          setPos({ x: sx.value, y: sy.value });
+          setSnapX(sx.idx);
+          setSnapY(sy.idx);
         })
         .onEnd(() => {
           onMove(posRef.current.x, posRef.current.y);
+        })
+        .onFinalize(() => {
+          setSnapX(null);
+          setSnapY(null);
         })
         .runOnJS(true),
     [onMove, onSelect]
@@ -2104,24 +2148,43 @@ function DraggableOverlay({
           onSelect();
         })
         .onUpdate((g) => {
-          const next = clamp(
+          const raw = clamp(
             pinchBase.current * g.scale,
             minValue,
             maxValue
           );
-          setValue(next);
+          if (isMedia) {
+            const s = snapTo(
+              raw,
+              ALIGN_SCALE_TARGETS_MEDIA,
+              ALIGN_SCALE_THRESHOLD_MEDIA
+            );
+            setValue(s.value);
+            setSnapScale(s.idx);
+          } else {
+            setValue(raw);
+          }
         })
         .onEnd(() => {
           onResize(valueRef.current);
         })
+        .onFinalize(() => {
+          setSnapScale(null);
+        })
         .runOnJS(true),
-    [minValue, maxValue, onResize, onSelect]
+    [minValue, maxValue, onResize, onSelect, isMedia]
   );
 
   const composedGesture = useMemo(
     () => Gesture.Simultaneous(panGesture, pinchGesture),
     [panGesture, pinchGesture]
   );
+
+  // Show guides only while a gesture is actively latched to a target. The
+  // pinch-scale latch surfaces as a brief flash on the overlay's border
+  // (handled inline via `snapScale` styling below).
+  const guideX = snapX !== null ? ALIGN_TARGETS_POS[snapX] : null;
+  const guideY = snapY !== null ? ALIGN_TARGETS_POS[snapY] : null;
 
   return (
     <View
@@ -2134,6 +2197,18 @@ function DraggableOverlay({
       }}
       pointerEvents="box-none"
     >
+      {guideX !== null ? (
+        <View
+          pointerEvents="none"
+          style={[styles.alignGuideV, { left: `${guideX * 100}%` }]}
+        />
+      ) : null}
+      {guideY !== null ? (
+        <View
+          pointerEvents="none"
+          style={[styles.alignGuideH, { top: `${guideY * 100}%` }]}
+        />
+      ) : null}
       <GestureDetector gesture={composedGesture}>
         <View
           style={[
@@ -2144,6 +2219,7 @@ function DraggableOverlay({
             isMedia && { width: `${Math.max(0.1, value) * 100}%` },
             { left: `${pos.x * 100}%`, top: `${pos.y * 100}%` },
             selected && styles.overlaySelected,
+            snapScale !== null && styles.overlayScaleSnapped,
           ]}
         >
           {isMedia && overlay.file_uri ? (
@@ -2241,26 +2317,41 @@ const styles = StyleSheet.create({
   },
   titleText: {
     color: palette.text,
-    fontSize: 16,
-    fontWeight: '800',
+    fontFamily: font.bodyBold,
+    fontSize: 12.5,
+    fontWeight: '700',
     maxWidth: 160,
   },
   qualityLbl: {
     color: palette.text,
-    fontSize: 13,
-    fontWeight: '800',
+    fontFamily: font.monoBold,
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.3,
     marginLeft: 'auto',
   },
   nextBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: palette.yellow,
+    backgroundColor: palette.lime,
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: palette.lime,
+    shadowColor: palette.lime,
+    shadowOpacity: 0.6,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 6 },
   },
-  nextText: { color: palette.onBright, fontWeight: '900', fontSize: 14 },
+  nextText: {
+    color: palette.onBright,
+    fontFamily: font.displayHeavy,
+    fontWeight: '800',
+    fontSize: 12.5,
+    letterSpacing: -0.2,
+  },
 
   // Preview
   previewWrap: {
@@ -2275,8 +2366,12 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     overflow: 'hidden',
     backgroundColor: '#000',
-    borderWidth: 2,
-    borderColor: palette.yellow,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.10)',
+    shadowColor: '#000',
+    shadowOpacity: 0.5,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 12 },
   },
   previewChevron: {
     position: 'absolute',
@@ -2296,12 +2391,14 @@ const styles = StyleSheet.create({
   },
   subText: {
     color: '#fff',
-    fontSize: 14,
-    fontWeight: '900',
+    fontFamily: font.displayHeavy,
+    fontSize: 15,
+    fontWeight: '800',
+    letterSpacing: -0.2,
     textAlign: 'center',
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    backgroundColor: 'rgba(0,0,0,0.65)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     borderRadius: 6,
     overflow: 'hidden',
   },
@@ -2318,9 +2415,13 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: palette.surface,
+    backgroundColor: palette.lime,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: palette.lime,
+    shadowOpacity: 0.6,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 0 },
   },
   iconCircle: {
     width: 32,
@@ -2332,14 +2433,16 @@ const styles = StyleSheet.create({
   timeStack: { flex: 1, alignItems: 'center' },
   timeNow: {
     color: palette.text,
-    fontSize: 14,
-    fontWeight: '800',
+    fontFamily: font.monoBold,
+    fontSize: 13,
+    fontWeight: '700',
     fontVariant: ['tabular-nums'],
   },
   timeTotal: {
-    color: palette.textFaint,
-    fontSize: 12,
-    fontWeight: '700',
+    color: palette.text3,
+    fontFamily: font.mono,
+    fontSize: 11,
+    fontWeight: '500',
     fontVariant: ['tabular-nums'],
     marginTop: -2,
   },
@@ -2362,9 +2465,11 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   rulerLabel: {
-    color: palette.textFaint,
-    fontSize: 10,
-    fontWeight: '700',
+    color: palette.text3,
+    fontFamily: font.mono,
+    fontSize: 9,
+    fontWeight: '500',
+    letterSpacing: 0.3,
     marginLeft: 4,
   },
 
@@ -2375,40 +2480,56 @@ const styles = StyleSheet.create({
     right: 0,
   },
 
-  // Subtitle chips
+  // Subtitle chips (cyan track)
   subChip: {
     position: 'absolute',
     top: 4,
     height: 22,
-    borderRadius: 6,
-    backgroundColor: palette.blue,
+    borderRadius: 4,
+    backgroundColor: `${palette.cyan}1a`,
+    borderWidth: 1,
+    borderColor: `${palette.cyan}55`,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 6,
   },
-  subChipText: { color: palette.onBright, fontSize: 11, fontWeight: '800' },
+  subChipText: {
+    color: palette.cyan,
+    fontFamily: font.bodyBold,
+    fontSize: 9.5,
+    fontWeight: '700',
+  },
 
-  // Overlay chips
+  // Overlay chips (magenta track)
   overlayChip: {
     position: 'absolute',
     top: 4,
     height: 22,
-    borderRadius: 6,
-    backgroundColor: palette.purple,
+    borderRadius: 4,
+    backgroundColor: `${palette.magenta}22`,
+    borderWidth: 1,
+    borderColor: `${palette.magenta}88`,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 4,
     paddingHorizontal: 6,
   },
-  // Media overlays get a distinct color so users can tell them apart from
-  // text overlays at a glance.
-  overlayChipMedia: { backgroundColor: palette.blue },
+  // Media overlays get a gold tint so users can tell them apart from text overlays.
+  overlayChipMedia: {
+    backgroundColor: `${palette.gold}22`,
+    borderColor: `${palette.gold}88`,
+  },
   overlayChipSelected: {
     borderWidth: 2,
     borderColor: palette.yellow,
   },
-  overlayChipText: { color: palette.onBright, fontSize: 11, fontWeight: '800' },
+  overlayChipText: {
+    color: palette.magenta,
+    fontFamily: font.bodyBold,
+    fontSize: 9.5,
+    fontWeight: '800',
+  },
   // Trim handles that appear on the selected overlay chip's edges. Slightly
   // overhanging so they're easier to grab on a 22px chip.
   overlayTrim: {
@@ -2446,7 +2567,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: palette.border,
   },
-  cellSelected: { borderColor: palette.yellow, borderWidth: 2 },
+  cellSelected: {
+    borderColor: palette.lime,
+    borderWidth: 2,
+    shadowColor: palette.lime,
+    shadowOpacity: 0.5,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 0 },
+  },
   cellBadge: {
     position: 'absolute',
     left: 4,
@@ -2456,15 +2584,25 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.6)',
     borderRadius: 4,
   },
-  cellBadgeText: { color: '#fff', fontSize: 10, fontWeight: '800' },
+  cellBadgeText: {
+    color: '#fff',
+    fontFamily: font.monoBold,
+    fontSize: 9.5,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
   trimHandle: {
     position: 'absolute',
     top: 0,
     bottom: 0,
-    width: 16,
-    backgroundColor: palette.yellow,
+    width: 14,
+    backgroundColor: palette.lime,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: palette.lime,
+    shadowOpacity: 0.8,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 0 },
   },
   trimHandleLeft: { left: 0 },
   trimHandleRight: { right: 0 },
@@ -2492,31 +2630,38 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 6,
-    paddingVertical: 10,
-    backgroundColor: '#0B0716',
+    paddingVertical: 8,
+    paddingBottom: 30,
+    backgroundColor: palette.bg0,
     borderTopWidth: 1,
-    borderTopColor: palette.border,
+    borderTopColor: 'rgba(255,255,255,0.06)',
     marginTop: 'auto',
-    marginBottom: 18,
   },
   actionScrollContent: {
     alignItems: 'center',
     paddingHorizontal: 4,
   },
   actionBtn: {
-    minWidth: 64,
-    paddingHorizontal: 6,
-    paddingVertical: 4,
+    minWidth: 54,
+    paddingHorizontal: 4,
+    paddingVertical: 6,
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 3,
   },
-  actionLbl: { fontSize: 10, fontWeight: '700', marginTop: 2 },
+  actionLbl: {
+    fontFamily: font.bodyBold,
+    fontSize: 9.5,
+    fontWeight: '700',
+    letterSpacing: 0.2,
+    marginTop: 2,
+  },
 
   // Bottom inline panels
   bottomPanel: {
-    backgroundColor: '#0B0716',
+    backgroundColor: palette.bg1,
     borderTopWidth: 1,
-    borderTopColor: palette.border,
+    borderTopColor: 'rgba(255,255,255,0.06)',
     paddingHorizontal: space.lg,
     paddingVertical: space.md,
     gap: space.sm,
@@ -2524,32 +2669,44 @@ const styles = StyleSheet.create({
   bottomPanelHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   bottomPanelTitle: {
     color: palette.text,
+    fontFamily: font.displayHeavy,
     fontSize: 14,
-    fontWeight: '800',
+    fontWeight: '700',
     flex: 1,
+    letterSpacing: -0.2,
   },
   bottomPanelValue: {
-    color: palette.textDim,
-    fontSize: 13,
+    color: palette.text2,
+    fontFamily: font.monoBold,
+    fontSize: 12,
     fontWeight: '700',
   },
-  bottomPanelHint: { color: palette.textFaint, fontSize: 11 },
+  bottomPanelHint: {
+    color: palette.text3,
+    fontFamily: font.body,
+    fontSize: 11,
+  },
   speedRow: { flexDirection: 'row', gap: 8 },
   speedChip: {
     flex: 1,
     paddingVertical: 8,
-    borderRadius: 8,
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: palette.border,
+    borderColor: 'rgba(255,255,255,0.10)',
     alignItems: 'center',
-    backgroundColor: palette.surface,
+    backgroundColor: 'rgba(255,255,255,0.04)',
   },
   speedChipActive: {
-    backgroundColor: palette.yellow,
-    borderColor: palette.yellow,
+    backgroundColor: `${palette.lime}22`,
+    borderColor: palette.lime,
   },
-  speedChipText: { color: palette.text, fontSize: 13, fontWeight: '800' },
-  speedChipTextActive: { color: palette.onBright },
+  speedChipText: {
+    color: palette.text2,
+    fontFamily: font.bodyBold,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  speedChipTextActive: { color: palette.lime },
 
   // Sliders
   sliderTrack: { height: 28, justifyContent: 'center' },
@@ -2559,7 +2716,7 @@ const styles = StyleSheet.create({
     right: 0,
     height: 5,
     borderRadius: 3,
-    backgroundColor: palette.surfaceHi,
+    backgroundColor: 'rgba(255,255,255,0.10)',
   },
   sliderFill: {
     position: 'absolute',
@@ -2602,6 +2759,32 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: palette.yellow,
   },
+  // Snap-alignment guides drawn inside the preview frame while a drag is
+  // latched to a center/thirds target. Yellow at full opacity reads clearly
+  // against both video and dark backgrounds.
+  alignGuideV: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    width: 1,
+    marginLeft: -0.5,
+    backgroundColor: palette.yellow,
+    opacity: 0.85,
+  },
+  alignGuideH: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    height: 1,
+    marginTop: -0.5,
+    backgroundColor: palette.yellow,
+    opacity: 0.85,
+  },
+  // Brief border flash while pinch latches to a scale target (e.g. 50%, 100%).
+  overlayScaleSnapped: {
+    borderWidth: 2,
+    borderColor: palette.yellow,
+  },
   overlayDel: {
     position: 'absolute',
     top: -10,
@@ -2632,7 +2815,13 @@ const styles = StyleSheet.create({
     padding: space.lg,
     gap: space.md,
   },
-  modalTitle: { color: palette.text, fontSize: 16, fontWeight: '800' },
+  modalTitle: {
+    color: palette.text,
+    fontFamily: font.displayHeavy,
+    fontSize: 17,
+    fontWeight: '700',
+    letterSpacing: -0.3,
+  },
   modalInput: {
     backgroundColor: palette.bg,
     color: palette.text,
@@ -2651,8 +2840,24 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
     alignItems: 'center',
   },
-  modalBtnGhost: { backgroundColor: palette.surfaceHi },
-  modalBtnGhostText: { color: palette.text, fontWeight: '800' },
-  modalBtnPrimary: { backgroundColor: palette.yellow },
-  modalBtnPrimaryText: { color: palette.onBright, fontWeight: '900' },
+  modalBtnGhost: {
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.16)',
+  },
+  modalBtnGhostText: {
+    color: palette.text,
+    fontFamily: font.displayHeavy,
+    fontWeight: '700',
+  },
+  modalBtnPrimary: {
+    backgroundColor: palette.lime,
+    borderWidth: 1,
+    borderColor: palette.lime,
+  },
+  modalBtnPrimaryText: {
+    color: palette.onBright,
+    fontFamily: font.displayHeavy,
+    fontWeight: '800',
+  },
 });

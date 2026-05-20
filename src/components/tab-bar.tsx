@@ -3,14 +3,13 @@ import { Ionicons } from '@expo/vector-icons';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { palette, radius, space } from '@/theme';
+import { font, palette, radius, space } from '@/theme';
 
-// Clerk hooks only work inside ClerkProvider, which is mounted only when a
-// publishable key is set. Gate the profile element on that.
 const CLERK_ON = !!process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
 function ProfileButton() {
@@ -35,9 +34,14 @@ function ProfileButton() {
       {uri ? (
         <Image source={{ uri }} style={styles.avatar} contentFit="cover" />
       ) : (
-        <View style={[styles.avatar, styles.avatarFallback]}>
+        <LinearGradient
+          colors={[palette.coral, palette.magenta]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.avatar, styles.avatarFallback]}
+        >
           <Text style={styles.avatarText}>{initial}</Text>
-        </View>
+        </LinearGradient>
       )}
     </Pressable>
   );
@@ -45,16 +49,20 @@ function ProfileButton() {
 
 const ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   camera: 'camera',
-  index: 'film',
+  index: 'grid',
   clips: 'videocam',
   analysis: 'stats-chart',
   inspiration: 'sparkles',
 };
 
-/**
- * Custom JS tab bar (not the native iOS UITabBar). A prominent New button
- * sits above the bar; the bar itself is a real styled View.
- */
+const LABELS: Record<string, string> = {
+  camera: 'Camera',
+  index: 'Projects',
+  clips: 'Clips',
+  analysis: 'Analysis',
+  inspiration: 'Inspiration',
+};
+
 export default function TabBar({
   state,
   descriptors,
@@ -64,7 +72,9 @@ export default function TabBar({
   const router = useRouter();
 
   return (
-    <View
+    <LinearGradient
+      colors={['rgba(8,8,15,0)', 'rgba(8,8,15,0.92)', 'rgba(8,8,15,1)']}
+      locations={[0, 0.3, 1]}
       style={[
         styles.wrap,
         { paddingBottom: Math.max(space.md, insets.bottom) },
@@ -80,7 +90,7 @@ export default function TabBar({
           { transform: [{ scale: pressed ? 0.97 : 1 }] },
         ]}
       >
-        <Ionicons name="add" size={22} color={palette.onBright} />
+        <Ionicons name="add" size={16} color={palette.onBright} />
         <Text style={styles.newLabel}>New project</Text>
       </Pressable>
 
@@ -88,9 +98,8 @@ export default function TabBar({
         {state.routes.map((route, i) => {
           const focused = state.index === i;
           const { options } = descriptors[route.key];
-          const label =
-            typeof options.title === 'string' ? options.title : route.name;
-          const tint = focused ? palette.purple : palette.textFaint;
+          const label = LABELS[route.name] ?? (typeof options.title === 'string' ? options.title : route.name);
+          const tint = focused ? palette.lime : palette.text3;
 
           return (
             <Pressable
@@ -108,7 +117,11 @@ export default function TabBar({
                 }
               }}
             >
-              <Ionicons name={ICONS[route.name] ?? 'ellipse'} size={23} color={tint} />
+              <Ionicons
+                name={ICONS[route.name] ?? 'ellipse'}
+                size={22}
+                color={tint}
+              />
               <Text style={[styles.label, { color: tint }]}>{label}</Text>
               {focused && <View style={styles.activeDot} />}
             </Pressable>
@@ -117,50 +130,66 @@ export default function TabBar({
 
         {CLERK_ON && <ProfileButton />}
       </View>
-    </View>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   wrap: {
-    backgroundColor: palette.bg,
-    paddingHorizontal: space.lg,
-    paddingTop: space.sm,
+    paddingHorizontal: 14,
+    paddingTop: 8,
   },
   newBtn: {
+    alignSelf: 'center',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: space.sm,
-    backgroundColor: palette.yellow,
-    paddingVertical: space.md,
+    gap: 6,
+    backgroundColor: palette.lime,
+    paddingVertical: 11,
+    paddingHorizontal: 18,
     borderRadius: radius.pill,
-    marginBottom: space.md,
-    shadowColor: palette.yellow,
-    shadowOpacity: 0.35,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: palette.lime,
+    shadowColor: palette.lime,
+    shadowOpacity: 0.5,
     shadowRadius: 14,
-    shadowOffset: { width: 0, height: 5 },
+    shadowOffset: { width: 0, height: 8 },
     elevation: 8,
   },
-  newLabel: { color: palette.onBright, fontWeight: '900', fontSize: 16 },
+  newLabel: {
+    color: palette.onBright,
+    fontFamily: font.displayHeavy,
+    fontWeight: '800',
+    fontSize: 14,
+    letterSpacing: -0.2,
+  },
   bar: {
     flexDirection: 'row',
-    backgroundColor: palette.surfaceLo,
-    borderRadius: radius.lg,
+    alignItems: 'stretch',
+    backgroundColor: palette.bg1,
+    borderRadius: 18,
     borderWidth: 1,
-    borderColor: palette.border,
-    paddingVertical: space.sm,
+    borderColor: 'rgba(255,255,255,0.06)',
+    padding: 6,
   },
   item: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 3,
-    paddingVertical: space.sm,
+    gap: 2,
+    paddingVertical: 6,
+    position: 'relative',
   },
-  label: { fontSize: 11, fontWeight: '800' },
+  label: {
+    fontSize: 9.5,
+    fontWeight: '700',
+    fontFamily: font.bodyBold,
+    letterSpacing: 0.2,
+  },
   profile: {
-    width: 52,
+    width: 46,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -169,17 +198,24 @@ const styles = StyleSheet.create({
     height: 30,
     borderRadius: 15,
     borderWidth: 1.5,
-    borderColor: palette.purple,
-    backgroundColor: palette.surfaceHi,
+    borderColor: palette.lime,
+    backgroundColor: palette.bg2,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   avatarFallback: { alignItems: 'center', justifyContent: 'center' },
-  avatarText: { color: palette.purple, fontWeight: '900', fontSize: 13 },
+  avatarText: {
+    color: '#fff',
+    fontFamily: font.displayHeavy,
+    fontWeight: '800',
+    fontSize: 12,
+  },
   activeDot: {
     position: 'absolute',
-    bottom: 2,
+    bottom: -2,
     width: 16,
-    height: 3,
+    height: 2,
     borderRadius: 2,
-    backgroundColor: palette.purple,
+    backgroundColor: palette.lime,
   },
 });

@@ -1,10 +1,26 @@
 import { ClerkProvider, useAuth } from '@clerk/expo';
 import { resourceCache } from '@clerk/expo/resource-cache';
 import { tokenCache } from '@clerk/expo/token-cache';
+import {
+  BricolageGrotesque_700Bold,
+  BricolageGrotesque_800ExtraBold,
+  useFonts as useBricolage,
+} from '@expo-google-fonts/bricolage-grotesque';
+import {
+  GeistMono_500Medium,
+  GeistMono_700Bold,
+  useFonts as useGeist,
+} from '@expo-google-fonts/geist-mono';
+import {
+  Outfit_500Medium,
+  Outfit_700Bold,
+  useFonts as useOutfit,
+} from '@expo-google-fonts/outfit';
 import { DarkTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect } from 'react';
+import { View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { gcExpiredClips } from '@/lib/repo';
@@ -89,6 +105,18 @@ export default function RootLayout() {
       })
       .catch(() => {});
   }, []);
+
+  const [bricolage] = useBricolage({
+    BricolageGrotesque_700Bold,
+    BricolageGrotesque_800ExtraBold,
+  });
+  const [outfit] = useOutfit({ Outfit_500Medium, Outfit_700Bold });
+  const [geist] = useGeist({ GeistMono_500Medium, GeistMono_700Bold });
+  const fontsReady = bricolage && outfit && geist;
+
+  if (!fontsReady) {
+    return <View style={{ flex: 1, backgroundColor: palette.bg }} />;
+  }
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

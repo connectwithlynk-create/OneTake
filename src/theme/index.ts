@@ -1,52 +1,80 @@
 /**
- * OneTake theme. Playful, mostly dark, bright accents.
- * Palette intentionally limited to purple (brand), yellow (punch / best),
- * blue (secondary), red (destructive / dud). See PRD section 8 color motif
- * (remapped to the playful palette).
+ * OneTake theme — dark-arcade aesthetic.
+ * Deep navy base with lime (primary/energy), magenta (talking/hype),
+ * cyan (keep/links), gold (rewards/ready), violet (b-roll), coral (dud).
  */
 import { Platform } from 'react-native';
 
 export const palette = {
-  // dark base
-  bg: '#0E0B1A',
-  surface: '#1A1430',
-  surfaceHi: '#241B45',
-  surfaceLo: '#15102A',
-  border: '#322651',
+  // Base — deep navy arcade dark
+  bg: '#08080F',
+  bg0: '#08080F',
+  bg1: '#11111B',
+  bg2: '#1A1A28',
+  bg3: '#232336',
+  surface: '#11111B',
+  surfaceHi: '#1A1A28',
+  surfaceLo: '#08080F',
+  border: 'rgba(255,255,255,0.08)',
+  borderStrong: 'rgba(255,255,255,0.16)',
 
-  // bright accents
-  purple: '#A06CFF',
-  purpleDeep: '#7C4DFF',
-  yellow: '#FFD23F',
-  blue: '#3DA5FF',
-  red: '#FF4D6D',
+  // Accents
+  lime: '#C7F73C',
+  magenta: '#FF3F8B',
+  cyan: '#4EE2EC',
+  gold: '#FFCC2F',
+  violet: '#9B6BFF',
+  coral: '#FF7A4D',
 
-  // text
-  text: '#F4F1FF',
-  textDim: '#A79FC4',
-  textFaint: '#6E6690',
+  // Legacy aliases — old code referred to verdict colors by these names.
+  // Map them so the new palette is applied where the *intent* is right:
+  // - purple/yellow used to mean "primary/perfect" (the brightest) → lime
+  // - blue used to mean "keep" → cyan
+  // - red used to mean "dud/destructive" → coral
+  purple: '#C7F73C',
+  purpleDeep: '#A4D928',
+  yellow: '#C7F73C',
+  blue: '#4EE2EC',
+  red: '#FF7A4D',
 
-  // on-accent text (for buttons on bright fills)
-  onBright: '#1A0B2E',
+  // Text
+  text: '#FFFFFF',
+  text1: '#FFFFFF',
+  text2: 'rgba(255,255,255,0.7)',
+  text3: 'rgba(255,255,255,0.45)',
+  text4: 'rgba(255,255,255,0.25)',
+  textDim: 'rgba(255,255,255,0.7)',
+  textFaint: 'rgba(255,255,255,0.45)',
+
+  // On-accent (dark text on bright fills)
+  onBright: '#08080F',
 } as const;
 
-/** Verdict -> color. perfect = yellow (best), keep = blue, dud = red. */
+/** Verdict -> color. perfect = lime, keep = cyan, dud = coral. */
 export const verdictColor = {
-  perfect: palette.yellow,
-  keep: palette.blue,
-  dud: palette.red,
+  perfect: palette.lime,
+  keep: palette.cyan,
+  dud: palette.coral,
 } as const;
 
+/** Tag -> color. talking = magenta, broll = violet. */
 export const tagColor = {
-  talking: palette.purple,
-  broll: palette.blue,
+  talking: palette.magenta,
+  broll: palette.violet,
+} as const;
+
+/** Status -> color. recording = lime, processing = cyan, ready = gold. */
+export const statusColor = {
+  recording: palette.lime,
+  processing: palette.cyan,
+  ready: palette.gold,
 } as const;
 
 export const radius = {
-  sm: 10,
-  md: 16,
-  lg: 22,
-  xl: 30,
+  sm: 8,
+  md: 14,
+  lg: 18,
+  xl: 22,
   pill: 999,
 } as const;
 
@@ -55,20 +83,75 @@ export const space = {
   sm: 8,
   md: 12,
   lg: 16,
-  xl: 24,
-  xxl: 36,
+  xl: 22,
+  xxl: 32,
 } as const;
 
 export const font = Platform.select({
-  ios: { display: 'ui-rounded', body: 'system-ui', mono: 'ui-monospace' },
-  default: { display: 'sans-serif', body: 'sans-serif', mono: 'monospace' },
+  ios: {
+    display: 'BricolageGrotesque_700Bold',
+    displayHeavy: 'BricolageGrotesque_800ExtraBold',
+    body: 'Outfit_500Medium',
+    bodyBold: 'Outfit_700Bold',
+    mono: 'GeistMono_500Medium',
+    monoBold: 'GeistMono_700Bold',
+  },
+  default: {
+    display: 'BricolageGrotesque_700Bold',
+    displayHeavy: 'BricolageGrotesque_800ExtraBold',
+    body: 'Outfit_500Medium',
+    bodyBold: 'Outfit_700Bold',
+    mono: 'GeistMono_500Medium',
+    monoBold: 'GeistMono_700Bold',
+  },
 })!;
 
 export const type = {
-  hero: { fontSize: 34, fontWeight: '900' as const, color: palette.text },
-  title: { fontSize: 24, fontWeight: '800' as const, color: palette.text },
-  subtitle: { fontSize: 18, fontWeight: '800' as const, color: palette.text },
-  body: { fontSize: 15, fontWeight: '500' as const, color: palette.text },
-  dim: { fontSize: 14, fontWeight: '500' as const, color: palette.textDim },
-  caption: { fontSize: 12, fontWeight: '700' as const, color: palette.textFaint },
+  hero: {
+    fontFamily: font.displayHeavy,
+    fontSize: 34,
+    fontWeight: '800' as const,
+    color: palette.text,
+    letterSpacing: -1,
+  },
+  title: {
+    fontFamily: font.displayHeavy,
+    fontSize: 24,
+    fontWeight: '800' as const,
+    color: palette.text,
+    letterSpacing: -0.6,
+  },
+  subtitle: {
+    fontFamily: font.display,
+    fontSize: 18,
+    fontWeight: '700' as const,
+    color: palette.text,
+    letterSpacing: -0.3,
+  },
+  body: {
+    fontFamily: font.body,
+    fontSize: 14.5,
+    fontWeight: '500' as const,
+    color: palette.text,
+  },
+  dim: {
+    fontFamily: font.body,
+    fontSize: 13.5,
+    fontWeight: '500' as const,
+    color: palette.text2,
+  },
+  caption: {
+    fontFamily: font.mono,
+    fontSize: 10,
+    fontWeight: '700' as const,
+    color: palette.text3,
+    letterSpacing: 1.5,
+  },
+  mono: {
+    fontFamily: font.mono,
+    fontSize: 11,
+    fontWeight: '500' as const,
+    color: palette.text2,
+    letterSpacing: 0.5,
+  },
 } as const;
