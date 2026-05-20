@@ -299,6 +299,10 @@ export default function ManualEditScreen() {
   // (AVMutableComposition on iOS, ConcatenatingMediaSource on Android)
   // handles boundary cuts, pre-warm, and frame-accurate seek for free.
   const player = useNlePlayer();
+  // Measured height of the bottom action bar. The panel layer floats
+  // exactly above this so the action bar's screen position never
+  // shifts when a tool panel opens / closes.
+  const [actionBarH, setActionBarH] = useState(100);
   const [playing, setPlaying] = useState(false);
   const [globalMs, setGlobalMs] = useState(0);
   const globalMsRef = useRef(0);
@@ -1627,7 +1631,17 @@ export default function ManualEditScreen() {
         </View>
       </GestureDetector>
 
-      {/* ===== Optional inline panel (Volume / Speed) ================ */}
+      {/* ===== Floating panel layer ==================================
+          Renders any open bottom panel as an absolute overlay anchored
+          to the bottom of the screen, sitting directly above the
+          action bar. The action bar's own position never shifts when
+          a panel opens/closes — it's also absolute-positioned, with
+          the timeline content sized to leave room for it.
+      */}
+      <View
+        style={[styles.panelLayer, { bottom: actionBarH }]}
+        pointerEvents="box-none"
+      >
       {bottomMode === 'volume' && selected ? (
         <VolumePanel
           value={selected.audio_volume ?? 1}
@@ -1864,9 +1878,13 @@ export default function ManualEditScreen() {
           onClose={() => setBottomMode('none')}
         />
       ) : null}
+      </View>
 
       {/* ===== Bottom action bar (selection-aware roster) ============ */}
-      <View style={styles.actionBar}>
+      <View
+        style={styles.actionBar}
+        onLayout={(e) => setActionBarH(e.nativeEvent.layout.height)}
+      >
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -3937,6 +3955,17 @@ const styles = StyleSheet.create({
     height: 9,
     borderRadius: 5,
     backgroundColor: '#fff',
+  },
+
+  // Floating panel layer: sits above the action bar without taking
+  // any space in the flex flow, so tool selection never shifts the
+  // action bar's screen position. `bottom` is set inline from a
+  // measured action-bar height (onLayout) so it pins exactly.
+  panelLayer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    zIndex: 10,
   },
 
   // Bottom action bar
