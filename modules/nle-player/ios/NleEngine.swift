@@ -359,8 +359,13 @@ final class NleEngine {
 
         let videoComp: AVMutableVideoComposition
         if needsColor {
-          // Apply per-frame CIFilter chain. Map the request's time to a
-          // clip index via cumulativeS and pull that clip's color params.
+          // Apply per-frame CIFilter chain. The initializer applies
+          // each asset track's preferredTransform before handing the
+          // image to our handler, so request.sourceImage is the
+          // already-oriented frame. We must NOT override renderSize
+          // after that — the framework picks one that matches the
+          // pre-transformed frame, and overriding to something else
+          // produces letterbox bars where the video doesn't cover.
           videoComp = AVMutableVideoComposition(asset: comp) { request in
             let t = request.compositionTime
             let idx = NleEngine.indexFor(time: t, cumulative: cumulativeS)
@@ -370,10 +375,6 @@ final class NleEngine {
               .cropped(to: request.sourceImage.extent)
             request.finish(with: filtered, context: nil)
           }
-          // applyingCIFiltersWithHandler initializer doesn't carry our
-          // per-track preferredTransform layer instructions, so the
-          // composition needs renderSize set explicitly to honor
-          // portrait orientation.
         } else {
           // Single instruction spanning the whole composed timeline,
           // carrying the single per-track layer instruction whose
@@ -388,10 +389,14 @@ final class NleEngine {
           }
           videoComp = AVMutableVideoComposition()
           videoComp.instructions = [mainInstruction]
+          // Only override renderSize on the non-filter path. The
+          // CIFilter-handler initializer already picked one that
+          // matches the pre-transformed source frame; overriding it
+          // there causes the letterbox-bar bug.
+          videoComp.renderSize = renderSize == .zero
+            ? CGSize(width: 1080, height: 1920)
+            : renderSize
         }
-        videoComp.renderSize = renderSize == .zero
-          ? CGSize(width: 1080, height: 1920)
-          : renderSize
         videoComp.frameDuration = CMTime(value: 1, timescale: 30)
 
         let item = AVPlayerItem(asset: comp)

@@ -12,6 +12,12 @@ class NlePlayerView: ExpoView {
   required init(appContext: AppContext? = nil) {
     super.init(appContext: appContext)
     clipsToBounds = true
+    // Explicit black bg so any letterbox / pillarbox bars (when the
+    // composition's renderSize doesn't match the layer's aspect)
+    // render as black instead of whatever system default the
+    // underlying view holds.
+    backgroundColor = .black
+    playerLayer.backgroundColor = UIColor.black.cgColor
     playerLayer.videoGravity = .resizeAspect
     layer.addSublayer(playerLayer)
   }
