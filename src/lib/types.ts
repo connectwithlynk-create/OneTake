@@ -31,6 +31,51 @@ export type CaptionStyle =
   | 'bar'
   | 'typeout';
 
+/** Per-clip visual + audio effect bag. Stored as JSON in
+ *  clips.effects_json so the schema doesn't churn each pass. */
+export interface ClipEffects {
+  // Adjust (CIColorControls + CIHighlightShadowAdjust)
+  brightness?: number; // -1..1 (default 0)
+  contrast?: number; // 0..2 (default 1)
+  saturation?: number; // 0..2 (default 1)
+  sharpness?: number; // 0..1 (default 0)
+  warmth?: number; // -1..1 (default 0; positive = warmer)
+  shadows?: number; // -1..1 (default 0; lift/crush)
+  highlights?: number; // -1..1 (default 0)
+  /** Named preset (e.g. 'noir', 'vintage'). Used to populate the
+   *  numeric fields above; kept here so the panel can show "active". */
+  filterPreset?: string;
+  // Chroma key
+  chromaEnabled?: boolean;
+  chromaColor?: string; // '#RRGGBB' — color to key out
+  chromaThreshold?: number; // 0..1
+  // AI features (UI + state today; native model lands later)
+  cutoutEnabled?: boolean;
+  restyleId?: string;
+  // Audio
+  voiceFx?: 'none' | 'helium' | 'robot' | 'deep' | 'alien';
+  voiceEnhance?: boolean;
+}
+
+/** Position/scale/rotation keyframe on an overlay. tMs is composed-
+ *  timeline ms (NOT clip-local). */
+export interface OverlayKeyframe {
+  tMs: number;
+  x?: number; // 0..1 norm
+  y?: number; // 0..1 norm
+  scale?: number; // for media overlays
+  rotation?: number; // degrees
+}
+
+/** Transition between two adjacent clips at boundary index i (boundary
+ *  i sits BETWEEN clips[i] and clips[i+1] on the composed timeline). */
+export type TransitionKind = 'none' | 'crossfade' | 'fade-black' | 'swipe-left' | 'swipe-right' | 'zoom' | 'glitch';
+export interface ProjectTransition {
+  kind: TransitionKind;
+  /** Duration of the transition in ms, centered on the clip boundary. */
+  durationMs: number;
+}
+
 export interface Project extends SyncFields {
   id: string;
   type: ProjectType;
@@ -42,6 +87,11 @@ export interface Project extends SyncFields {
   captions_enabled: number;
   /** Caption style preset. */
   caption_style: CaptionStyle;
+  /** JSON: { [boundaryIndex: number]: ProjectTransition }. Null = no
+   *  transitions, hard cut everywhere. */
+  transitions_json: string | null;
+  /** JSON: number[] of composed-timeline ms (beat markers). */
+  beats_json: string | null;
 }
 
 export interface Clip extends SyncFields {
@@ -77,6 +127,8 @@ export interface Clip extends SyncFields {
   audio_detached: number;
   /** JSON of [{w, s, e}] word timings from Deepgram. Drives subtitles. */
   transcript_words: string | null;
+  /** JSON-encoded ClipEffects. Null = defaults across the board. */
+  effects_json: string | null;
   /** Non-null = ephemeral take; GC'd after this epoch-ms. Null = saved
    *  (Memories): persists and is eligible for cloud backup. */
   expires_at: number | null;
@@ -120,6 +172,8 @@ export interface Overlay extends SyncFields {
   /** Media overlay width as a fraction of the preview width (0..1).
    *  Unused for text overlays. */
   scale: number;
+  /** JSON-encoded OverlayKeyframe[]. Null = static (x/y/scale used as-is). */
+  keyframes_json: string | null;
   created_at: number;
 }
 

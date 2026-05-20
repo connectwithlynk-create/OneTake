@@ -56,6 +56,8 @@ export async function createProject(
     sync_status: 'local',
     captions_enabled: 1,
     caption_style: 'karaoke',
+    transitions_json: null,
+    beats_json: null,
   };
   await db.runAsync(
     'INSERT INTO projects (id, type, title, status, prompt, created_at, updated_at, sync_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
@@ -195,6 +197,7 @@ export async function addClip(
     audio_volume: 1.0,
     audio_detached: 0,
     transcript_words: null,
+    effects_json: null,
   };
   await db.runAsync(
     `INSERT INTO clips
@@ -644,6 +647,7 @@ export async function addOverlay(
     color: args.color ?? '#ffffff',
     size: args.size ?? 22,
     scale: args.scale ?? 0.4,
+    keyframes_json: null,
     created_at: now,
     owner: null,
     updated_at: now,
@@ -1022,4 +1026,133 @@ export async function fileInspiration(itemId: string, collectionId: string) {
 export async function deleteInspiration(itemId: string) {
   const db = await getDb();
   await db.runAsync('DELETE FROM inspiration WHERE id = ?', itemId);
+}
+
+export async function getInspiration(itemId: string): Promise<Inspiration | null> {
+  const db = await getDb();
+  return db.getFirstAsync<Inspiration>(
+    'SELECT * FROM inspiration WHERE id = ?',
+    itemId
+  );
+}
+
+/** Output of the URL resolver (task #1). Writes the streamable URL and
+ *  raw media facts the analysis pipeline needs. */
+export interface ResolvedReel {
+  platform?: ReelPlatform;
+  playable_url: string;
+  playable_url_expires_at: number | null;
+  duration_ms: number;
+  width: number | null;
+  height: number | null;
+  caption_text: string | null;
+}
+
+export async function setInspirationResolved(
+  itemId: string,
+  r: ResolvedReel
+) {
+  const db = await getDb();
+  await db.runAsync(
+    `UPDATE inspiration
+        SET platform = COALESCE(?, platform),
+            playable_url = ?,
+            playable_url_expires_at = ?,
+            duration_ms = ?,
+            width = ?,
+            height = ?,
+            caption_text = ?
+      WHERE id = ?`,
+    r.platform ?? null,
+    r.playable_url,
+    r.playable_url_expires_at,
+    r.duration_ms,
+    r.width,
+    r.height,
+    r.caption_text,
+    itemId
+  );
+  await touch(db, 'inspiration', itemId);
+}
+
+export async function setInspirationAnalysisStatus(
+  itemId: string,
+  status: 'idle' | 'queued' | 'running' | 'ready' | 'failed',
+  error?: string | null
+) {
+  const db = await getDb();
+  await db.runAsync(
+    'UPDATE inspiration SET analysis_status = ?, analysis_error = ? WHERE id = ?',
+    status,
+    error ?? null,
+    itemId
+  );
+  await touch(db, 'inspiration', itemId);
+}
+
+/** Persistent shape of analyzeReel's output (matches column names). */
+export interface InspirationAnalysisFields {
+  shots_json: string;
+  hook_text: string | null;
+  hook_duration_ms: number | null;
+  median_shot_ms: number;
+  cuts_per_sec: number;
+  talking_pct: number;
+  broll_pct: number;
+  text_overlay_pct: number;
+  analysis_version: number;
+}
+
+export async function setInspirationAnalysisResult(
+  itemId: string,
+  fields: InspirationAnalysisFields
+) {
+  const db = await getDb();
+  const now = Date.now();
+  await db.runAsync(
+    `UPDATE inspiration
+        SET shots_json = ?,
+            hook_text = ?,
+            hook_duration_ms = ?,
+            median_shot_ms = ?,
+            cuts_per_sec = ?,
+            talking_pct = ?,
+            broll_pct = ?,
+            text_overlay_pct = ?,
+            analysis_status = 'ready',
+            analysis_error = NULL,
+            analysis_version = ?,
+            analyzed_at = ?
+      WHERE id = ?`,
+    fields.shots_json,
+    fields.hook_text,
+    fields.hook_duration_ms,
+    fields.median_shot_ms,
+    fields.cuts_per_sec,
+    fields.talking_pct,
+    fields.broll_pct,
+    fields.text_overlay_pct,
+    fields.analysis_version,
+    now,
+    itemId
+  );
+  await touch(db, 'inspiration', itemId);
+}
+
+/** Rows the analysis worker should pick up next, in age order. Skips
+ *  rows that have already been analyzed at the current version. */
+export async function listInspirationsNeedingAnalysis(
+  currentVersion: number,
+  limit: number = 5
+): Promise<Inspiration[]> {
+  const db = await getDb();
+  return db.getAllAsync<Inspiration>(
+    `SELECT * FROM inspiration
+       WHERE analysis_status IN ('idle', 'failed')
+         AND analysis_version < ?
+       ORDER BY added_at ASC
+       LIMIT ?`,
+    currentVersion,
+    limit
+  );
 }

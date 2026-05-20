@@ -86,6 +86,16 @@ export default function ProfileScreen() {
         ))}
       </View>
 
+      <View style={{ paddingHorizontal: 18, paddingTop: 24, gap: 10 }}>
+        <Button
+          label="Debug: analyze reel"
+          tone="ghost"
+          icon="bug"
+          full
+          onPress={() => router.push('/debug-analyze')}
+        />
+      </View>
+
       <View style={{ paddingHorizontal: 18, paddingVertical: 30 }}>
         <Button
           label="Sign out"

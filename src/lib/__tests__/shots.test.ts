@@ -2,17 +2,14 @@ import { detectShots } from '../analyze/shots';
 import { pickSampleTimestamps } from '../analyze/sampling';
 import type { ExtractedFrame } from 'expo-frame-extractor';
 
-function frame(
-  ts: number,
-  hex: string,
-  i: number = 0
-): ExtractedFrame {
+function frame(ts: number, hex: string): ExtractedFrame {
   return {
     jpegBase64: '',
     width: 480,
     height: 270,
     timestampMs: ts,
     dhashHex: hex,
+    hasFace: false,
   };
 }
 

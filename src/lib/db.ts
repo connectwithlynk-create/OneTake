@@ -242,9 +242,20 @@ async function migrate(db: SQLite.SQLiteDatabase) {
   await addColumn(db, 'clips', 'audio_volume', 'REAL NOT NULL DEFAULT 1.0');
   await addColumn(db, 'clips', 'audio_detached', 'INTEGER NOT NULL DEFAULT 0');
   await addColumn(db, 'clips', 'transcript_words', 'TEXT');
+  // clips: per-clip visual + audio effect bag. One JSON column avoids
+  // churning the schema 14 times for every new editor capability.
+  // Shape: see ClipEffects in lib/types.ts.
+  await addColumn(db, 'clips', 'effects_json', 'TEXT');
+  // overlays: keyframes (array of {tMs, x, y, scale, rotation}). Interp
+  // between adjacent kfs at render time.
+  await addColumn(db, 'overlays', 'keyframes_json', 'TEXT');
   // projects: caption settings (enabled + style preset)
   await addColumn(db, 'projects', 'captions_enabled', 'INTEGER NOT NULL DEFAULT 1');
   await addColumn(db, 'projects', 'caption_style', "TEXT NOT NULL DEFAULT 'karaoke'");
+  // projects: per-clip-boundary transitions, beat-detection markers, and
+  // the project's voiceover/voice-enhance global config.
+  await addColumn(db, 'projects', 'transitions_json', 'TEXT');
+  await addColumn(db, 'projects', 'beats_json', 'TEXT');
   // overlays: media-overlay columns. Old DBs created before the editor
   // supported image/video overlays only have the text-overlay columns.
   await addColumn(db, 'overlays', 'file_uri', 'TEXT');

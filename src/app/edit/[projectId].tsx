@@ -13,7 +13,6 @@ import React, {
   useState,
 } from 'react';
 import {
-  Alert,
   Modal,
   NativeScrollEvent,
   NativeSyntheticEvent,
@@ -73,7 +72,48 @@ import {
   lineifyProject,
 } from '@/lib/captions';
 import { font, palette, radius, space } from '@/theme';
-import type { Clip, Overlay, WordTiming } from '@/lib/types';
+import type {
+  Clip,
+  ClipEffects,
+  Overlay,
+  ProjectTransition,
+  WordTiming,
+} from '@/lib/types';
+import {
+  applyFilterPreset,
+  getBeats,
+  getEffects,
+  getKeyframes,
+  getTransitions,
+  interpKeyframes,
+  patchClipEffects,
+  setBeats,
+  setOverlayKeyframes,
+  setTransition,
+} from '@/lib/effects';
+import { cutSilencesInProject } from '@/lib/silences';
+import {
+  AdjustPanel,
+  AudioPanel,
+  BeatsPanel,
+  CutSilencesPanel,
+  CutoutPanel,
+  FiltersPanel,
+  GreenScreenPanel,
+  KeyframesPanel,
+  RestylePanel,
+  TransitionsPanel,
+  VoiceEnhancePanel,
+  VoiceFxPanel,
+  VoiceoverPanel,
+} from './panels';
+import * as DocumentPicker from 'expo-document-picker';
+import {
+  AudioModule,
+  RecordingPresets,
+  setAudioModeAsync,
+  useAudioRecorder,
+} from 'expo-audio';
 
 // === Timeline geometry =====================================================
 // 60 px per second feels close to CapCut's default density.
@@ -101,7 +141,20 @@ type BottomMode =
   | 'captions'
   | 'slip'
   | 'teleprompter'
-  | 'stickers';
+  | 'stickers'
+  | 'adjust'
+  | 'filters'
+  | 'green'
+  | 'voicefx'
+  | 'voiceEnh'
+  | 'cutout'
+  | 'restyle'
+  | 'keyframes'
+  | 'transitions'
+  | 'beats'
+  | 'voiceover'
+  | 'audio'
+  | 'silences';
 
 function mmss(ms: number): string {
   const s = Math.max(0, Math.floor(ms / 1000));
@@ -270,15 +323,39 @@ export default function ManualEditScreen() {
   const lastPushRef = useRef<string>('');
   useEffect(() => {
     if (included.length === 0) return;
-    const composed: NleClipShape[] = included.map((c) => ({
-      id: c.id,
-      uri: resolveClipUri(c.file_uri),
-      inMs: effIn(c),
-      outMs: effOut(c),
-      volume: c.audio_volume ?? 1,
-    }));
+    const composed: NleClipShape[] = included.map((c) => {
+      const ef = getEffects(c);
+      // Voice Enhance shorthand: a +6dB-ish boost handled fully in JS
+      // until the AudioUnit-based engine lands.
+      const baseVol = c.audio_volume ?? 1;
+      const vol = ef.voiceEnhance ? Math.min(1, baseVol + 0.25) : baseVol;
+      return {
+        id: c.id,
+        uri: resolveClipUri(c.file_uri),
+        inMs: effIn(c),
+        outMs: effOut(c),
+        volume: vol,
+        // Color adjust — native applies via AVMutableVideoComposition.
+        brightness: ef.brightness,
+        contrast: ef.contrast,
+        saturation: ef.saturation,
+        warmth: ef.warmth,
+        shadows: ef.shadows,
+        highlights: ef.highlights,
+        // Chroma key.
+        chromaEnabled: ef.chromaEnabled,
+        chromaColor: ef.chromaColor,
+        chromaThreshold: ef.chromaThreshold,
+      };
+    });
     const sig = composed
-      .map((c) => `${c.id}:${c.inMs}:${c.outMs}:${c.volume ?? 1}:${c.uri}`)
+      .map(
+        (c) =>
+          `${c.id}:${c.inMs}:${c.outMs}:${c.volume ?? 1}:${c.uri}:` +
+          `${c.brightness ?? 0}:${c.contrast ?? 1}:${c.saturation ?? 1}:` +
+          `${c.warmth ?? 0}:${c.shadows ?? 0}:${c.highlights ?? 0}:` +
+          `${c.chromaEnabled ? 1 : 0}:${c.chromaColor ?? ''}:${c.chromaThreshold ?? 0}`
+      )
       .join('|');
     if (sig === lastPushRef.current) return;
     lastPushRef.current = sig;
@@ -368,6 +445,79 @@ export default function ManualEditScreen() {
   // ----- bottom-bar modes (open inline panels) -----
   const [bottomMode, setBottomMode] = useState<BottomMode>('none');
 
+  // Cut Silences state
+  const [silencesRunning, setSilencesRunning] = useState(false);
+  const [silencesResult, setSilencesResult] = useState<
+    { removedMs: number; trimmedClips: number } | null
+  >(null);
+
+  // Voiceover recording state
+  const voRecorder = useAudioRecorder({
+    ...RecordingPresets.HIGH_QUALITY,
+  });
+  const voStartedAt = useRef(0);
+  const [voRecording, setVoRecording] = useState(false);
+  const [voElapsedMs, setVoElapsedMs] = useState(0);
+  useEffect(() => {
+    if (!voRecording) return;
+    const t = setInterval(
+      () => setVoElapsedMs(Date.now() - voStartedAt.current),
+      100
+    );
+    return () => clearInterval(t);
+  }, [voRecording]);
+
+  // Effects helpers — current selection's effects bag
+  const selectedEffects = useMemo<ClipEffects>(
+    () => (selected ? getEffects(selected) : {}),
+    [selected]
+  );
+  async function patchSelectedEffects(patch: Partial<ClipEffects>) {
+    if (!selected) return;
+    await patchClipEffects(selected.id, patch);
+    invalidate();
+  }
+  async function applyPreset(presetId: string) {
+    if (!selected) return;
+    await applyFilterPreset(
+      selected.id,
+      presetId as Parameters<typeof applyFilterPreset>[1]
+    );
+    invalidate();
+  }
+
+  // Boundary index nearest the playhead — Transition panel acts on this.
+  const nearestBoundaryIdx = useMemo(() => {
+    if (included.length < 2) return 0;
+    let best = 0;
+    let bestDist = Infinity;
+    for (let i = 1; i < included.length; i++) {
+      const bms = cumulative[i] ?? 0;
+      const dist = Math.abs(globalMs - bms);
+      if (dist < bestDist) {
+        bestDist = dist;
+        best = i - 1;
+      }
+    }
+    return best;
+  }, [globalMs, cumulative, included.length]);
+
+  // Project-scoped JSON blobs (transitions, beats) parsed once per render.
+  const transitions = useMemo(
+    () => getTransitions(project?.transitions_json ?? null),
+    [project?.transitions_json]
+  );
+  const beats = useMemo(
+    () => getBeats(project?.beats_json ?? null),
+    [project?.beats_json]
+  );
+
+  // Keyframes for the currently-selected overlay (if any).
+  const selectedOverlayKfs = useMemo(
+    () => getKeyframes(selectedOverlay?.keyframes_json ?? null),
+    [selectedOverlay?.keyframes_json]
+  );
+
   async function doSplit() {
     if (!selected) return;
     const idx = included.findIndex((c) => c.id === selected.id);
@@ -412,6 +562,100 @@ export default function ManualEditScreen() {
   async function doSlip(deltaMs: number) {
     if (!selected) return;
     await slipClip(selected.id, deltaMs);
+    invalidate();
+  }
+
+  // ---- Cut Silences ------------------------------------------------
+  async function runCutSilences() {
+    if (silencesRunning || included.length === 0) return;
+    setSilencesRunning(true);
+    try {
+      const r = await cutSilencesInProject(included, 500);
+      setSilencesResult(r);
+      clearHistory();
+      invalidate();
+    } catch {
+      setSilencesResult({ removedMs: 0, trimmedClips: 0 });
+    } finally {
+      setSilencesRunning(false);
+    }
+  }
+
+  // ---- Voiceover ---------------------------------------------------
+  const voiceoverStartGlobalMs = useRef(0);
+  async function startVoiceover() {
+    if (voRecording) return;
+    try {
+      const perm = await AudioModule.requestRecordingPermissionsAsync();
+      if (!perm.granted) return;
+      await setAudioModeAsync({ allowsRecording: true });
+      await voRecorder.prepareToRecordAsync();
+      voiceoverStartGlobalMs.current = globalMs;
+      voStartedAt.current = Date.now();
+      setVoElapsedMs(0);
+      setVoRecording(true);
+      voRecorder.record();
+    } catch {
+      setVoRecording(false);
+    }
+  }
+  async function stopVoiceover() {
+    if (!voRecording) return;
+    try {
+      const status = await voRecorder.stop();
+      setVoRecording(false);
+      const durMs = Date.now() - voStartedAt.current;
+      const uri =
+        (status as unknown as { uri?: string })?.uri ?? voRecorder.uri;
+      if (!uri) return;
+      // Persist into overlays/ and create a video-kind overlay (audio
+      // overlays ride on the same column path; until we have a dedicated
+      // 'audio' kind, we tag it as a media overlay and the rest of the
+      // pipeline treats it as a hidden audio source).
+      const overlayId = newId();
+      const persisted = persistOverlayMedia(uri, overlayId, '.m4a');
+      const start = voiceoverStartGlobalMs.current;
+      const end = Math.max(start + 100, start + durMs);
+      await addOverlay(projectId, {
+        kind: 'video',
+        file_uri: persisted,
+        start_ms: start,
+        end_ms: end,
+        scale: 0, // hidden — audio-only
+      });
+      invalidate();
+    } catch {
+      setVoRecording(false);
+    }
+  }
+
+  // ---- Audio library ----------------------------------------------
+  async function pickAudio() {
+    const res = await DocumentPicker.getDocumentAsync({
+      type: 'audio/*',
+      copyToCacheDirectory: true,
+      multiple: false,
+    });
+    if (res.canceled || !res.assets || res.assets.length === 0) return;
+    const a = res.assets[0];
+    const overlayId = newId();
+    const ext = (a.name && a.name.includes('.'))
+      ? '.' + a.name.split('.').pop()
+      : '.m4a';
+    const persisted = persistOverlayMedia(a.uri, overlayId, ext);
+    // Default to a 10s span at the playhead — user can trim on the timeline.
+    const start = globalMs;
+    const end = Math.min(
+      totalMs > 0 ? totalMs : start + 10000,
+      start + 10000
+    );
+    await addOverlay(projectId, {
+      kind: 'video',
+      file_uri: persisted,
+      start_ms: start,
+      end_ms: end,
+      scale: 0, // hidden — audio-only
+    });
     invalidate();
   }
 
@@ -989,20 +1233,43 @@ export default function ManualEditScreen() {
           />
           {overlays
             .filter((o) => globalMs >= o.start_ms && globalMs < o.end_ms)
-            .map((o) => (
-              <DraggableOverlay
-                key={o.id}
-                overlay={o}
-                selected={o.id === selectedOverlayId}
-                onSelect={() => selectOverlay(o.id)}
-                onMove={(x, y) => moveOverlay(o, x, y)}
-                onResize={(v) => persistOverlaySize(o, v)}
-                onDelete={() => removeOverlay(o)}
-              />
-            ))}
+            .map((o) => {
+              // Apply keyframes if present: interp x/y/scale at globalMs.
+              const kfs = getKeyframes(o.keyframes_json);
+              const eff =
+                kfs.length === 0
+                  ? o
+                  : {
+                      ...o,
+                      ...interpKeyframes(kfs, globalMs, {
+                        x: o.x,
+                        y: o.y,
+                        scale: o.scale,
+                        rotation: 0,
+                      }),
+                    };
+              return (
+                <DraggableOverlay
+                  key={o.id}
+                  overlay={eff}
+                  selected={o.id === selectedOverlayId}
+                  onSelect={() => selectOverlay(o.id)}
+                  onMove={(x, y) => moveOverlay(o, x, y)}
+                  onResize={(v) => persistOverlaySize(o, v)}
+                  onDelete={() => removeOverlay(o)}
+                />
+              );
+            })}
           {captionNow ? (
             <CaptionOverlay line={captionNow} style={captionStyle} />
           ) : null}
+          <TransitionOverlay
+            globalMs={globalMs}
+            transitions={transitions}
+            cumulative={cumulative}
+          />
+          <BeatMarkers beats={beats} globalMs={globalMs} />
+          {voRecording ? <VoiceoverIndicator elapsedMs={voElapsedMs} /> : null}
           <View style={styles.previewChevron}>
             <Ionicons
               name="chevron-down"
@@ -1349,7 +1616,149 @@ export default function ManualEditScreen() {
         />
       ) : null}
       {bottomMode === 'teleprompter' ? (
-        <TeleprompterPanel
+        <TeleprompterPanel onClose={() => setBottomMode('none')} />
+      ) : null}
+      {bottomMode === 'adjust' && selected ? (
+        <AdjustPanel
+          effects={selectedEffects}
+          onChange={patchSelectedEffects}
+          onClose={() => setBottomMode('none')}
+        />
+      ) : null}
+      {bottomMode === 'filters' && selected ? (
+        <FiltersPanel
+          effects={selectedEffects}
+          onPick={applyPreset}
+          onClose={() => setBottomMode('none')}
+        />
+      ) : null}
+      {bottomMode === 'green' && selected ? (
+        <GreenScreenPanel
+          effects={selectedEffects}
+          onChange={patchSelectedEffects}
+          onClose={() => setBottomMode('none')}
+        />
+      ) : null}
+      {bottomMode === 'voicefx' && selected ? (
+        <VoiceFxPanel
+          effects={selectedEffects}
+          onChange={patchSelectedEffects}
+          onClose={() => setBottomMode('none')}
+        />
+      ) : null}
+      {bottomMode === 'voiceEnh' && selected ? (
+        <VoiceEnhancePanel
+          effects={selectedEffects}
+          onChange={patchSelectedEffects}
+          onClose={() => setBottomMode('none')}
+        />
+      ) : null}
+      {bottomMode === 'cutout' && selected ? (
+        <CutoutPanel
+          effects={selectedEffects}
+          onChange={patchSelectedEffects}
+          onClose={() => setBottomMode('none')}
+        />
+      ) : null}
+      {bottomMode === 'restyle' && selected ? (
+        <RestylePanel
+          effects={selectedEffects}
+          onChange={patchSelectedEffects}
+          onClose={() => setBottomMode('none')}
+        />
+      ) : null}
+      {bottomMode === 'keyframes' && selectedOverlay ? (
+        <KeyframesPanel
+          keyframes={selectedOverlayKfs}
+          currentMs={globalMs}
+          baseXY={{
+            x: selectedOverlay.x,
+            y: selectedOverlay.y,
+            scale: selectedOverlay.scale,
+          }}
+          onAdd={async (kf) => {
+            const next = [...selectedOverlayKfs, kf].sort(
+              (a, b) => a.tMs - b.tMs
+            );
+            await setOverlayKeyframes(selectedOverlay.id, next);
+            invalidate();
+          }}
+          onClear={async () => {
+            await setOverlayKeyframes(selectedOverlay.id, []);
+            invalidate();
+          }}
+          onDelete={async (i) => {
+            const next = selectedOverlayKfs
+              .slice()
+              .sort((a, b) => a.tMs - b.tMs)
+              .filter((_, idx) => idx !== i);
+            await setOverlayKeyframes(selectedOverlay.id, next);
+            invalidate();
+          }}
+          onClose={() => setBottomMode('none')}
+        />
+      ) : null}
+      {bottomMode === 'transitions' ? (
+        <TransitionsPanel
+          boundaryIndex={nearestBoundaryIdx}
+          current={
+            transitions[nearestBoundaryIdx] ?? {
+              kind: 'none',
+              durationMs: 300,
+            }
+          }
+          onPick={async (kind) => {
+            await setTransition(projectId, nearestBoundaryIdx, {
+              kind,
+              durationMs:
+                transitions[nearestBoundaryIdx]?.durationMs ?? 300,
+            });
+            invalidate();
+          }}
+          onDurationChange={async (ms) => {
+            const cur = transitions[nearestBoundaryIdx];
+            if (!cur || cur.kind === 'none') return;
+            await setTransition(projectId, nearestBoundaryIdx, {
+              kind: cur.kind,
+              durationMs: ms,
+            });
+            invalidate();
+          }}
+          onClose={() => setBottomMode('none')}
+        />
+      ) : null}
+      {bottomMode === 'beats' ? (
+        <BeatsPanel
+          beats={beats}
+          currentMs={globalMs}
+          onAdd={async (ms) => {
+            await setBeats(projectId, [...beats, ms]);
+            invalidate();
+          }}
+          onClear={async () => {
+            await setBeats(projectId, []);
+            invalidate();
+          }}
+          onClose={() => setBottomMode('none')}
+        />
+      ) : null}
+      {bottomMode === 'voiceover' ? (
+        <VoiceoverPanel
+          isRecording={voRecording}
+          elapsedMs={voElapsedMs}
+          onStart={startVoiceover}
+          onStop={stopVoiceover}
+          onClose={() => setBottomMode('none')}
+        />
+      ) : null}
+      {bottomMode === 'audio' ? (
+        <AudioPanel onPick={pickAudio} onClose={() => setBottomMode('none')} />
+      ) : null}
+      {bottomMode === 'silences' ? (
+        <CutSilencesPanel
+          isRunning={silencesRunning}
+          lastResult={silencesResult}
+          onRun={runCutSilences}
           onClose={() => setBottomMode('none')}
         />
       ) : null}
@@ -1393,6 +1802,7 @@ export default function ManualEditScreen() {
                 );
               }}
               captionsActive={bottomMode === 'captions'}
+              onRecordTab={() => router.push('/(tabs)/camera')}
             />
           )}
         </ScrollView>
@@ -1869,17 +2279,6 @@ function ActionBtn({
   );
 }
 
-/** Helper: short toast for unimplemented features so users know the
- *  button is wired but the engine work is still ahead. */
-function comingSoon(name: string) {
-  return () => {
-    try {
-      Alert.alert(name, 'Coming soon. Wired up in the next pass.');
-    } catch {
-      /* */
-    }
-  };
-}
 
 // ============================================================
 // Selection-aware action rosters
@@ -1931,12 +2330,20 @@ function ClipActions(p: ClipActionsProps) {
       <ActionBtn
         icon="options-outline"
         label="Adjust"
-        onPress={comingSoon('Adjust')}
+        onPress={() =>
+          p.setBottomMode((m) => (m === 'adjust' ? 'none' : 'adjust'))
+        }
+        active={p.bottomMode === 'adjust'}
+        disabled={!selected}
       />
       <ActionBtn
         icon="color-palette-outline"
         label="Filters"
-        onPress={comingSoon('Filters')}
+        onPress={() =>
+          p.setBottomMode((m) => (m === 'filters' ? 'none' : 'filters'))
+        }
+        active={p.bottomMode === 'filters'}
+        disabled={!selected}
       />
       <ActionBtn
         icon="resize-outline"
@@ -1996,27 +2403,47 @@ function ClipActions(p: ClipActionsProps) {
       <ActionBtn
         icon="aperture-outline"
         label="Green"
-        onPress={comingSoon('Green Screen')}
+        onPress={() =>
+          p.setBottomMode((m) => (m === 'green' ? 'none' : 'green'))
+        }
+        active={p.bottomMode === 'green'}
+        disabled={!selected}
       />
       <ActionBtn
         icon="mic-outline"
         label="Voice FX"
-        onPress={comingSoon('Voice FX')}
+        onPress={() =>
+          p.setBottomMode((m) => (m === 'voicefx' ? 'none' : 'voicefx'))
+        }
+        active={p.bottomMode === 'voicefx'}
+        disabled={!selected}
       />
       <ActionBtn
         icon="layers-outline"
         label="Cutout"
-        onPress={comingSoon('Cutout')}
+        onPress={() =>
+          p.setBottomMode((m) => (m === 'cutout' ? 'none' : 'cutout'))
+        }
+        active={p.bottomMode === 'cutout'}
+        disabled={!selected}
       />
       <ActionBtn
         icon="sparkles-outline"
         label="Restyle"
-        onPress={comingSoon('Restyle')}
+        onPress={() =>
+          p.setBottomMode((m) => (m === 'restyle' ? 'none' : 'restyle'))
+        }
+        active={p.bottomMode === 'restyle'}
+        disabled={!selected}
       />
       <ActionBtn
         icon="locate-outline"
         label="Keyframes"
-        onPress={comingSoon('Keyframes')}
+        onPress={() =>
+          p.setBottomMode((m) => (m === 'keyframes' ? 'none' : 'keyframes'))
+        }
+        active={p.bottomMode === 'keyframes'}
+        disabled={!selectedOverlay}
       />
       <ActionBtn
         icon={
@@ -2043,6 +2470,7 @@ type GlobalActionsProps = {
   addMediaOverlay: () => void;
   openCaptionsPanel: () => void;
   captionsActive: boolean;
+  onRecordTab: () => void;
 };
 
 function GlobalActions(p: GlobalActionsProps) {
@@ -2056,22 +2484,31 @@ function GlobalActions(p: GlobalActionsProps) {
       <ActionBtn
         icon="videocam-outline"
         label="Record"
-        onPress={comingSoon('In-app record')}
+        onPress={p.onRecordTab}
       />
       <ActionBtn
         icon="musical-notes-outline"
         label="Audio"
-        onPress={comingSoon('Audio library')}
+        onPress={() =>
+          p.setBottomMode((m) => (m === 'audio' ? 'none' : 'audio'))
+        }
+        active={p.bottomMode === 'audio'}
       />
       <ActionBtn
         icon="mic-outline"
         label="Voiceover"
-        onPress={comingSoon('Voiceover')}
+        onPress={() =>
+          p.setBottomMode((m) => (m === 'voiceover' ? 'none' : 'voiceover'))
+        }
+        active={p.bottomMode === 'voiceover'}
       />
       <ActionBtn
         icon="megaphone-outline"
         label="Voice Enh"
-        onPress={comingSoon('Voice Enhance')}
+        onPress={() =>
+          p.setBottomMode((m) => (m === 'voiceEnh' ? 'none' : 'voiceEnh'))
+        }
+        active={p.bottomMode === 'voiceEnh'}
       />
       <ActionBtn
         icon="text-outline"
@@ -2100,17 +2537,30 @@ function GlobalActions(p: GlobalActionsProps) {
       <ActionBtn
         icon="swap-vertical-outline"
         label="Transitions"
-        onPress={comingSoon('Transitions')}
+        onPress={() =>
+          p.setBottomMode((m) =>
+            m === 'transitions' ? 'none' : 'transitions'
+          )
+        }
+        active={p.bottomMode === 'transitions'}
       />
       <ActionBtn
         icon="contract-outline"
         label="Cut Silences"
-        onPress={comingSoon('Cut Silences')}
+        onPress={() =>
+          p.setBottomMode((m) =>
+            m === 'silences' ? 'none' : 'silences'
+          )
+        }
+        active={p.bottomMode === 'silences'}
       />
       <ActionBtn
         icon="pulse-outline"
         label="Beats"
-        onPress={comingSoon('Beat Markers')}
+        onPress={() =>
+          p.setBottomMode((m) => (m === 'beats' ? 'none' : 'beats'))
+        }
+        active={p.bottomMode === 'beats'}
       />
       <ActionBtn
         icon="reader-outline"
@@ -2129,6 +2579,121 @@ function GlobalActions(p: GlobalActionsProps) {
 // ============================================================
 // Caption overlay (rendered over preview)
 // ============================================================
+
+/** Crossfade / fade-black overlay over the preview during a transition
+ *  window. Renders a dimming layer whose opacity ramps up to mid-point
+ *  and back down so it reads like a real fade between cuts. */
+function TransitionOverlay({
+  globalMs,
+  transitions,
+  cumulative,
+}: {
+  globalMs: number;
+  transitions: Record<number, ProjectTransition>;
+  cumulative: number[];
+}) {
+  // Find a boundary within its transition window.
+  for (const key of Object.keys(transitions)) {
+    const i = Number(key);
+    const t = transitions[i];
+    if (!t || t.kind === 'none') continue;
+    const bms = cumulative[i + 1];
+    if (bms === undefined) continue;
+    const half = t.durationMs / 2;
+    if (globalMs >= bms - half && globalMs <= bms + half) {
+      // 0 → 1 → 0 over the window.
+      const u = (globalMs - (bms - half)) / Math.max(1, t.durationMs);
+      const alpha = 1 - Math.abs(u - 0.5) * 2;
+      const color =
+        t.kind === 'fade-black'
+          ? '#000'
+          : t.kind === 'glitch'
+          ? palette.magenta
+          : '#000';
+      return (
+        <View
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: color,
+            opacity: Math.max(0, Math.min(1, alpha)),
+          }}
+        />
+      );
+    }
+  }
+  return null;
+}
+
+/** Subtle pulse on the preview when a beat marker is within ±100ms of
+ *  the playhead. Reads as a "snap" feedback while editing to beats. */
+function BeatMarkers({
+  beats,
+  globalMs,
+}: {
+  beats: number[];
+  globalMs: number;
+}) {
+  for (const b of beats) {
+    if (Math.abs(b - globalMs) < 100) {
+      return (
+        <View
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            top: 8,
+            right: 8,
+            width: 10,
+            height: 10,
+            borderRadius: 5,
+            backgroundColor: palette.lime,
+            shadowColor: palette.lime,
+            shadowOpacity: 0.8,
+            shadowRadius: 6,
+          }}
+        />
+      );
+    }
+  }
+  return null;
+}
+
+/** Recording-indicator dot during a voiceover capture. */
+function VoiceoverIndicator({ elapsedMs }: { elapsedMs: number }) {
+  return (
+    <View
+      pointerEvents="none"
+      style={{
+        position: 'absolute',
+        top: 8,
+        left: 8,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 999,
+        backgroundColor: 'rgba(0,0,0,0.55)',
+      }}
+    >
+      <View
+        style={{
+          width: 8,
+          height: 8,
+          borderRadius: 4,
+          backgroundColor: palette.coral,
+        }}
+      />
+      <Text style={{ color: '#fff', fontFamily: font.monoBold, fontSize: 10 }}>
+        REC {Math.floor(elapsedMs / 1000)}s
+      </Text>
+    </View>
+  );
+}
 
 function CaptionOverlay({
   line,

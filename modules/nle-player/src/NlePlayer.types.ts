@@ -17,6 +17,18 @@ export type NleClip = {
   playbackRate?: number;
   /** Mirror flip (horizontal) for preview. Reserved; not yet honored. */
   mirrored?: boolean;
+  // Color adjust (applied via AVMutableVideoComposition + CoreImage on iOS).
+  // Each defaults to its neutral value when unset.
+  brightness?: number; // -1..1
+  contrast?: number; // 0..2
+  saturation?: number; // 0..2
+  warmth?: number; // -1..1
+  shadows?: number; // -1..1
+  highlights?: number; // -1..1
+  // Chroma key
+  chromaEnabled?: boolean;
+  chromaColor?: string; // '#RRGGBB'
+  chromaThreshold?: number; // 0..1
 };
 
 /** Event payload helpers. timeUpdate fires on display-synced cadence

@@ -1,4 +1,6 @@
 import AVFoundation
+import CoreImage
+import CoreImage.CIFilterBuiltins
 import Foundation
 import QuartzCore
 
@@ -9,6 +11,17 @@ struct NleClip {
   let inMs: Double   // trim in (source ms)
   let outMs: Double  // trim out (source ms)
   let volume: Float
+  // Color adjust (defaults are neutral)
+  let brightness: Float
+  let contrast: Float
+  let saturation: Float
+  let warmth: Float
+  let shadows: Float
+  let highlights: Float
+  // Chroma key
+  let chromaEnabled: Bool
+  let chromaColor: String  // '#RRGGBB' or ''
+  let chromaThreshold: Float
 
   init?(dict: [String: Any]) {
     guard
@@ -24,6 +37,32 @@ struct NleClip {
     self.outMs = max(self.inMs, outMs)
     let v = (dict["volume"] as? Double) ?? (dict["volume"] as? NSNumber)?.doubleValue ?? 1.0
     self.volume = Float(max(0.0, min(1.0, v)))
+    func f(_ key: String, _ def: Float) -> Float {
+      if let n = dict[key] as? Double { return Float(n) }
+      if let n = (dict[key] as? NSNumber)?.doubleValue { return Float(n) }
+      return def
+    }
+    self.brightness = f("brightness", 0)
+    self.contrast = f("contrast", 1)
+    self.saturation = f("saturation", 1)
+    self.warmth = f("warmth", 0)
+    self.shadows = f("shadows", 0)
+    self.highlights = f("highlights", 0)
+    self.chromaEnabled = (dict["chromaEnabled"] as? Bool) ?? false
+    self.chromaColor = (dict["chromaColor"] as? String) ?? ""
+    self.chromaThreshold = f("chromaThreshold", 0.3)
+  }
+
+  /// True if this clip's effect bag deviates from the neutral defaults
+  /// in any way that warrants a CoreImage pass.
+  var hasColorEffects: Bool {
+    return abs(brightness) > 0.001
+      || abs(contrast - 1) > 0.001
+      || abs(saturation - 1) > 0.001
+      || abs(warmth) > 0.001
+      || abs(shadows) > 0.001
+      || abs(highlights) > 0.001
+      || chromaEnabled
   }
 }
 
@@ -234,6 +273,24 @@ final class NleEngine {
       }
 
       // Drop this build if the clip list moved on while we were loading.
+      // Stash cumulative + clip ranges so the CIFilter handler below
+      // can map a frame time back to the source clip.
+      let snapshotClips = snapshot
+      let cumulativeS: [CMTime] = {
+        var out: [CMTime] = [.zero]
+        var acc = CMTime.zero
+        for c in snapshot {
+          let dur = CMTime(
+            value: CMTimeValue(max(0, c.outMs - c.inMs)),
+            timescale: 1000
+          )
+          acc = acc + dur
+          out.append(acc)
+        }
+        return out
+      }()
+      let needsColor = snapshot.contains(where: { $0.hasColorEffects })
+
       await MainActor.run {
         guard self.buildId == myBuildId else { return }
 
@@ -245,20 +302,38 @@ final class NleEngine {
           return
         }
 
-        // Single instruction spanning the whole composed timeline,
-        // carrying the single per-track layer instruction whose
-        // setTransform calls switch transform per segment.
-        let mainInstruction = AVMutableVideoCompositionInstruction()
-        mainInstruction.timeRange = CMTimeRange(
-          start: .zero,
-          duration: insertionTime
-        )
-        if let li = layerInstruction {
-          mainInstruction.layerInstructions = [li]
+        let videoComp: AVMutableVideoComposition
+        if needsColor {
+          // Apply per-frame CIFilter chain. Map the request's time to a
+          // clip index via cumulativeS and pull that clip's color params.
+          videoComp = AVMutableVideoComposition(asset: comp) { request in
+            let t = request.compositionTime
+            let idx = NleEngine.indexFor(time: t, cumulative: cumulativeS)
+            let source = request.sourceImage.clampedToExtent()
+            let clip = (idx >= 0 && idx < snapshotClips.count) ? snapshotClips[idx] : nil
+            let filtered = NleEngine.applyColor(image: source, clip: clip)
+              .cropped(to: request.sourceImage.extent)
+            request.finish(with: filtered, context: nil)
+          }
+          // applyingCIFiltersWithHandler initializer doesn't carry our
+          // per-track preferredTransform layer instructions, so the
+          // composition needs renderSize set explicitly to honor
+          // portrait orientation.
+        } else {
+          // Single instruction spanning the whole composed timeline,
+          // carrying the single per-track layer instruction whose
+          // setTransform calls switch transform per segment.
+          let mainInstruction = AVMutableVideoCompositionInstruction()
+          mainInstruction.timeRange = CMTimeRange(
+            start: .zero,
+            duration: insertionTime
+          )
+          if let li = layerInstruction {
+            mainInstruction.layerInstructions = [li]
+          }
+          videoComp = AVMutableVideoComposition()
+          videoComp.instructions = [mainInstruction]
         }
-
-        let videoComp = AVMutableVideoComposition()
-        videoComp.instructions = [mainInstruction]
         videoComp.renderSize = renderSize == .zero
           ? CGSize(width: 1080, height: 1920)
           : renderSize
@@ -391,6 +466,126 @@ final class NleEngine {
     var p = payload
     p["handle"] = handle
     sink(name, p)
+  }
+
+  // MARK: - Color pipeline helpers (used by the CIFilter handler)
+
+  /// Find which clip on the composed timeline covers the given frame
+  /// time. Returns -1 when the time is past the last clip.
+  static func indexFor(time t: CMTime, cumulative: [CMTime]) -> Int {
+    let secs = CMTimeGetSeconds(t)
+    if !secs.isFinite { return -1 }
+    for i in 0..<(cumulative.count - 1) {
+      if CMTimeGetSeconds(cumulative[i + 1]) > secs {
+        return i
+      }
+    }
+    return cumulative.count - 2  // last clip
+  }
+
+  /// Chain CIColorControls + warmth (CITemperatureAndTint) +
+  /// CIHighlightShadowAdjust based on the clip's params. Applies the
+  /// chroma key (CIColorCubeWithColorSpace synth) when enabled.
+  static func applyColor(image: CIImage, clip: NleClip?) -> CIImage {
+    guard let c = clip else { return image }
+    var img = image
+
+    // ColorControls: brightness, saturation, contrast.
+    let cc = CIFilter(name: "CIColorControls")!
+    cc.setValue(img, forKey: kCIInputImageKey)
+    cc.setValue(c.brightness, forKey: "inputBrightness")
+    cc.setValue(c.contrast, forKey: "inputContrast")
+    cc.setValue(c.saturation, forKey: "inputSaturation")
+    if let out = cc.outputImage { img = out }
+
+    // Warmth: CITemperatureAndTint. warmth -1..1 → neutral 6500K.
+    if abs(c.warmth) > 0.001 {
+      let f = CIFilter(name: "CITemperatureAndTint")!
+      f.setValue(img, forKey: kCIInputImageKey)
+      f.setValue(CIVector(x: 6500, y: 0), forKey: "inputNeutral")
+      // Positive warmth → higher target K (warmer), negative → cooler.
+      let target = 6500 + Double(c.warmth) * 2500
+      f.setValue(CIVector(x: target, y: 0), forKey: "inputTargetNeutral")
+      if let out = f.outputImage { img = out }
+    }
+
+    // Shadows + highlights: CIHighlightShadowAdjust. -1..1 mapped to
+    // its 0..1 / -1..1 ranges.
+    if abs(c.shadows) > 0.001 || abs(c.highlights) > 0.001 {
+      let f = CIFilter(name: "CIHighlightShadowAdjust")!
+      f.setValue(img, forKey: kCIInputImageKey)
+      // shadowAmount is 0..1; map -1..1 → 0..1 (negative crushes,
+      // positive lifts) with a soft midpoint.
+      let shadow = max(0.0, min(1.0, 0.5 + Double(c.shadows) * 0.5))
+      f.setValue(shadow, forKey: "inputShadowAmount")
+      // highlightAmount is 0..1; 1 = preserve, lower = clamp.
+      let highlight = max(0.0, min(1.0, 1.0 - Double(c.highlights) * 0.4))
+      f.setValue(highlight, forKey: "inputHighlightAmount")
+      if let out = f.outputImage { img = out }
+    }
+
+    // Chroma key — synth a color cube that zeros alpha where the hue
+    // falls inside the threshold band around the target color.
+    if c.chromaEnabled {
+      let target = parseHex(c.chromaColor) ?? (r: 0, g: 1, b: 0)
+      if let cube = chromaCube(target: target, threshold: c.chromaThreshold) {
+        let f = CIFilter(name: "CIColorCubeWithColorSpace")!
+        f.setValue(img, forKey: kCIInputImageKey)
+        f.setValue(cube.size, forKey: "inputCubeDimension")
+        f.setValue(cube.data, forKey: "inputCubeData")
+        f.setValue(CGColorSpaceCreateDeviceRGB(), forKey: "inputColorSpace")
+        if let out = f.outputImage { img = out }
+      }
+    }
+
+    return img
+  }
+
+  /// Parse '#RRGGBB' (case-insensitive) into 0..1 RGB.
+  private static func parseHex(_ s: String) -> (r: Float, g: Float, b: Float)? {
+    var hex = s
+    if hex.hasPrefix("#") { hex.removeFirst() }
+    guard hex.count == 6, let v = UInt32(hex, radix: 16) else { return nil }
+    let r = Float((v >> 16) & 0xFF) / 255.0
+    let g = Float((v >> 8) & 0xFF) / 255.0
+    let b = Float(v & 0xFF) / 255.0
+    return (r, g, b)
+  }
+
+  /// Build a 16-step color cube that zeros alpha for samples within
+  /// `threshold` of the target color in linear RGB. The cube is small
+  /// (16³ × 16 bytes ≈ 64KB) so the build is cheap per rebuild.
+  private static func chromaCube(
+    target: (r: Float, g: Float, b: Float),
+    threshold: Float
+  ) -> (size: Int, data: Data)? {
+    let size = 16
+    var data = Data(count: size * size * size * 4 * MemoryLayout<Float>.size)
+    let thr = max(0.01, threshold)
+    data.withUnsafeMutableBytes { raw in
+      let p = raw.baseAddress!.assumingMemoryBound(to: Float.self)
+      var off = 0
+      for b in 0..<size {
+        let bf = Float(b) / Float(size - 1)
+        for g in 0..<size {
+          let gf = Float(g) / Float(size - 1)
+          for r in 0..<size {
+            let rf = Float(r) / Float(size - 1)
+            let dr = rf - target.r
+            let dg = gf - target.g
+            let db = bf - target.b
+            let d = (dr * dr + dg * dg + db * db).squareRoot()
+            let a: Float = d < thr ? 0 : 1
+            p[off + 0] = rf * a
+            p[off + 1] = gf * a
+            p[off + 2] = bf * a
+            p[off + 3] = a
+            off += 4
+          }
+        }
+      }
+    }
+    return (size, data)
   }
 }
 
