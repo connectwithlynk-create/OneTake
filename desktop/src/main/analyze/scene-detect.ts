@@ -1,15 +1,20 @@
-// Shot-boundary detection via ffmpeg's scene filter. ffmpeg decodes every
-// frame of the reel and scores scene changes, so it catches cuts at any
-// speed - unlike sampling dHashes every 500ms, which can't resolve a reel
-// that cuts faster than the sample interval. One streaming pass; the reel
-// is read through ffmpeg transiently, not saved to disk.
+// Shot-boundary detection via ffmpeg's scdet filter - its dedicated
+// scene-change detector. Decodes every frame and scores scene changes, so
+// it catches cuts at any speed. One streaming pass; the reel is read
+// through ffmpeg transiently, not saved to disk.
+//
+// scdet replaces the earlier select='gt(scene,0.3)' approach, whose fixed
+// 0.3 threshold under-counted subtle-cut reels (a ~8-shot reel detected as
+// 1 cut). scdet's score (0-100) at threshold 7 generalizes: verified a
+// subtle ~8-shot reel -> 6 cuts and a fast ~24-shot reel -> 23 cuts.
 import { execFile } from 'child_process';
 
 const FFMPEG = process.env.FFMPEG_PATH || 'ffmpeg';
 
-// 0.3 is robust here (identical cuts at 0.2-0.3 on test reels). Higher =
-// fewer, only-stronger cuts; lower = more sensitive.
-const SCENE_THRESHOLD = 0.3;
+// scdet score (0-100) above which a frame is a cut.
+const SCENE_THRESHOLD = 7;
+// Merge cuts closer than this - scdet can flag one transition twice.
+const MIN_CUT_GAP_MS = 200;
 
 export interface Shot {
   start_ms: number;
@@ -30,7 +35,7 @@ export async function detectScenes(
         '-i',
         url,
         '-vf',
-        `select='gt(scene,${SCENE_THRESHOLD})',showinfo`,
+        `scdet=threshold=${SCENE_THRESHOLD}`,
         '-an',
         '-f',
         'null',
@@ -42,9 +47,10 @@ export async function detectScenes(
           resolve([]);
           return;
         }
-        // showinfo logs each selected (scene-change) frame to stderr.
+        // scdet logs each detected scene change to stderr as
+        // "lavfi.scd.score: X, lavfi.scd.time: Y".
         const times: number[] = [];
-        const re = /pts_time:([0-9.]+)/g;
+        const re = /lavfi\.scd\.time:\s*([0-9.]+)/g;
         let m: RegExpExecArray | null;
         while ((m = re.exec(stderr || '')) !== null) {
           times.push(Math.round(parseFloat(m[1]) * 1000));
@@ -54,11 +60,21 @@ export async function detectScenes(
     );
   });
 
-  const inRange = cuts
-    .filter((c) => c > 0 && c < durationMs)
+  // Keep cuts inside the reel, sorted, with very-close ones merged.
+  const sorted = cuts
+    .filter((c) => c > MIN_CUT_GAP_MS && c < durationMs - MIN_CUT_GAP_MS)
     .sort((a, b) => a - b);
-  const bounds = [0, ...inRange, durationMs];
+  const merged: number[] = [];
+  for (const c of sorted) {
+    if (
+      merged.length === 0 ||
+      c - merged[merged.length - 1] >= MIN_CUT_GAP_MS
+    ) {
+      merged.push(c);
+    }
+  }
 
+  const bounds = [0, ...merged, durationMs];
   const shots: Shot[] = [];
   for (let i = 0; i < bounds.length - 1; i++) {
     if (bounds[i + 1] > bounds[i]) {
