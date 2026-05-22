@@ -1,10 +1,11 @@
 import { annotateShots } from './annotate';
 import { extractFrames } from './frame-extractor';
 import { detectScenes } from './scene-detect';
+import { detectSpeaker, type ShotSpeakerInfo } from './speaker';
 import type { ReelShot } from './types';
 
 /** Bump when the analysis algorithm changes meaningfully. */
-export const ANALYSIS_VERSION = 2;
+export const ANALYSIS_VERSION = 3;
 
 export interface ReelAnalysisInput {
   playableUrl: string;
@@ -21,6 +22,12 @@ export interface ReelAnalysisResult {
   talking_pct: number;
   broll_pct: number;
   text_overlay_pct: number;
+  /** Fraction of shots whose on-screen face is the reel's real speaker
+   *  (lip movement tracks the audio). */
+  real_speaker_pct: number;
+  /** Fraction of shots that are a b-roll talking head - a face whose
+   *  lips do NOT track the reel's audio. */
+  broll_talking_head_pct: number;
 }
 
 function median(values: number[]): number {
@@ -44,6 +51,8 @@ export function deriveMetrics(
       talking_pct: 0,
       broll_pct: 0,
       text_overlay_pct: 0,
+      real_speaker_pct: 0,
+      broll_talking_head_pct: 0,
     };
   }
   const durations = shots.map((s) => s.end_ms - s.start_ms);
@@ -55,6 +64,12 @@ export function deriveMetrics(
     (s) => s.ocr_text !== null && s.ocr_text.length > 0,
   ).length;
   const cuts = Math.max(0, shots.length - 1);
+  const realSpeaker = shots.filter(
+    (s) => s.speaker_verdict === 'speaker',
+  ).length;
+  const brollHead = shots.filter(
+    (s) => s.speaker_verdict === 'broll',
+  ).length;
 
   const hook = shots[0];
   return {
@@ -65,15 +80,17 @@ export function deriveMetrics(
     talking_pct: talkingDur / totalDur,
     broll_pct: 1 - talkingDur / totalDur,
     text_overlay_pct: textShots / shots.length,
+    real_speaker_pct: realSpeaker / shots.length,
+    broll_talking_head_pct: brollHead / shots.length,
   };
 }
 
 /**
  * Run the analysis pipeline on a streamable video URL.
  *
- * Pipeline: ffmpeg scene detection -> real shot boundaries -> extract one
- * representative frame per shot (face detection per frame) -> OCR each ->
- * derive aggregate metrics.
+ * Pipeline: ffmpeg scene detection -> real shot boundaries -> one
+ * representative frame per shot (face detection) -> Light-ASD speaker
+ * detection per shot -> OCR each -> derive aggregate metrics.
  */
 export async function analyzeReel(
   input: ReelAnalysisInput,
@@ -93,7 +110,25 @@ export async function analyzeReel(
     shots.length,
     'rep frames',
   );
-  const annotated = await annotateShots(frames, shots);
+
+  // Speaker detection (Light-ASD) - best-effort; never aborts the pipeline.
+  let speaker: ShotSpeakerInfo[];
+  try {
+    speaker = await detectSpeaker(input.playableUrl, shots);
+  } catch (err) {
+    console.error(
+      '[analyze] speaker detection failed:',
+      err instanceof Error ? err.message : String(err),
+    );
+    speaker = shots.map(() => ({
+      verdict: 'unknown' as const,
+      confidence: 0,
+      asd_score: 0,
+    }));
+  }
+  console.error('[analyze] speaker detection done');
+
+  const annotated = await annotateShots(frames, shots, speaker);
   console.error('[analyze] annotation done');
   return { shots: annotated, ...deriveMetrics(annotated, input.durationMs) };
 }

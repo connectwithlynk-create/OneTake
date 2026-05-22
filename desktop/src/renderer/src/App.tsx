@@ -142,6 +142,11 @@ function Analysis({ a }: { a: ReelAnalysisResult }): React.JSX.Element {
         <Fact k="cuts/sec" v={a.cuts_per_sec.toFixed(2)} />
         <Fact k="text overlay" v={`${Math.round(a.text_overlay_pct * 100)}%`} />
         <Fact k="talking" v={`${Math.round(a.talking_pct * 100)}%`} />
+        <Fact k="real speaker" v={`${Math.round(a.real_speaker_pct * 100)}%`} />
+        <Fact
+          k="b-roll head"
+          v={`${Math.round(a.broll_talking_head_pct * 100)}%`}
+        />
       </dl>
 
       <label className="label">HOOK</label>
@@ -154,6 +159,15 @@ function Analysis({ a }: { a: ReelAnalysisResult }): React.JSX.Element {
             <span className="shot-idx">{String(i).padStart(2, '0')}</span>
             <span className="shot-time">
               {s.start_ms}-{s.end_ms}ms
+            </span>
+            <span className={`shot-speaker sv-${s.speaker_verdict}`}>
+              {s.speaker_verdict === 'speaker'
+                ? 'speaker'
+                : s.speaker_verdict === 'broll'
+                  ? 'b-roll head'
+                  : s.speaker_verdict === 'no_face'
+                    ? 'no face'
+                    : '?'}
             </span>
             <span className="shot-text">{s.ocr_text ?? '-'}</span>
           </div>

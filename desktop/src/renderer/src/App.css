@@ -263,6 +263,21 @@ body {
   width: 130px;
 }
 
+.shot-speaker {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  flex-shrink: 0;
+  width: 84px;
+  color: var(--text3);
+}
+
+.sv-speaker {
+  color: var(--accent);
+}
+
+.sv-broll {
+  color: var(--coral);
+}
+
 .shot-text {
   color: var(--text);
   white-space: pre-wrap;

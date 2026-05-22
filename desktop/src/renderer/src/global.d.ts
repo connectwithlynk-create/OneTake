@@ -15,6 +15,9 @@ export interface ReelShot {
   end_ms: number;
   has_face: boolean;
   ocr_text: string | null;
+  speaker_verdict: 'speaker' | 'broll' | 'no_face' | 'unknown';
+  speaker_confidence: number;
+  asd_score: number;
 }
 
 export interface ReelAnalysisResult {
@@ -26,6 +29,8 @@ export interface ReelAnalysisResult {
   talking_pct: number;
   broll_pct: number;
   text_overlay_pct: number;
+  real_speaker_pct: number;
+  broll_talking_head_pct: number;
 }
 
 declare global {
