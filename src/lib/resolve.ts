@@ -1,6 +1,12 @@
 import { supabase, supabaseConfigured } from './supabase';
 import type { ResolvedReel } from './repo';
 
+/** Dev-only escape hatch. When set, the resolver hits a local stealth-
+ *  browser service instead of the `resolve-reel` edge function, which
+ *  YouTube bot-walls from Supabase's datacenter IP. See
+ *  scripts/local-resolver/. */
+const LOCAL_RESOLVER_URL = process.env.EXPO_PUBLIC_LOCAL_RESOLVER_URL;
+
 /**
  * Resolve a reel/short share URL to a streamable mp4 + raw media facts
  * by calling the `resolve-reel` Supabase Edge Function. Throws on any
@@ -8,6 +14,22 @@ import type { ResolvedReel } from './repo';
  * inspiration to analysis_status='failed' if appropriate.
  */
 export async function resolveReelUrl(sourceUrl: string): Promise<ResolvedReel> {
+  if (LOCAL_RESOLVER_URL) {
+    const res = await fetch(LOCAL_RESOLVER_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: sourceUrl }),
+    });
+    const data = await res.json().catch(() => null);
+    if (!data || typeof data !== 'object') {
+      throw new Error('local resolver returned no data');
+    }
+    if ('error' in data && typeof data.error === 'string') {
+      throw new Error(data.error);
+    }
+    return data as ResolvedReel;
+  }
+
   if (!supabaseConfigured) {
     throw new Error('Supabase not configured (set EXPO_PUBLIC_SUPABASE_URL)');
   }

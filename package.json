@@ -17,7 +17,8 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "test": "jest",
-    "test:watch": "jest --watchAll"
+    "test:watch": "jest --watchAll",
+    "resolver": "node scripts/local-resolver/server.mjs"
   },
   "jest": {
     "preset": "jest-expo",

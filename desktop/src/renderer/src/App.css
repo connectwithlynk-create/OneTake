@@ -1,0 +1,270 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --bg: #0d0d0f;
+  --bg1: #16161a;
+  --line: rgba(255, 255, 255, 0.1);
+  --text: #f4f4f5;
+  --text2: #a1a1aa;
+  --text3: #6b6b73;
+  --accent: #c6f24e;
+  --coral: #ff6b5e;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.topbar {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--line);
+  -webkit-app-region: drag;
+}
+
+.logo {
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: -0.02em;
+}
+
+.tag {
+  font-size: 11px;
+  color: var(--text3);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.main {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+  max-width: 760px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.label {
+  display: block;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--text3);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  margin-bottom: 8px;
+}
+
+.row {
+  display: flex;
+  gap: 10px;
+}
+
+.input {
+  flex: 1;
+  background: var(--bg1);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 11px 14px;
+  color: var(--text);
+  font-size: 13px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  outline: none;
+}
+
+.input:focus {
+  border-color: var(--text3);
+}
+
+.btn {
+  background: var(--accent);
+  color: #0d0d0f;
+  border: none;
+  border-radius: 10px;
+  padding: 0 20px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+  font-size: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--text2);
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text3);
+}
+
+.dot-resolving {
+  background: var(--accent);
+}
+.dot-done {
+  background: var(--accent);
+}
+.dot-error {
+  background: var(--coral);
+}
+
+.error {
+  margin-top: 14px;
+  padding: 12px 14px;
+  background: rgba(255, 107, 94, 0.1);
+  border: 1px solid rgba(255, 107, 94, 0.3);
+  border-radius: 10px;
+  color: var(--coral);
+  font-size: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  word-break: break-word;
+}
+
+.result {
+  margin-top: 20px;
+}
+
+.preview {
+  width: 100%;
+  border-radius: 12px;
+  background: #000;
+  max-height: 420px;
+}
+
+.facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.fact {
+  background: var(--bg1);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+
+.fact dt {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: var(--text3);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.fact dd {
+  font-size: 13px;
+  margin-top: 2px;
+}
+
+.captions {
+  margin-top: 14px;
+  padding: 12px 14px;
+  background: var(--bg1);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text2);
+}
+
+.btn-wide {
+  margin-top: 16px;
+  width: 100%;
+  padding: 11px 0;
+}
+
+.analysis {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+
+.analysis .label {
+  margin-top: 16px;
+}
+
+.analysis .label:first-child {
+  margin-top: 0;
+}
+
+.note {
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--text3);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.hook {
+  margin-top: 8px;
+  padding: 12px 14px;
+  background: var(--bg1);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--text);
+}
+
+.shots {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+}
+
+.shot {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 8px 2px;
+  border-bottom: 1px solid var(--line);
+  font-size: 12px;
+}
+
+.shot-idx {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.shot-time {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--text3);
+  flex-shrink: 0;
+  width: 130px;
+}
+
+.shot-text {
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-word;
+}

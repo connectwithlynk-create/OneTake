@@ -1,0 +1,11 @@
+{
+  "name": "onetake-local-resolver",
+  "private": true,
+  "type": "module",
+  "description": "Dev-only stealth-browser reel resolver. Not part of the Expo app bundle.",
+  "dependencies": {
+    "puppeteer": "^24.43.1",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2"
+  }
+}
