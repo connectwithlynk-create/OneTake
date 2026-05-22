@@ -33,26 +33,91 @@ function getDetector(): Promise<faceDetection.FaceDetector> {
   return detectorPromise;
 }
 
-/** True if any face is present in the frame. Best-effort: false on error
- *  so one bad frame never aborts analysis. */
+export interface FaceBox {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+export interface Point {
+  x: number;
+  y: number;
+}
+
+export interface FaceDetection {
+  box: FaceBox;
+  /** Midpoint of the two eye keypoints; null if keypoints unavailable. */
+  eyeMid: Point | null;
+  /** Mouth-centre keypoint; null if unavailable. */
+  mouth: Point | null;
+}
+
+function rgbaToRgb(
+  rgba: Uint8Array,
+  width: number,
+  height: number,
+): Uint8Array {
+  const rgb = new Uint8Array(width * height * 3);
+  for (let i = 0, j = 0; i < rgba.length; i += 4, j += 3) {
+    rgb[j] = rgba[i];
+    rgb[j + 1] = rgba[i + 1];
+    rgb[j + 2] = rgba[i + 2];
+  }
+  return rgb;
+}
+
+/** Largest detected face - box plus eye/mouth keypoints. Null on no face
+ *  or error, so one bad frame never aborts analysis. */
+export async function detectFaceData(
+  rgba: Uint8Array,
+  width: number,
+  height: number,
+): Promise<FaceDetection | null> {
+  try {
+    const detector = await getDetector();
+    const input = tf.tensor3d(
+      rgbaToRgb(rgba, width, height),
+      [height, width, 3],
+      'int32',
+    );
+    const faces = await detector.estimateFaces(input);
+    input.dispose();
+    if (faces.length === 0) return null;
+    let best = faces[0];
+    for (const f of faces) {
+      if (f.box.width * f.box.height > best.box.width * best.box.height) {
+        best = f;
+      }
+    }
+    const kp = (name: string): Point | undefined => {
+      const k = best.keypoints?.find((p) => p.name === name);
+      return k ? { x: k.x, y: k.y } : undefined;
+    };
+    const le = kp('leftEye');
+    const re = kp('rightEye');
+    const mc = kp('mouthCenter');
+    return {
+      box: {
+        x: best.box.xMin,
+        y: best.box.yMin,
+        w: best.box.width,
+        h: best.box.height,
+      },
+      eyeMid:
+        le && re ? { x: (le.x + re.x) / 2, y: (le.y + re.y) / 2 } : null,
+      mouth: mc ?? null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/** True if any face is present in the frame. */
 export async function detectFace(
   rgba: Uint8Array,
   width: number,
   height: number,
 ): Promise<boolean> {
-  try {
-    const detector = await getDetector();
-    const rgb = new Uint8Array(width * height * 3);
-    for (let i = 0, j = 0; i < rgba.length; i += 4, j += 3) {
-      rgb[j] = rgba[i];
-      rgb[j + 1] = rgba[i + 1];
-      rgb[j + 2] = rgba[i + 2];
-    }
-    const input = tf.tensor3d(rgb, [height, width, 3], 'int32');
-    const faces = await detector.estimateFaces(input);
-    input.dispose();
-    return faces.length > 0;
-  } catch {
-    return false;
-  }
+  return (await detectFaceData(rgba, width, height)) !== null;
 }
