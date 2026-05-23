@@ -111,10 +111,12 @@ export async function analyzeReel(
     'rep frames',
   );
 
-  // Speaker detection (Light-ASD) - best-effort; never aborts the pipeline.
+  // Speaker detection (SyncNet) - best-effort; never aborts the pipeline.
+  // Pass the rep-frame face flags so no-face shots skip the heavy work.
   let speaker: ShotSpeakerInfo[];
   try {
-    speaker = await detectSpeaker(input.playableUrl, shots);
+    const hasFaceHints = frames.map((f) => f?.hasFace ?? false);
+    speaker = await detectSpeaker(input.playableUrl, shots, hasFaceHints);
   } catch (err) {
     console.error(
       '[analyze] speaker detection failed:',
@@ -123,7 +125,7 @@ export async function analyzeReel(
     speaker = shots.map(() => ({
       verdict: 'unknown' as const,
       confidence: 0,
-      asd_score: 0,
+      sync_conf: 0,
     }));
   }
   console.error('[analyze] speaker detection done');
