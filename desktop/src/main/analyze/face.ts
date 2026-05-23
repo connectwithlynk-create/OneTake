@@ -1,16 +1,56 @@
 // Face detection via tfjs BlazeFace on the WASM backend (no native build).
 // Runs in the analyzer utilityProcess. The detector is loaded once and
 // reused; tfjs model data is fetched on first use and is small.
+import { existsSync, readFileSync } from 'fs';
 import { dirname, join } from 'path';
 import * as tf from '@tensorflow/tfjs';
 import { setWasmPaths } from '@tensorflow/tfjs-backend-wasm';
 import * as faceDetection from '@tensorflow-models/face-detection';
+
+// The face-detection package fetches its tfjs model from tfhub on every
+// detector load. That CDN call sometimes hangs cold-start - freezing the
+// whole analyzer. Intercept the request and serve the cached files from
+// desktop/resources/models/face-detector/ so it never touches the network
+// in normal operation. Override the dir with FACE_DETECTOR_MODEL_DIR.
+function installFaceModelCache(): void {
+  const g = globalThis as unknown as { __faceModelCachePatched?: boolean };
+  if (g.__faceModelCachePatched) return;
+  g.__faceModelCachePatched = true;
+  const cacheDir =
+    process.env.FACE_DETECTOR_MODEL_DIR ||
+    join(__dirname, '../../resources/models/face-detector');
+  const PREFIX =
+    'https://tfhub.dev/mediapipe/tfjs-model/face_detection/short/1/';
+  const orig = globalThis.fetch.bind(globalThis);
+  globalThis.fetch = (async (input: unknown, init?: unknown) => {
+    const url =
+      typeof input === 'string'
+        ? input
+        : (input as { url?: string })?.url ?? '';
+    if (typeof url === 'string' && url.startsWith(PREFIX)) {
+      const fname = url.slice(PREFIX.length).split('?')[0];
+      const filePath = join(cacheDir, fname);
+      if (existsSync(filePath)) {
+        const buf = readFileSync(filePath);
+        const type = fname.endsWith('.json')
+          ? 'application/json'
+          : 'application/octet-stream';
+        return new Response(buf, {
+          status: 200,
+          headers: { 'content-type': type },
+        });
+      }
+    }
+    return orig(input as RequestInfo, init as RequestInit | undefined);
+  }) as typeof globalThis.fetch;
+}
 
 let detectorPromise: Promise<faceDetection.FaceDetector> | null = null;
 
 function getDetector(): Promise<faceDetection.FaceDetector> {
   if (!detectorPromise) {
     detectorPromise = (async () => {
+      installFaceModelCache();
       const wasmDir =
         join(
           dirname(
