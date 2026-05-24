@@ -18,6 +18,9 @@ import {
 import { join } from 'path';
 import {
   computeFingerprint,
+  extractLoudestRegion,
+  FP_LIBRARY_WINDOW_MS,
+  FP_SAMPLE_RATE,
   type LibraryIndex,
 } from '../src/main/analyze/sfx-match';
 
@@ -122,7 +125,15 @@ async function main(): Promise<void> {
       process.stdout.write('x');
       return;
     }
-    const fp = computeFingerprint(samples);
+    // Library files often have leading silence + long tails; fingerprint
+    // only the loudest FP_LIBRARY_WINDOW_MS so the summary reflects the
+    // actual sound, not the padding.
+    const region = extractLoudestRegion(
+      samples,
+      FP_SAMPLE_RATE,
+      FP_LIBRARY_WINDOW_MS,
+    );
+    const fp = computeFingerprint(region);
     if (!fp) {
       fail++;
       process.stdout.write('s'); // too short

@@ -24,9 +24,16 @@ function candidateIndexPaths(): string[] {
 /** 16 kHz mono, matching the audio extraction pipeline. */
 export const FP_SAMPLE_RATE = 16000;
 /** Half-window around an onset to clip for fingerprinting (ms).
- *  ±500ms = 1s total — long enough for most SFX, short enough to
- *  minimize voiceover contamination beyond the SFX itself. */
-export const FP_HALF_WINDOW_MS = 500;
+ *  Tight: ±150ms = 300ms total. Wider windows pull in voiceover from
+ *  before/after the SFX and drown the MFCC summary. Most UGC SFX
+ *  (dings, whooshes, stings) fit comfortably in 300ms. */
+export const FP_HALF_WINDOW_MS = 150;
+/** Window size (ms) for library-side "loudest region" extraction. The
+ *  library fingerprint summarizes only this many ms around the file's
+ *  energy peak — many myinstants files have leading silence or long
+ *  decays that dilute the global mean+std. Matches the query window
+ *  total duration so both sides see comparable amounts of audio. */
+export const FP_LIBRARY_WINDOW_MS = 300;
 /** 13 MFCC coefficients × {mean, std} = 26-d fingerprint. */
 export const FP_DIM = 26;
 
@@ -179,4 +186,52 @@ export function sliceWindow(
   const start = Math.max(0, center - halfN);
   const end = Math.min(samples.length, center + halfN);
   return samples.slice(start, end);
+}
+
+/** Find and return the contiguous `windowMs` region of the buffer with
+ *  the highest mean RMS energy. Used to crop library fingerprint inputs
+ *  to the "actual sound" portion of files that may have leading
+ *  silence, padding, or long decays. Returns the whole buffer if it's
+ *  shorter than the window. */
+export function extractLoudestRegion(
+  samples: Float32Array,
+  sampleRate: number,
+  windowMs: number,
+): Float32Array {
+  const windowSamples = Math.round((windowMs / 1000) * sampleRate);
+  if (samples.length <= windowSamples) return samples;
+
+  const FRAME = 512;
+  const numFrames = Math.floor(samples.length / FRAME);
+  if (numFrames === 0) return samples;
+  const frameRms = new Float32Array(numFrames);
+  for (let i = 0; i < numFrames; i++) {
+    let sum = 0;
+    const start = i * FRAME;
+    for (let j = 0; j < FRAME; j++) {
+      const v = samples[start + j];
+      sum += v * v;
+    }
+    frameRms[i] = Math.sqrt(sum / FRAME);
+  }
+
+  const windowFrames = Math.max(
+    1,
+    Math.min(numFrames, Math.floor(windowSamples / FRAME)),
+  );
+  let curSum = 0;
+  for (let i = 0; i < windowFrames; i++) curSum += frameRms[i];
+  let bestSum = curSum;
+  let bestStart = 0;
+  for (let i = windowFrames; i < numFrames; i++) {
+    curSum += frameRms[i] - frameRms[i - windowFrames];
+    if (curSum > bestSum) {
+      bestSum = curSum;
+      bestStart = i - windowFrames + 1;
+    }
+  }
+
+  const startSample = bestStart * FRAME;
+  const endSample = Math.min(startSample + windowSamples, samples.length);
+  return samples.slice(startSample, endSample);
 }
