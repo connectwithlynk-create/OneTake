@@ -10,6 +10,13 @@ export interface ResolvedReel {
 
 export type ResolveResult = ResolvedReel | { error: string };
 
+export type ClipType =
+  | 'talking_head'
+  | 'broll_talking_head'
+  | 'talking_head_unknown'
+  | 'text_card'
+  | 'broll_visual';
+
 export interface ReelShot {
   start_ms: number;
   end_ms: number;
@@ -17,7 +24,8 @@ export interface ReelShot {
   ocr_text: string | null;
   speaker_verdict: 'speaker' | 'broll' | 'no_face' | 'unknown';
   speaker_confidence: number;
-  asd_score: number;
+  sync_conf: number;
+  clip_type: ClipType;
 }
 
 export interface ReelAnalysisResult {
@@ -31,6 +39,7 @@ export interface ReelAnalysisResult {
   text_overlay_pct: number;
   real_speaker_pct: number;
   broll_talking_head_pct: number;
+  clip_type_distribution: Record<ClipType, number>;
 }
 
 declare global {

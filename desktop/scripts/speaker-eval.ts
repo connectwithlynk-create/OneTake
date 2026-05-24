@@ -39,10 +39,18 @@ async function main(): Promise<void> {
         `  ${a.shots.length} shots | real_speaker ${(a.real_speaker_pct * 100).toFixed(0)}% | ` +
           `broll_head ${(a.broll_talking_head_pct * 100).toFixed(0)}% | ${((Date.now() - t0) / 1000).toFixed(1)}s`,
       );
+      const dist = a.clip_type_distribution;
+      const distLine = Object.entries(dist)
+        .filter(([, pct]) => pct > 0)
+        .sort(([, a1], [, b1]) => b1 - a1)
+        .map(([t, pct]) => `${t} ${(pct * 100).toFixed(0)}%`)
+        .join(' | ');
+      console.log(`  clip_types: ${distLine || '(none)'}`);
       a.shots.forEach((s, i) => {
         console.log(
           `    ${String(i).padStart(2, '0')}  ${s.start_ms}-${s.end_ms}ms  ` +
-            `${s.speaker_verdict.padEnd(8)} conf=${s.speaker_confidence.toFixed(2)}`,
+            `${s.clip_type.padEnd(22)} ${s.speaker_verdict.padEnd(8)} ` +
+            `conf=${s.speaker_confidence.toFixed(2)}`,
         );
       });
     } catch (e) {

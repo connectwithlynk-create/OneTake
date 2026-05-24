@@ -1,5 +1,29 @@
 import type { SpeakerVerdict } from './speaker';
 
+/** Editorial category of a shot, derived from face presence + OCR text +
+ *  speaker verdict. Maps to creator-intent: what role does this shot
+ *  play in the reel?
+ *  - talking_head: creator on camera, lip-synced with audio (real speaker)
+ *  - broll_talking_head: face on camera, NOT lip-synced (someone else's clip)
+ *  - talking_head_unknown: face on camera, sync ambiguous (model unsure)
+ *  - text_card: no face, OCR text present (typographic shot, recipe step, list item)
+ *  - broll_visual: no face, no text (product shot, scene, ambient cutaway)
+ */
+export type ClipType =
+  | 'talking_head'
+  | 'broll_talking_head'
+  | 'talking_head_unknown'
+  | 'text_card'
+  | 'broll_visual';
+
+export const CLIP_TYPES: ClipType[] = [
+  'talking_head',
+  'broll_talking_head',
+  'talking_head_unknown',
+  'text_card',
+  'broll_visual',
+];
+
 /** One detected shot with its annotation. Field names mirror the
  *  analysis result so persistence stays a 1:1 write. */
 export interface ReelShot {
@@ -12,6 +36,9 @@ export interface ReelShot {
   speaker_verdict: SpeakerVerdict;
   /** Confidence in speaker_verdict, [0,1]. */
   speaker_confidence: number;
-  /** Mean Light-ASD speaking probability for the shot, [0,1]. */
-  asd_score: number;
+  /** Raw SyncNet sync confidence for the shot (higher = lips track the
+   *  audio more tightly). */
+  sync_conf: number;
+  /** Editorial clip type derived from has_face + ocr_text + speaker_verdict. */
+  clip_type: ClipType;
 }

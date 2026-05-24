@@ -2,10 +2,10 @@ import { annotateShots } from './annotate';
 import { extractFrames } from './frame-extractor';
 import { detectScenes } from './scene-detect';
 import { detectSpeaker, type ShotSpeakerInfo } from './speaker';
-import type { ReelShot } from './types';
+import { CLIP_TYPES, type ClipType, type ReelShot } from './types';
 
 /** Bump when the analysis algorithm changes meaningfully. */
-export const ANALYSIS_VERSION = 3;
+export const ANALYSIS_VERSION = 4;
 
 export interface ReelAnalysisInput {
   playableUrl: string;
@@ -28,6 +28,9 @@ export interface ReelAnalysisResult {
   /** Fraction of shots that are a b-roll talking head - a face whose
    *  lips do NOT track the reel's audio. */
   broll_talking_head_pct: number;
+  /** Duration-weighted share of each clip type, summing to ~1. Empty
+   *  categories are present with value 0 so the shape is stable. */
+  clip_type_distribution: Record<ClipType, number>;
 }
 
 function median(values: number[]): number {
@@ -35,6 +38,13 @@ function median(values: number[]): number {
   const s = [...values].sort((a, b) => a - b);
   const mid = Math.floor(s.length / 2);
   return s.length % 2 ? s[mid] : Math.round((s[mid - 1] + s[mid]) / 2);
+}
+
+function emptyClipDistribution(): Record<ClipType, number> {
+  return Object.fromEntries(CLIP_TYPES.map((t) => [t, 0])) as Record<
+    ClipType,
+    number
+  >;
 }
 
 /** Compute the aggregate metrics from a list of annotated shots. Pure. */
@@ -53,6 +63,7 @@ export function deriveMetrics(
       text_overlay_pct: 0,
       real_speaker_pct: 0,
       broll_talking_head_pct: 0,
+      clip_type_distribution: emptyClipDistribution(),
     };
   }
   const durations = shots.map((s) => s.end_ms - s.start_ms);
@@ -71,6 +82,11 @@ export function deriveMetrics(
     (s) => s.speaker_verdict === 'broll',
   ).length;
 
+  const clipDist = emptyClipDistribution();
+  for (const s of shots) {
+    clipDist[s.clip_type] += (s.end_ms - s.start_ms) / totalDur;
+  }
+
   const hook = shots[0];
   return {
     hook_text: hook.ocr_text,
@@ -82,6 +98,7 @@ export function deriveMetrics(
     text_overlay_pct: textShots / shots.length,
     real_speaker_pct: realSpeaker / shots.length,
     broll_talking_head_pct: brollHead / shots.length,
+    clip_type_distribution: clipDist,
   };
 }
 
