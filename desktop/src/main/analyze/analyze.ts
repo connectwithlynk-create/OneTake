@@ -11,7 +11,7 @@ import {
 } from './types';
 
 /** Bump when the analysis algorithm changes meaningfully. */
-export const ANALYSIS_VERSION = 10;
+export const ANALYSIS_VERSION = 11;
 
 export interface ReelAnalysisInput {
   playableUrl: string;

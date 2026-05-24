@@ -36,14 +36,19 @@ function normalizeBBox(
 
 /** Pure derivation: underlying-video category from face presence + speaker
  *  verdict. Text overlay is orthogonal (carried in ocr_text), not part of
- *  the clip type. When the speaker pipeline returns 'no_face' that's
- *  authoritative — its 2.5s windowed face detection beats a single rep
- *  frame, which can fire on a one-frame partial or BlazeFace false-positive. */
+ *  the clip type.
+ *
+ *  The rep frame is the BEST face detection from multi-frame sampling
+ *  (see extractShotFrames), so hasFace=true is a strong signal. We trust
+ *  it over speaker_verdict='no_face' — the latter only means face-crops
+ *  bailed in its 2.5s window (motion blur, brief occlusion), not that
+ *  there's no face. A bailed-face-crops shot is still a face shot;
+ *  we just couldn't compute sync, so the verdict is 'unknown'-shaped. */
 export function classifyClipType(
   hasFace: boolean,
   speakerVerdict: SpeakerVerdict,
 ): ClipType {
-  if (!hasFace || speakerVerdict === 'no_face') {
+  if (!hasFace) {
     return 'broll_visual';
   }
   switch (speakerVerdict) {
@@ -51,6 +56,10 @@ export function classifyClipType(
       return 'talking_head';
     case 'broll':
       return 'broll_talking_head';
+    case 'no_face':
+      // Multi-frame rep saw a face; SyncNet face-crops bailed. Face shot
+      // of unknown speaker status.
+      return 'talking_head_unknown';
     default:
       return 'talking_head_unknown';
   }
