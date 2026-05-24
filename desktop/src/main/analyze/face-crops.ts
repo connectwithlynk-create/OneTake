@@ -1,22 +1,21 @@
-// Per-shot face-crop extraction for Path A (Light-ASD). Extracts a 25fps
-// window of frames, detects + lightly tracks the face, and produces the
-// 112x112 grayscale crops the model's visual encoder expects (values
-// 0-255; the model normalizes internally).
-//
-// The crop is framed off the eye + mouth keypoints (not the raw detector
-// box) so it stays consistent regardless of box convention - mouth-centric
-// with the face filling the frame, approximating Light-ASD's training crop.
+// Per-shot face-crop extraction for SyncNet. Extracts a 25fps window of
+// frames, detects + lightly tracks the face, and produces 224x224 BGR
+// face crops (values 0-255) - the visual input SyncNet's lip encoder
+// expects. Crops are framed off the eye + mouth keypoints so they stay
+// consistent regardless of detector box convention.
 import { execFile } from 'child_process';
 import jpeg from 'jpeg-js';
 import { detectFaceData, type FaceDetection } from './face';
 
 const FFMPEG = process.env.FFMPEG_PATH || 'ffmpeg';
 const FPS = 25;
-const DIM = 112;
+const DIM = 224;
+const PLANE = DIM * DIM;
 const OOB_FILL = 110; // pad crops with constant gray
 
 export interface FaceCropSequence {
-  /** numFrames * 112 * 112 grayscale floats, 0-255. */
+  /** numFrames * 3 * 224 * 224 floats, 0-255. Each frame is channel-planar
+   *  BGR (B plane, then G, then R) - SyncNet's lip input layout. */
   crops: Float32Array;
   numFrames: number;
   /** Fraction of frames where a face was actually detected (vs filled). */
@@ -90,7 +89,7 @@ function medianFilter(arr: number[], k: number): number[] {
 }
 
 // Square crop region from a detection. Prefer eye+mouth keypoints (a
-// stable, mouth-centric frame); fall back to the detector box.
+// stable frame); fall back to the detector box.
 function cropRegion(d: FaceDetection): Region {
   if (d.eyeMid && d.mouth) {
     const eyeMouth =
@@ -130,8 +129,9 @@ function smoothRegions(regions: (Region | null)[]): Region[] | null {
   return filled.map((_, i) => ({ cx: cx[i], cy: cy[i], size: size[i] }));
 }
 
-// Bilinear-sample a 112x112 grayscale crop of the square region.
-function cropTo112(
+// Bilinear-sample a 224x224 BGR crop into the channel-planar layout
+// (B plane, G plane, R plane) at out[offset ...].
+function cropToBgr(
   rgba: Uint8Array,
   fw: number,
   fh: number,
@@ -149,33 +149,38 @@ function cropTo112(
       const sx = left + ((ox + 0.5) / DIM) * r.size;
       const x0 = Math.floor(sx);
       const wx = sx - x0;
+      let b = 0;
       let g = 0;
+      let rd = 0;
       for (let dy = 0; dy < 2; dy++) {
         for (let dx = 0; dx < 2; dx++) {
           const px = x0 + dx;
           const py = y0 + dy;
-          let v: number;
+          const wgt = (dx ? wx : 1 - wx) * (dy ? wy : 1 - wy);
           if (px < 0 || py < 0 || px >= fw || py >= fh) {
-            v = OOB_FILL;
+            b += OOB_FILL * wgt;
+            g += OOB_FILL * wgt;
+            rd += OOB_FILL * wgt;
           } else {
             const idx = (py * fw + px) * 4;
-            v =
-              0.299 * rgba[idx] +
-              0.587 * rgba[idx + 1] +
-              0.114 * rgba[idx + 2];
+            rd += rgba[idx] * wgt;
+            g += rgba[idx + 1] * wgt;
+            b += rgba[idx + 2] * wgt;
           }
-          g += v * (dx ? wx : 1 - wx) * (dy ? wy : 1 - wy);
         }
       }
-      out[offset + oy * DIM + ox] = g;
+      const pix = oy * DIM + ox;
+      out[offset + pix] = b;
+      out[offset + PLANE + pix] = g;
+      out[offset + 2 * PLANE + pix] = rd;
     }
   }
 }
 
 /**
- * Extract the 25fps 112x112 grayscale face-crop sequence for a shot's
- * time window. Empty crops (numFrames 0 or faceRatio 0) mean no usable
- * face - the caller should treat the shot as non-speaker.
+ * Extract the 25fps 224x224 BGR face-crop sequence for a shot's time
+ * window. Empty crops (numFrames 0 or faceRatio 0) mean no usable face -
+ * the caller should treat the shot as non-speaker.
  */
 export async function extractFaceCrops(
   url: string,
@@ -201,7 +206,14 @@ export async function extractFaceCrops(
       continue;
     }
     frames.push({ rgba: dec.data, w: dec.width, h: dec.height });
-    const det = await detectFaceData(dec.data, dec.width, dec.height);
+    // pad:false — the SyncNet crop is keypoint-centered, and a padded
+    // detector can return geometrically-true keypoints that sit off the
+    // original frame; the crop then pulls in OOB gray and SyncNet
+    // degrades. We accept slightly worse recall on edge faces here in
+    // exchange for clean in-frame crops for the SyncNet input.
+    const det = await detectFaceData(dec.data, dec.width, dec.height, {
+      pad: false,
+    });
     regions.push(det ? cropRegion(det) : null);
   }
 
@@ -215,15 +227,15 @@ export async function extractFaceCrops(
     return { crops: new Float32Array(0), numFrames, faceRatio: 0 };
   }
 
-  const crops = new Float32Array(numFrames * DIM * DIM);
+  const crops = new Float32Array(numFrames * 3 * PLANE);
   for (let i = 0; i < numFrames; i++) {
-    cropTo112(
+    cropToBgr(
       frames[i].rgba,
       frames[i].w,
       frames[i].h,
       smoothed[i],
       crops,
-      i * DIM * DIM,
+      i * 3 * PLANE,
     );
   }
   return { crops, numFrames, faceRatio: detected / numFrames };

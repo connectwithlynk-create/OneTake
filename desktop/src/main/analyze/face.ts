@@ -142,22 +142,35 @@ function padRgba(rgba: Uint8Array, width: number, height: number): PaddedRgba {
   return { rgba: out, width: newW, height: newH, padX, padY };
 }
 
+export interface DetectOptions {
+  /** Pad input with neutral gray so faces flush against an edge still
+   *  have context for BlazeFace to fire. Improves rep-frame face
+   *  detection RECALL for edge-clipped faces. Hurts pipelines that crop
+   *  around the returned keypoints (e.g., SyncNet face-crops) — when the
+   *  geometrically-true keypoint sits off-screen, the crop window pulls
+   *  in OOB pixels and the downstream model degrades. Default true. */
+  pad?: boolean;
+}
+
 /** Largest detected face - box plus eye/mouth keypoints. Null on no face
  *  or error, so one bad frame never aborts analysis.
  *
- *  Input is padded with neutral gray before detection so faces flush
- *  against an edge still have context for BlazeFace to fire. Returned
- *  coordinates are mapped back to the original frame, so an edge face
- *  can have negative x/y (the box extends slightly past the visible
- *  frame). Downstream normalization should accept that. */
+ *  When `pad` is true (default), input is padded with neutral gray before
+ *  detection, and returned coordinates are mapped back to the original
+ *  frame — an edge face can therefore have negative x/y. Downstream
+ *  normalization should accept that. */
 export async function detectFaceData(
   rgba: Uint8Array,
   width: number,
   height: number,
+  opts: DetectOptions = {},
 ): Promise<FaceDetection | null> {
+  const pad = opts.pad ?? true;
   try {
     const detector = await getDetector();
-    const padded = padRgba(rgba, width, height);
+    const padded = pad
+      ? padRgba(rgba, width, height)
+      : { rgba, width, height, padX: 0, padY: 0 };
     const input = tf.tensor3d(
       rgbaToRgb(padded.rgba, padded.width, padded.height),
       [padded.height, padded.width, 3],
