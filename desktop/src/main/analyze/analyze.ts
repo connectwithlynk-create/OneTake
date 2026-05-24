@@ -11,7 +11,7 @@ import {
 } from './types';
 
 /** Bump when the analysis algorithm changes meaningfully. */
-export const ANALYSIS_VERSION = 11;
+export const ANALYSIS_VERSION = 12;
 
 export interface ReelAnalysisInput {
   playableUrl: string;
@@ -97,9 +97,7 @@ export function deriveMetrics(
   const talkingDur = shots
     .filter((s) => s.has_face)
     .reduce((sum, s) => sum + (s.end_ms - s.start_ms), 0);
-  const textShots = shots.filter(
-    (s) => s.ocr_text !== null && s.ocr_text.length > 0,
-  ).length;
+  const textShots = shots.filter((s) => s.text_moments.length > 0).length;
   const cuts = Math.max(0, shots.length - 1);
   const realSpeaker = shots.filter(
     (s) => s.speaker_verdict === 'speaker',
@@ -143,18 +141,18 @@ export function deriveMetrics(
         : (heights[mid - 1] + heights[mid]) / 2;
   }
 
-  // Text overlay layout aggregates - text-bearing shots only.
-  const textShotsForLayout = shots.filter((s) => s.text_region !== null);
+  // Text overlay layout aggregates - count text MOMENTS, not shots. A
+  // single long shot may have several text overlays appear in different
+  // positions; each contributes a moment to the distribution.
+  const allTextMoments = shots.flatMap((s) => s.text_moments);
   let textRegionDominant: FrameRegion | 'mixed' | null = null;
   let textRegionDistribution: Record<FrameRegion, number> | null = null;
-  if (textShotsForLayout.length > 0) {
+  if (allTextMoments.length > 0) {
     const counts = Object.fromEntries(
       FRAME_REGIONS.map((r) => [r, 0]),
     ) as Record<FrameRegion, number>;
-    for (const s of textShotsForLayout) {
-      if (s.text_region) counts[s.text_region]++;
-    }
-    const total = textShotsForLayout.length;
+    for (const m of allTextMoments) counts[m.region]++;
+    const total = allTextMoments.length;
     const [topRegion, topCount] = Object.entries(counts).sort(
       ([, a], [, b]) => b - a,
     )[0] as [FrameRegion, number];
@@ -203,11 +201,12 @@ export async function analyzeReel(
   // Multi-frame sampling: each shot gets several candidate timestamps and
   // we pick the rep frame with the best face detection. Catches faces
   // that miss the exact midpoint (motion, brief occlusion, position shifts).
-  const frames = await extractShotFrames(input.playableUrl, shots);
-  const facesFound = frames.filter((f) => f?.face != null).length;
+  const shotFrames = await extractShotFrames(input.playableUrl, shots);
+  const reps = shotFrames.map((sf) => sf.rep);
+  const facesFound = reps.filter((r) => r?.face != null).length;
   console.error(
     '[analyze] extracted',
-    frames.filter(Boolean).length,
+    reps.filter(Boolean).length,
     'of',
     shots.length,
     'rep frames (',
@@ -219,7 +218,7 @@ export async function analyzeReel(
   // Pass the rep-frame face flags so no-face shots skip the heavy work.
   let speaker: ShotSpeakerInfo[];
   try {
-    const hasFaceHints = frames.map((f) => f?.face != null);
+    const hasFaceHints = reps.map((r) => r?.face != null);
     speaker = await detectSpeaker(input.playableUrl, shots, hasFaceHints);
   } catch (err) {
     console.error(
@@ -234,7 +233,7 @@ export async function analyzeReel(
   }
   console.error('[analyze] speaker detection done');
 
-  const annotated = await annotateShots(frames, shots, speaker);
+  const annotated = await annotateShots(shotFrames, shots, speaker);
   console.error('[analyze] annotation done');
   return { shots: annotated, ...deriveMetrics(annotated, input.durationMs) };
 }

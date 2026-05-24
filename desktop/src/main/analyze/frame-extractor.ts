@@ -126,28 +126,31 @@ export async function extractFrames(
   return extracted.map((item) => (item ? item.frame : null));
 }
 
+export interface ShotFrames {
+  /** Best-face frame from the samples — use for face/sync data. */
+  rep: ExtractedFrame | null;
+  /** All sample frames in timestamp order — use for multi-frame OCR or
+   *  any signal that needs temporal spread across the shot. */
+  samples: (ExtractedFrame | null)[];
+}
+
 /**
- * Pick one representative frame per shot from multiple sampled timestamps.
- * For each shot, extracts SAMPLES_PER_SHOT frames spread evenly across the
- * shot duration and runs face detection on each. Selection:
- *  - If any candidate has a face: pick the one with the LARGEST face bbox.
- *  - Otherwise: pick the middle candidate (closest to the shot midpoint).
- *  - If all extractions failed: null for that shot.
+ * Extract N candidate frames per shot. Each ShotFrames has:
+ *  - `samples`: all N extracted frames (timestamp order)
+ *  - `rep`: the best one for face/sync use — largest-face if any
+ *    candidate has a face, else the midpoint candidate.
  *
- * Catches faces that happen to miss the exact midpoint — common in shots
- * with motion, brief occlusion, or position shifts. Costs ~SAMPLES_PER_SHOT×
- * the face-detection budget; ffmpeg seeks are cheap.
+ * Reusing the same sampled frames for both face selection and downstream
+ * multi-frame OCR avoids a second ffmpeg pass.
  */
 export async function extractShotFrames(
   url: string,
   shots: Shot[],
   options?: { maxDimension?: number; samplesPerShot?: number },
-): Promise<(ExtractedFrame | null)[]> {
+): Promise<ShotFrames[]> {
   if (!url || shots.length === 0) return [];
   const samples = options?.samplesPerShot ?? SAMPLES_PER_SHOT;
 
-  // Spread N timestamps evenly across each shot, avoiding the very edges
-  // (k/(N+1)) so we don't land on shot-boundary frames.
   const allTimestamps: number[] = [];
   const shotIndex: number[] = [];
   for (let i = 0; i < shots.length; i++) {
@@ -170,18 +173,19 @@ export async function extractShotFrames(
     const withFace = candidates.filter(
       (c): c is ExtractedFrame => c !== null && c.face !== null,
     );
+    let rep: ExtractedFrame | null = null;
     if (withFace.length > 0) {
       withFace.sort(
         (a, b) =>
           b.face!.box.w * b.face!.box.h - a.face!.box.w * a.face!.box.h,
       );
-      return withFace[0];
+      rep = withFace[0];
+    } else {
+      const nonNull = candidates.filter(
+        (c): c is ExtractedFrame => c !== null,
+      );
+      rep = nonNull.length > 0 ? nonNull[Math.floor(nonNull.length / 2)] : null;
     }
-    const nonNull = candidates.filter(
-      (c): c is ExtractedFrame => c !== null,
-    );
-    if (nonNull.length === 0) return null;
-    // Middle candidate ≈ shot midpoint.
-    return nonNull[Math.floor(nonNull.length / 2)];
+    return { rep, samples: candidates };
   });
 }

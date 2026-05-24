@@ -75,11 +75,19 @@ async function main(): Promise<void> {
       a.shots.forEach((s, i) => {
         const fregion = s.face_region ? s.face_region.padEnd(14) : '--------------';
         const fsize = s.face_bbox ? s.face_bbox.h.toFixed(2) : '----';
-        const tregion = s.text_region ? s.text_region.padEnd(14) : '--------------';
+        // Per-shot display: list unique text regions observed in this
+        // shot's moments (de-duped, in order of first appearance).
+        const seen = new Set<string>();
+        const tregions = s.text_moments
+          .map((m: { region: string }) => m.region)
+          .filter((r: string) => (seen.has(r) ? false : (seen.add(r), true)));
+        const tDisplay = (
+          tregions.length === 0 ? '--' : tregions.join(',')
+        ).padEnd(34);
         console.log(
           `    ${String(i).padStart(2, '0')}  ${s.start_ms}-${s.end_ms}ms  ` +
             `${s.clip_type.padEnd(22)} ${s.speaker_verdict.padEnd(8)} ` +
-            `conf=${s.speaker_confidence.toFixed(2)} face=${fregion} h=${fsize} text=${tregion}`,
+            `conf=${s.speaker_confidence.toFixed(2)} face=${fregion} h=${fsize} text=${tDisplay}`,
         );
       });
     } catch (e) {

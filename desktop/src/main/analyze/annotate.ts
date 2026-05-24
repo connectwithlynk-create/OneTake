@@ -1,4 +1,4 @@
-import type { ExtractedFrame } from './frame-extractor';
+import type { ExtractedFrame, ShotFrames } from './frame-extractor';
 import { recognizeText } from './ocr';
 import type { Shot } from './scene-detect';
 import type { ShotSpeakerInfo, SpeakerVerdict } from './speaker';
@@ -7,7 +7,12 @@ import type {
   FrameRegion,
   NormBBox,
   ReelShot,
+  TextMoment,
 } from './types';
+
+/** Below this duration we don't multi-sample OCR — the sampled frames
+ *  would be near-identical and OCR is the dominant cost. */
+const OCR_MULTI_SAMPLE_MIN_MS = 2000;
 
 /** Map a normalized centroid (x,y in [0,1]) to one of 9 grid cells. */
 export function regionForXY(x: number, y: number): FrameRegion {
@@ -65,38 +70,68 @@ export function classifyClipType(
   }
 }
 
+/** Multi-frame OCR: run recognition on every sampled frame in the shot
+ *  (with a duration gate to skip near-identical short-shot samples), and
+ *  collect every detected text moment + the longest text string. */
+async function ocrShotMoments(
+  shotFrames: ShotFrames,
+  shotDurationMs: number,
+): Promise<{ ocrText: string | null; moments: TextMoment[] }> {
+  const candidates: ExtractedFrame[] = [];
+  if (
+    shotDurationMs < OCR_MULTI_SAMPLE_MIN_MS ||
+    shotFrames.samples.length === 0
+  ) {
+    if (shotFrames.rep) candidates.push(shotFrames.rep);
+  } else {
+    for (const f of shotFrames.samples) if (f) candidates.push(f);
+  }
+
+  const moments: TextMoment[] = [];
+  let longest = '';
+  for (const frame of candidates) {
+    if (!frame.jpegBase64) continue;
+    try {
+      const ocr = await recognizeText(frame.jpegBase64);
+      if (ocr.text.length > longest.length) longest = ocr.text;
+      if (ocr.textBox && frame.width > 0 && frame.height > 0) {
+        const bbox = normalizeBBox(ocr.textBox, frame.width, frame.height);
+        const region = regionForXY(
+          bbox.x + bbox.w / 2,
+          bbox.y + bbox.h / 2,
+        );
+        moments.push({ text: ocr.text, bbox, region });
+      }
+    } catch {
+      // skip a bad frame, keep going
+    }
+  }
+  return {
+    ocrText: longest.length > 0 ? longest : null,
+    moments,
+  };
+}
+
 /**
  * Annotate each shot with face presence, OCR text, and speaker verdict.
- * `frames` and `speaker` are both aligned 1:1 with `shots`: frames[i] is
- * shot i's representative frame (or null), speaker[i] is its speaker-vs-
- * b-roll verdict. OCR runs once per shot, on the representative frame.
+ * `shotFrames` and `speaker` are both aligned 1:1 with `shots`. The shot
+ * frame's `rep` carries face/clip-type signals; its `samples` get OCRed
+ * for multi-moment text detection (text overlays often swap mid-shot).
  */
 export async function annotateShots(
-  frames: (ExtractedFrame | null)[],
+  shotFrames: ShotFrames[],
   shots: Shot[],
   speaker: ShotSpeakerInfo[],
 ): Promise<ReelShot[]> {
   const out: ReelShot[] = [];
   for (let i = 0; i < shots.length; i++) {
-    const rep = frames[i];
-    let ocrText: string | null = null;
-    let text_bbox: NormBBox | null = null;
-    let text_region: FrameRegion | null = null;
-    if (rep?.jpegBase64) {
-      try {
-        const ocr = await recognizeText(rep.jpegBase64);
-        ocrText = ocr.text.length > 0 ? ocr.text : null;
-        if (ocr.textBox && rep.width > 0 && rep.height > 0) {
-          text_bbox = normalizeBBox(ocr.textBox, rep.width, rep.height);
-          text_region = regionForXY(
-            text_bbox.x + text_bbox.w / 2,
-            text_bbox.y + text_bbox.h / 2,
-          );
-        }
-      } catch {
-        ocrText = null;
-      }
-    }
+    const sf = shotFrames[i];
+    const rep = sf?.rep ?? null;
+    const dur = shots[i].end_ms - shots[i].start_ms;
+    const { ocrText, moments } = await ocrShotMoments(
+      sf ?? { rep: null, samples: [] },
+      dur,
+    );
     const sp = speaker[i];
     const hasFace = rep?.face != null;
     const verdict = sp?.verdict ?? 'unknown';
@@ -120,8 +155,7 @@ export async function annotateShots(
       clip_type: classifyClipType(hasFace, verdict),
       face_bbox,
       face_region,
-      text_bbox,
-      text_region,
+      text_moments: moments,
     });
   }
   return out;

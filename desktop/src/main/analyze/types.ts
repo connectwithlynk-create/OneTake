@@ -31,6 +31,18 @@ export interface NormBBox {
   h: number;
 }
 
+/** One observed text-overlay moment within a shot. Text overlays often
+ *  swap during a single underlying b-roll shot (top headline → bottom
+ *  caption → off), so a shot can have multiple distinct moments. */
+export interface TextMoment {
+  /** Recognized text in this moment. */
+  text: string;
+  /** Normalized union bbox of the text. */
+  bbox: NormBBox;
+  /** 3x3 grid cell of the bbox centroid. */
+  region: FrameRegion;
+}
+
 /** 3x3 grid cell a face/text centroid sits in. Naming is row_column with
  *  rows top/middle/bottom (y) and columns left/center/right (x). */
 export type FrameRegion =
@@ -77,9 +89,7 @@ export interface ReelShot {
   face_bbox: NormBBox | null;
   /** 3x3 grid cell the face centroid sits in. Null if no face. */
   face_region: FrameRegion | null;
-  /** Tight union of all high-confidence OCR word bboxes, normalized 0-1.
-   *  Null when no text was recognized. */
-  text_bbox: NormBBox | null;
-  /** 3x3 grid cell the text bbox centroid sits in. Null if no text. */
-  text_region: FrameRegion | null;
+  /** All distinct text-overlay moments observed across the shot's sample
+   *  frames (in sample-timestamp order). Empty when no text was found. */
+  text_moments: TextMoment[];
 }

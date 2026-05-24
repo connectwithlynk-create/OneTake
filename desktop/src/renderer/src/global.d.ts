@@ -45,8 +45,13 @@ export interface ReelShot {
   clip_type: ClipType;
   face_bbox: NormBBox | null;
   face_region: FrameRegion | null;
-  text_bbox: NormBBox | null;
-  text_region: FrameRegion | null;
+  text_moments: TextMoment[];
+}
+
+export interface TextMoment {
+  text: string;
+  bbox: NormBBox;
+  region: FrameRegion;
 }
 
 export interface ReelAnalysisResult {
