@@ -46,6 +46,9 @@ export interface ReelShot {
   face_bbox: NormBBox | null;
   face_region: FrameRegion | null;
   text_moments: TextMoment[];
+  audio_rms_mean: number;
+  audio_silence_pct: number;
+  audio_peak_rms: number;
 }
 
 export interface TextMoment {
@@ -71,6 +74,9 @@ export interface ReelAnalysisResult {
   face_size_median: number | null;
   text_region_dominant: FrameRegion | 'mixed' | null;
   text_region_distribution: Record<FrameRegion, number> | null;
+  audio_energy_mean: number;
+  audio_energy_std: number;
+  audio_silence_pct: number;
 }
 
 declare global {

@@ -92,4 +92,10 @@ export interface ReelShot {
   /** All distinct text-overlay moments observed across the shot's sample
    *  frames (in sample-timestamp order). Empty when no text was found. */
   text_moments: TextMoment[];
+  /** Mean RMS amplitude in the shot, [0, 1]. */
+  audio_rms_mean: number;
+  /** Fraction of the shot's 30ms frames below silence threshold, [0, 1]. */
+  audio_silence_pct: number;
+  /** Peak per-frame RMS amplitude in the shot, [0, 1]. */
+  audio_peak_rms: number;
 }

@@ -1,3 +1,4 @@
+import type { ShotAudio } from './audio';
 import type { ExtractedFrame, ShotFrames } from './frame-extractor';
 import { recognizeText } from './ocr';
 import type { Shot } from './scene-detect';
@@ -122,6 +123,7 @@ export async function annotateShots(
   shotFrames: ShotFrames[],
   shots: Shot[],
   speaker: ShotSpeakerInfo[],
+  audio: ShotAudio[],
 ): Promise<ReelShot[]> {
   const out: ReelShot[] = [];
   for (let i = 0; i < shots.length; i++) {
@@ -133,6 +135,7 @@ export async function annotateShots(
       dur,
     );
     const sp = speaker[i];
+    const ad = audio[i] ?? { rms_mean: 0, silence_pct: 1, peak_rms: 0 };
     const hasFace = rep?.face != null;
     const verdict = sp?.verdict ?? 'unknown';
     let face_bbox: NormBBox | null = null;
@@ -156,6 +159,9 @@ export async function annotateShots(
       face_bbox,
       face_region,
       text_moments: moments,
+      audio_rms_mean: ad.rms_mean,
+      audio_silence_pct: ad.silence_pct,
+      audio_peak_rms: ad.peak_rms,
     });
   }
   return out;

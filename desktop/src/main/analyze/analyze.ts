@@ -1,4 +1,9 @@
 import { annotateShots } from './annotate';
+import {
+  audioMetricsForShots,
+  extractReelAudio,
+  type ShotAudio,
+} from './audio';
 import { extractShotFrames } from './frame-extractor';
 import { detectScenes } from './scene-detect';
 import { detectSpeaker, type ShotSpeakerInfo } from './speaker';
@@ -11,7 +16,7 @@ import {
 } from './types';
 
 /** Bump when the analysis algorithm changes meaningfully. */
-export const ANALYSIS_VERSION = 12;
+export const ANALYSIS_VERSION = 13;
 
 export interface ReelAnalysisInput {
   playableUrl: string;
@@ -52,6 +57,13 @@ export interface ReelAnalysisResult {
   /** Per-cell distribution of text overlays across the 3x3 grid (text
    *  shots only). Null when there are no text shots. */
   text_region_distribution: Record<FrameRegion, number> | null;
+  /** Duration-weighted mean RMS amplitude across the reel, [0, 1]. */
+  audio_energy_mean: number;
+  /** Standard deviation of per-shot RMS — dynamic range proxy. Higher =
+   *  more variation between loud and quiet shots. */
+  audio_energy_std: number;
+  /** Fraction of total duration that's near-silent. */
+  audio_silence_pct: number;
 }
 
 function median(values: number[]): number {
@@ -90,6 +102,9 @@ export function deriveMetrics(
       face_size_median: null,
       text_region_dominant: null,
       text_region_distribution: null,
+      audio_energy_mean: 0,
+      audio_energy_std: 0,
+      audio_silence_pct: 0,
     };
   }
   const durations = shots.map((s) => s.end_ms - s.start_ms);
@@ -162,6 +177,24 @@ export function deriveMetrics(
     ) as Record<FrameRegion, number>;
   }
 
+  // Audio aggregates - duration-weighted across shots.
+  let weightedRmsSum = 0;
+  let weightedSilenceSum = 0;
+  for (const s of shots) {
+    const w = (s.end_ms - s.start_ms) / totalDur;
+    weightedRmsSum += s.audio_rms_mean * w;
+    weightedSilenceSum += s.audio_silence_pct * w;
+  }
+  const audioEnergyMean = weightedRmsSum;
+  // Std of per-shot RMS (unweighted) — a usable dynamic-range proxy.
+  const rmsValues = shots.map((s) => s.audio_rms_mean);
+  const rmsAvg =
+    rmsValues.reduce((a, b) => a + b, 0) / Math.max(rmsValues.length, 1);
+  const audioEnergyStd = Math.sqrt(
+    rmsValues.reduce((acc, v) => acc + (v - rmsAvg) ** 2, 0) /
+      Math.max(rmsValues.length, 1),
+  );
+
   const hook = shots[0];
   return {
     hook_text: hook.ocr_text,
@@ -179,6 +212,9 @@ export function deriveMetrics(
     face_size_median: faceSizeMedian,
     text_region_dominant: textRegionDominant,
     text_region_distribution: textRegionDistribution,
+    audio_energy_mean: audioEnergyMean,
+    audio_energy_std: audioEnergyStd,
+    audio_silence_pct: weightedSilenceSum,
   };
 }
 
@@ -233,7 +269,39 @@ export async function analyzeReel(
   }
   console.error('[analyze] speaker detection done');
 
-  const annotated = await annotateShots(shotFrames, shots, speaker);
+  // Audio extraction + per-shot metrics. Best-effort; never aborts the
+  // pipeline (a reel with no audio track shouldn't kill analysis).
+  let shotAudio: ShotAudio[];
+  try {
+    const samples = await extractReelAudio(input.playableUrl);
+    if (samples) {
+      shotAudio = audioMetricsForShots(samples, shots);
+      console.error(
+        '[audio] extracted',
+        samples.length,
+        'samples; per-shot metrics done',
+      );
+    } else {
+      console.error('[audio] extraction returned no samples');
+      shotAudio = shots.map(() => ({
+        rms_mean: 0,
+        silence_pct: 1,
+        peak_rms: 0,
+      }));
+    }
+  } catch (err) {
+    console.error(
+      '[audio] failed:',
+      err instanceof Error ? err.message : String(err),
+    );
+    shotAudio = shots.map(() => ({
+      rms_mean: 0,
+      silence_pct: 1,
+      peak_rms: 0,
+    }));
+  }
+
+  const annotated = await annotateShots(shotFrames, shots, speaker, shotAudio);
   console.error('[analyze] annotation done');
   return { shots: annotated, ...deriveMetrics(annotated, input.durationMs) };
 }
