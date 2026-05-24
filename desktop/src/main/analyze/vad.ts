@@ -16,6 +16,12 @@ const MODEL_DIR =
 /** Silero VAD LSTM state size: [2, 1, 128] = 256 floats. */
 const STATE_SIZE = 2 * 1 * 128;
 
+/** Silero VAD v5 requires a prepended context buffer of the previous
+ *  64 samples (for 16 kHz). The ONNX expects 576-sample input
+ *  (64 context + 512 current). This is handled outside the model by
+ *  the Python wrapper; we replicate that here. */
+const CONTEXT_SIZE = 64;
+
 /** Speech enters at `>= ENTER` probability and stays until `< LEAVE`.
  *  Hysteresis prevents flapping between speech/non-speech at the boundary. */
 const ENTER_THRESHOLD = 0.5;
@@ -58,17 +64,24 @@ export async function runVAD(
 
   const probs = new Float32Array(numFrames);
   let state = new Float32Array(STATE_SIZE);
+  let context = new Float32Array(CONTEXT_SIZE);
   const srTensor = new ort.Tensor(
     'int64',
     new BigInt64Array([BigInt(SAMPLE_RATE_VAD)]),
     [],
   );
+  const inputLen = CONTEXT_SIZE + FRAME_SAMPLES;
+  const [outName, stateOutName] = session.outputNames;
 
   for (let i = 0; i < numFrames; i++) {
     const start = i * FRAME_SAMPLES;
-    // .slice not .subarray — onnxruntime needs an owned buffer.
-    const chunk = samples.slice(start, start + FRAME_SAMPLES);
-    const inputTensor = new ort.Tensor('float32', chunk, [1, FRAME_SAMPLES]);
+    // Build [context_64 | chunk_512] = 576 samples, as v5 expects.
+    const fullInput = new Float32Array(inputLen);
+    fullInput.set(context, 0);
+    for (let j = 0; j < FRAME_SAMPLES; j++) {
+      fullInput[CONTEXT_SIZE + j] = samples[start + j];
+    }
+    const inputTensor = new ort.Tensor('float32', fullInput, [1, inputLen]);
     const stateTensor = new ort.Tensor('float32', state, [2, 1, 128]);
 
     const result = await session.run({
@@ -77,8 +90,13 @@ export async function runVAD(
       sr: srTensor,
     });
 
-    probs[i] = (result.output.data as Float32Array)[0];
-    state = new Float32Array(result.stateN.data as Float32Array);
+    probs[i] = (result[outName].data as Float32Array)[0];
+    state = new Float32Array(result[stateOutName].data as Float32Array);
+    // Context for next frame = last CONTEXT_SIZE samples of THIS chunk.
+    context = new Float32Array(CONTEXT_SIZE);
+    for (let j = 0; j < CONTEXT_SIZE; j++) {
+      context[j] = samples[start + FRAME_SAMPLES - CONTEXT_SIZE + j];
+    }
   }
 
   return probs;
