@@ -11,7 +11,6 @@ import {
   sfxAtCutsRatio,
   shotSfxMetrics,
   type ShotSfx,
-  type SfxEvent,
 } from './sfx';
 import {
   computeFingerprint,
@@ -409,7 +408,6 @@ export async function analyzeReel(
             'onsets to library',
           );
         }
-        void SfxEvent;
       } catch (err) {
         console.error(
           '[sfx] failed:',

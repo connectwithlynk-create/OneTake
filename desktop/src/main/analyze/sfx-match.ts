@@ -7,9 +7,19 @@
 // query share the SAME HPF + MFCC pipeline so the cosine space is
 // consistent.
 import { existsSync, readFileSync } from 'fs';
-import { join } from 'path';
+import { join, resolve } from 'path';
 import { mfcc } from './mfcc';
 import { highPass, SFX_HPF_CUTOFF_HZ } from './sfx';
+
+/** Candidate locations checked in order when no explicit path is given.
+ *  Covers tsx-from-desktop-cwd (dev) and built-from-out (prod). */
+function candidateIndexPaths(): string[] {
+  return [
+    resolve(process.cwd(), 'resources/myinstants/index.json'),
+    join(__dirname, '../../resources/myinstants/index.json'),
+    join(__dirname, '../../../resources/myinstants/index.json'),
+  ];
+}
 
 /** 16 kHz mono, matching the audio extraction pipeline. */
 export const FP_SAMPLE_RATE = 16000;
@@ -114,22 +124,37 @@ let cachedLibrary: LibraryIndex | null = null;
 let cachedPath: string | null = null;
 
 /** Load (and cache) the library index. Returns null if the index file
- *  doesn't exist — caller should treat that as "no matching available." */
+ *  doesn't exist — caller should treat that as "no matching available."
+ *  Resolution order: explicit `indexPath` -> $SFX_LIBRARY_INDEX env ->
+ *  cwd-relative `resources/myinstants/index.json` (dev) -> __dirname-
+ *  relative (prod/built). The first existing one wins. */
 export function loadLibrary(indexPath?: string): LibraryIndex | null {
-  const path =
-    indexPath ||
-    process.env.SFX_LIBRARY_INDEX ||
-    join(__dirname, '../../resources/myinstants/index.json');
-  if (cachedLibrary && cachedPath === path) return cachedLibrary;
-  if (!existsSync(path)) {
-    console.error('[sfx-match] library index not found at', path);
+  const candidates: string[] = [];
+  if (indexPath) candidates.push(indexPath);
+  if (process.env.SFX_LIBRARY_INDEX)
+    candidates.push(process.env.SFX_LIBRARY_INDEX);
+  candidates.push(...candidateIndexPaths());
+
+  let path: string | null = null;
+  for (const c of candidates) {
+    if (existsSync(c)) {
+      path = c;
+      break;
+    }
+  }
+  if (!path) {
+    console.error(
+      '[sfx-match] library index not found; tried:',
+      candidates.join(', '),
+    );
     return null;
   }
+  if (cachedLibrary && cachedPath === path) return cachedLibrary;
   try {
     const lib = JSON.parse(readFileSync(path, 'utf-8')) as LibraryIndex;
     const indexed = lib.entries.filter((e) => e.fingerprint).length;
     console.error(
-      `[sfx-match] library loaded: ${lib.entries.length} entries, ${indexed} fingerprinted`,
+      `[sfx-match] library loaded: ${lib.entries.length} entries, ${indexed} fingerprinted (${path})`,
     );
     cachedLibrary = lib;
     cachedPath = path;
