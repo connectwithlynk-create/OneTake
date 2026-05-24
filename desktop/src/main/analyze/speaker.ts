@@ -5,7 +5,8 @@
 // confidence). A real speaker's lips track the audio -> high confidence;
 // a b-roll talking head's lips don't -> low. This is the distinction
 // Light-ASD (active-speaker detection) could not make.
-import { join } from 'path';
+import { existsSync } from 'fs';
+import { join, resolve } from 'path';
 import * as ort from 'onnxruntime-web';
 import { extractAudioPCM } from './audio';
 import { extractFaceCrops } from './face-crops';
@@ -23,9 +24,24 @@ export interface ShotSpeakerInfo {
   sync_conf: number;
 }
 
-const MODEL_DIR =
-  process.env.SYNCNET_MODEL_DIR ||
-  join(__dirname, '../../resources/models');
+/** Resolve the model directory across dev (tsx, cwd=desktop) and prod
+ *  (built code, __dirname=desktop/out/main). Tries explicit env var
+ *  first, then cwd-relative, then both 2-up and 3-up from __dirname. */
+function resolveModelDir(): string {
+  const candidates = [
+    process.env.SYNCNET_MODEL_DIR,
+    resolve(process.cwd(), 'resources/models'),
+    join(__dirname, '../../resources/models'),
+    join(__dirname, '../../../resources/models'),
+  ].filter((p): p is string => !!p);
+  for (const c of candidates) {
+    if (existsSync(join(c, 'syncnet-lip.onnx'))) return c;
+  }
+  // Fall through to last candidate so the error message is informative.
+  return candidates[candidates.length - 1];
+}
+
+const MODEL_DIR = resolveModelDir();
 
 const DIM = 224;
 const PLANE = DIM * DIM;

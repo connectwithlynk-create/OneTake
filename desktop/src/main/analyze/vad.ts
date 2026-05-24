@@ -5,13 +5,27 @@
 //
 // Model source: github.com/snakers4/silero-vad (MIT). Path defaults to
 // the same SYNCNET_MODEL_DIR as the other ONNX models.
-import { join } from 'path';
+import { existsSync } from 'fs';
+import { join, resolve } from 'path';
 import * as ort from 'onnxruntime-web';
 import { FRAME_SAMPLES, SAMPLE_RATE_VAD } from './audio';
 
-const MODEL_DIR =
-  process.env.SYNCNET_MODEL_DIR ||
-  join(__dirname, '../../resources/models');
+/** Same dev/prod model-dir resolution as speaker.ts — tries env var,
+ *  cwd, then __dirname at two depths. */
+function resolveModelDir(): string {
+  const candidates = [
+    process.env.SYNCNET_MODEL_DIR,
+    resolve(process.cwd(), 'resources/models'),
+    join(__dirname, '../../resources/models'),
+    join(__dirname, '../../../resources/models'),
+  ].filter((p): p is string => !!p);
+  for (const c of candidates) {
+    if (existsSync(join(c, 'silero_vad.onnx'))) return c;
+  }
+  return candidates[candidates.length - 1];
+}
+
+const MODEL_DIR = resolveModelDir();
 
 /** Silero VAD LSTM state size: [2, 1, 128] = 256 floats. */
 const STATE_SIZE = 2 * 1 * 128;
