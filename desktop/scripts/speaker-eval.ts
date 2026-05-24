@@ -106,6 +106,14 @@ async function main(): Promise<void> {
             `conf=${s.speaker_confidence.toFixed(2)} face=${fregion} h=${fsize} ` +
             `text=${tDisplay} ${audSplit}`,
         );
+        for (const ev of s.sfx_matches) {
+          const top = ev.matches[0];
+          if (!top) continue;
+          const sim = top.similarity.toFixed(2);
+          console.log(
+            `        sfx@${String(ev.ms).padStart(5)}ms -> "${top.name}" (sim=${sim}, ${top.slug})`,
+          );
+        }
       });
     } catch (e) {
       console.log('  ERROR:', e instanceof Error ? e.message : String(e));

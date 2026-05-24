@@ -110,4 +110,23 @@ export interface ReelShot {
   /** True when an SFX onset is within ±200ms of the shot's start —
    *  the canonical "whoosh on the cut" pattern. */
   sfx_at_start: boolean;
+  /** For each SFX onset in this shot (in onset-time order), the top-k
+   *  best library matches sorted by similarity descending. Empty per
+   *  onset when no library / no qualifying matches. */
+  sfx_matches: SfxMatchPerEvent[];
+}
+
+export interface SfxMatchPerEvent {
+  /** Onset time in ms from reel start. */
+  ms: number;
+  /** Top library matches for this onset. */
+  matches: SfxMatchEntry[];
+}
+
+export interface SfxMatchEntry {
+  slug: string;
+  name: string;
+  source_url: string;
+  /** Cosine similarity in [-1, 1]. */
+  similarity: number;
 }

@@ -53,6 +53,19 @@ export interface ReelShot {
   audio_music_pct: number;
   sfx_count: number;
   sfx_at_start: boolean;
+  sfx_matches: SfxMatchPerEvent[];
+}
+
+export interface SfxMatchPerEvent {
+  ms: number;
+  matches: SfxMatchEntry[];
+}
+
+export interface SfxMatchEntry {
+  slug: string;
+  name: string;
+  source_url: string;
+  similarity: number;
 }
 
 export interface TextMoment {

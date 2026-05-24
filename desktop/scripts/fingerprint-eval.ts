@@ -113,6 +113,18 @@ async function main(): Promise<void> {
       `${(fp.sfx_at_cuts_pct * 100).toFixed(0)}% of SFX land on cuts`,
   );
 
+  if (fp.top_sfx_used.length > 0) {
+    console.log(`\nTop SFX library matches (>= 0.85 sim):`);
+    for (const u of fp.top_sfx_used.slice(0, 15)) {
+      console.log(
+        `  ${String(u.count).padStart(3)}×  ${u.name.padEnd(40).slice(0, 40)}  ` +
+          `mean_sim=${u.mean_similarity.toFixed(2)}  ${u.slug}`,
+      );
+    }
+  } else {
+    console.log(`\nTop SFX library matches: (none above threshold)`);
+  }
+
   console.log(`\nBeat template (sorted by shot count):`);
   for (const b of fp.beat_template) {
     console.log(

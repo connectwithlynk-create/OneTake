@@ -11,7 +11,16 @@ import {
   sfxAtCutsRatio,
   shotSfxMetrics,
   type ShotSfx,
+  type SfxEvent,
 } from './sfx';
+import {
+  computeFingerprint,
+  loadLibrary,
+  matchAgainstLibrary,
+  sliceWindow,
+  type SfxMatch,
+} from './sfx-match';
+import type { SfxMatchPerEvent } from './types';
 import { detectSpeaker, type ShotSpeakerInfo } from './speaker';
 import { runVAD, speechMaskFromProbs } from './vad';
 import {
@@ -23,7 +32,7 @@ import {
 } from './types';
 
 /** Bump when the analysis algorithm changes meaningfully. */
-export const ANALYSIS_VERSION = 15;
+export const ANALYSIS_VERSION = 16;
 
 export interface ReelAnalysisInput {
   playableUrl: string;
@@ -324,6 +333,7 @@ export async function analyzeReel(
     sfx_count: 0,
     sfx_at_start: false,
   }));
+  let sfxMatchesPerShot: SfxMatchPerEvent[][] = shots.map(() => []);
   let sfxAtCutsPct = 0;
   try {
     const samples = await extractReelAudio(input.playableUrl);
@@ -365,6 +375,41 @@ export async function analyzeReel(
           'onsets;',
           (sfxAtCutsPct * 100).toFixed(0) + '% land near a cut',
         );
+
+        // Library matching: fingerprint each onset window, cosine-match
+        // against the fingerprinted myinstants library. Skipped silently
+        // when the library index is missing or no entries are
+        // fingerprinted yet.
+        sfxMatchesPerShot = shots.map(() => []);
+        const library = loadLibrary();
+        if (library && library.entries.some((e) => e.fingerprint)) {
+          let matchedEvents = 0;
+          for (let s = 0; s < shots.length; s++) {
+            const shot = shots[s];
+            const eventsInShot = sfxEvents.filter(
+              (e) => e.ms >= shot.start_ms && e.ms < shot.end_ms,
+            );
+            const perEvent: SfxMatchPerEvent[] = [];
+            for (const ev of eventsInShot) {
+              const clip = sliceWindow(samples, ev.ms);
+              const fp = computeFingerprint(clip);
+              const matches = fp
+                ? matchAgainstLibrary(fp, library.entries, 3)
+                : ([] as SfxMatch[]);
+              perEvent.push({ ms: ev.ms, matches });
+              if (matches.length > 0) matchedEvents++;
+            }
+            sfxMatchesPerShot[s] = perEvent;
+          }
+          console.error(
+            '[sfx-match] matched',
+            matchedEvents,
+            'of',
+            sfxEvents.length,
+            'onsets to library',
+          );
+        }
+        void SfxEvent;
       } catch (err) {
         console.error(
           '[sfx] failed:',
@@ -387,6 +432,7 @@ export async function analyzeReel(
     speaker,
     shotAudio,
     shotSfx,
+    sfxMatchesPerShot,
   );
   console.error('[analyze] annotation done');
   const metrics = deriveMetrics(annotated, input.durationMs);
