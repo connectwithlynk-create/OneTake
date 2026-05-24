@@ -4,13 +4,14 @@ import { detectScenes } from './scene-detect';
 import { detectSpeaker, type ShotSpeakerInfo } from './speaker';
 import {
   CLIP_TYPES,
+  FRAME_REGIONS,
   type ClipType,
   type FrameRegion,
   type ReelShot,
 } from './types';
 
 /** Bump when the analysis algorithm changes meaningfully. */
-export const ANALYSIS_VERSION = 7;
+export const ANALYSIS_VERSION = 8;
 
 export interface ReelAnalysisInput {
   playableUrl: string;
@@ -36,9 +37,12 @@ export interface ReelAnalysisResult {
   /** Duration-weighted share of each clip type, summing to ~1. Empty
    *  categories are present with value 0 so the shape is stable. */
   clip_type_distribution: Record<ClipType, number>;
-  /** Vertical-third region most face shots sit in, or null if no faces.
-   *  "mixed" when no single region claims a clear majority (>50%). */
+  /** 3x3 grid cell most face shots sit in, or null if no faces. "mixed"
+   *  when no single cell claims a clear majority (>50% of face shots). */
   face_region_dominant: FrameRegion | 'mixed' | null;
+  /** Per-cell distribution across the 3x3 grid (face shots only).
+   *  Null when there are no face shots. */
+  face_region_distribution: Record<FrameRegion, number> | null;
   /** Median face bbox HEIGHT (normalized 0-1) across all face shots — a
    *  proxy for typical face size / closeness. Null if no faces. */
   face_size_median: number | null;
@@ -76,6 +80,7 @@ export function deriveMetrics(
       broll_talking_head_pct: 0,
       clip_type_distribution: emptyClipDistribution(),
       face_region_dominant: null,
+      face_region_distribution: null,
       face_size_median: null,
     };
   }
@@ -104,12 +109,11 @@ export function deriveMetrics(
   const faceShots = shots.filter((s) => s.face_bbox !== null);
   let faceRegionDominant: FrameRegion | 'mixed' | null = null;
   let faceSizeMedian: number | null = null;
+  let faceRegionDistribution: Record<FrameRegion, number> | null = null;
   if (faceShots.length > 0) {
-    const regionCounts: Record<FrameRegion, number> = {
-      top: 0,
-      middle: 0,
-      bottom: 0,
-    };
+    const regionCounts = Object.fromEntries(
+      FRAME_REGIONS.map((r) => [r, 0]),
+    ) as Record<FrameRegion, number>;
     for (const s of faceShots) {
       if (s.face_region) regionCounts[s.face_region]++;
     }
@@ -117,7 +121,12 @@ export function deriveMetrics(
     const [topRegion, topCount] = Object.entries(regionCounts).sort(
       ([, a], [, b]) => b - a,
     )[0] as [FrameRegion, number];
+    // 9 cells means a strict majority is a strong signal; below that we
+    // call it 'mixed' rather than picking a near-tie cell.
     faceRegionDominant = topCount / total > 0.5 ? topRegion : 'mixed';
+    faceRegionDistribution = Object.fromEntries(
+      FRAME_REGIONS.map((r) => [r, regionCounts[r] / total]),
+    ) as Record<FrameRegion, number>;
     const heights = faceShots.map((s) => s.face_bbox?.h ?? 0).sort();
     const mid = Math.floor(heights.length / 2);
     faceSizeMedian =
@@ -139,6 +148,7 @@ export function deriveMetrics(
     broll_talking_head_pct: brollHead / shots.length,
     clip_type_distribution: clipDist,
     face_region_dominant: faceRegionDominant,
+    face_region_distribution: faceRegionDistribution,
     face_size_median: faceSizeMedian,
   };
 }

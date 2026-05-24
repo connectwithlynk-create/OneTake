@@ -16,7 +16,16 @@ export type ClipType =
   | 'talking_head_unknown'
   | 'broll_visual';
 
-export type FrameRegion = 'top' | 'middle' | 'bottom';
+export type FrameRegion =
+  | 'top_left'
+  | 'top_center'
+  | 'top_right'
+  | 'middle_left'
+  | 'middle_center'
+  | 'middle_right'
+  | 'bottom_left'
+  | 'bottom_center'
+  | 'bottom_right';
 
 export interface NormBBox {
   x: number;
@@ -51,6 +60,7 @@ export interface ReelAnalysisResult {
   broll_talking_head_pct: number;
   clip_type_distribution: Record<ClipType, number>;
   face_region_dominant: FrameRegion | 'mixed' | null;
+  face_region_distribution: Record<FrameRegion, number> | null;
   face_size_median: number | null;
 }
 

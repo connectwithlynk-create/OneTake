@@ -46,13 +46,22 @@ async function main(): Promise<void> {
         .map(([t, pct]) => `${t} ${(pct * 100).toFixed(0)}%`)
         .join(' | ');
       console.log(`  clip_types: ${distLine || '(none)'}`);
-      const faceLine =
-        a.face_region_dominant !== null
-          ? `face_region: ${a.face_region_dominant} | face_size_median: ${(a.face_size_median ?? 0).toFixed(2)}`
-          : 'face_region: (no face shots)';
-      console.log(`  ${faceLine}`);
+      if (a.face_region_dominant !== null) {
+        console.log(
+          `  face_region: ${a.face_region_dominant} | face_size_median: ${(a.face_size_median ?? 0).toFixed(2)}`,
+        );
+        const fdist = a.face_region_distribution ?? {};
+        const fdistLine = Object.entries(fdist)
+          .filter(([, pct]) => (pct as number) > 0)
+          .sort(([, a1], [, b1]) => (b1 as number) - (a1 as number))
+          .map(([r, pct]) => `${r} ${((pct as number) * 100).toFixed(0)}%`)
+          .join(' | ');
+        console.log(`  face_grid: ${fdistLine || '(none)'}`);
+      } else {
+        console.log('  face_region: (no face shots)');
+      }
       a.shots.forEach((s, i) => {
-        const region = s.face_region ? s.face_region.padEnd(6) : '------';
+        const region = s.face_region ? s.face_region.padEnd(14) : '--------------';
         const fsize = s.face_bbox ? s.face_bbox.h.toFixed(2) : '----';
         console.log(
           `    ${String(i).padStart(2, '0')}  ${s.start_ms}-${s.end_ms}ms  ` +

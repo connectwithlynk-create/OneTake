@@ -9,11 +9,13 @@ import type {
   ReelShot,
 } from './types';
 
-/** Vertical thirds: top, middle, bottom from a normalized centroid Y. */
-export function regionForY(y: number): FrameRegion {
-  if (y < 1 / 3) return 'top';
-  if (y < 2 / 3) return 'middle';
-  return 'bottom';
+/** Map a normalized centroid (x,y in [0,1]) to one of 9 grid cells. */
+export function regionForXY(x: number, y: number): FrameRegion {
+  const row: 'top' | 'middle' | 'bottom' =
+    y < 1 / 3 ? 'top' : y < 2 / 3 ? 'middle' : 'bottom';
+  const col: 'left' | 'center' | 'right' =
+    x < 1 / 3 ? 'left' : x < 2 / 3 ? 'center' : 'right';
+  return `${row}_${col}` as FrameRegion;
 }
 
 /** Normalize a face bbox by frame dimensions and clamp to [0,1]. */
@@ -84,7 +86,10 @@ export async function annotateShots(
     let face_region: FrameRegion | null = null;
     if (rep?.face && rep.width > 0 && rep.height > 0) {
       face_bbox = normalizeBBox(rep.face.box, rep.width, rep.height);
-      face_region = regionForY(face_bbox.y + face_bbox.h / 2);
+      face_region = regionForXY(
+        face_bbox.x + face_bbox.w / 2,
+        face_bbox.y + face_bbox.h / 2,
+      );
     }
     out.push({
       start_ms: shots[i].start_ms,

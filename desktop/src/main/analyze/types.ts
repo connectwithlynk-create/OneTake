@@ -31,9 +31,30 @@ export interface NormBBox {
   h: number;
 }
 
-/** Vertical-third region a face/text sits in. Derived from a centroid Y
- *  in [0,1]. */
-export type FrameRegion = 'top' | 'middle' | 'bottom';
+/** 3x3 grid cell a face/text centroid sits in. Naming is row_column with
+ *  rows top/middle/bottom (y) and columns left/center/right (x). */
+export type FrameRegion =
+  | 'top_left'
+  | 'top_center'
+  | 'top_right'
+  | 'middle_left'
+  | 'middle_center'
+  | 'middle_right'
+  | 'bottom_left'
+  | 'bottom_center'
+  | 'bottom_right';
+
+export const FRAME_REGIONS: FrameRegion[] = [
+  'top_left',
+  'top_center',
+  'top_right',
+  'middle_left',
+  'middle_center',
+  'middle_right',
+  'bottom_left',
+  'bottom_center',
+  'bottom_right',
+];
 
 /** One detected shot with its annotation. Field names mirror the
  *  analysis result so persistence stays a 1:1 write. */
