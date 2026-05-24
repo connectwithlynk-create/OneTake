@@ -52,10 +52,10 @@ async function main(): Promise<void> {
     return;
   }
 
-  // Use the async assembler when ANTHROPIC_API_KEY is set so hooks get
+  // Use the async assembler when OPENAI_API_KEY is set so hooks get
   // clustered into reusable archetypes; otherwise fall back to the
   // pure-function output (hook_archetypes will be null).
-  const fp = process.env.ANTHROPIC_API_KEY
+  const fp = process.env.OPENAI_API_KEY
     ? await assembleFingerprintWithHooks(results)
     : assembleFingerprint(results);
 
@@ -162,11 +162,11 @@ async function main(): Promise<void> {
         console.log(`         e.g. "${ex.replace(/\s+/g, ' ').slice(0, 80)}"`);
       }
     }
-  } else if (process.env.ANTHROPIC_API_KEY) {
+  } else if (process.env.OPENAI_API_KEY) {
     console.log(`\nHook archetypes: (clustering returned no results)`);
   } else {
     console.log(
-      `\nHook archetypes: (set ANTHROPIC_API_KEY to enable clustering)`,
+      `\nHook archetypes: (set OPENAI_API_KEY to enable clustering)`,
     );
   }
 }

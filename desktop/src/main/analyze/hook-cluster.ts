@@ -1,15 +1,15 @@
-// Hook archetype clustering via Claude.
+// Hook archetype clustering via OpenAI.
 //
 // The per-reel `hook_text` is the OCR'd first-shot text overlay — raw
 // strings like "POV: you walked in", "3 things I wish I knew". A
 // creator's collection of those reveals repeating PATTERNS the
 // script-gen LLM can fill in.
 //
-// We hand the list of hook strings to Claude and ask for 2-4 templates
+// We hand the list of hook strings to GPT and ask for 2-4 templates
 // with weights + example fills. Best-effort: a missing API key or
 // API error returns null so callers can fall back to the raw strings.
 
-import Anthropic from '@anthropic-ai/sdk';
+import OpenAI from 'openai';
 
 /** One inferred hook pattern this creator reuses. */
 export interface HookArchetype {
@@ -54,46 +54,40 @@ Rules:
 - Don't invent templates that aren't supported by at least 2 examples
   unless the input has fewer than 4 hooks total.`;
 
-/** Cluster hook strings into reusable templates via Claude. Returns
+/** Cluster hook strings into reusable templates via OpenAI. Returns
  *  null when no API key is configured or the call fails — callers
  *  should fall back to the raw hook list. */
 export async function clusterHooks(
   hookTexts: string[],
 ): Promise<HookArchetype[] | null> {
   if (hookTexts.length === 0) return [];
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
-    console.error('[hook-cluster] ANTHROPIC_API_KEY not set');
+    console.error('[hook-cluster] OPENAI_API_KEY not set');
     return null;
   }
 
-  const client = new Anthropic({ apiKey });
+  const client = new OpenAI({ apiKey });
   const userMessage =
     `Hooks from one creator's reels (one per line):\n\n` +
     hookTexts.map((t) => `- "${t.replace(/\n/g, ' ').slice(0, 200)}"`).join('\n');
 
   try {
-    const resp = await client.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+    const resp = await client.chat.completions.create({
+      model: 'gpt-4o-mini',
       max_tokens: 1024,
-      system: SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: userMessage }],
+      response_format: { type: 'json_object' },
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'user', content: userMessage },
+      ],
     });
-    const text = resp.content
-      .filter((b): b is Anthropic.TextBlock => b.type === 'text')
-      .map((b) => b.text)
-      .join('');
-    // Defensive parse: tolerate surrounding whitespace / occasional
-    // stray prose by extracting the outermost JSON object.
-    const jsonStart = text.indexOf('{');
-    const jsonEnd = text.lastIndexOf('}');
-    if (jsonStart < 0 || jsonEnd < jsonStart) {
-      console.error('[hook-cluster] no JSON object in response');
+    const text = resp.choices[0]?.message?.content ?? '';
+    if (!text) {
+      console.error('[hook-cluster] empty response');
       return null;
     }
-    const parsed = JSON.parse(text.slice(jsonStart, jsonEnd + 1)) as {
-      archetypes?: HookArchetype[];
-    };
+    const parsed = JSON.parse(text) as { archetypes?: HookArchetype[] };
     if (!parsed.archetypes || !Array.isArray(parsed.archetypes)) {
       console.error('[hook-cluster] missing archetypes array');
       return null;
@@ -112,7 +106,9 @@ export async function clusterHooks(
       out.push({
         template: a.template,
         weight: Math.max(0, Math.min(1, a.weight)),
-        examples: a.examples.filter((e: unknown): e is string => typeof e === 'string').slice(0, 3),
+        examples: a.examples
+          .filter((e: unknown): e is string => typeof e === 'string')
+          .slice(0, 3),
         description: a.description,
       });
     }
