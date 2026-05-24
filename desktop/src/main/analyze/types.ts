@@ -1,26 +1,25 @@
 import type { SpeakerVerdict } from './speaker';
 
-/** Editorial category of a shot, derived from face presence + OCR text +
- *  speaker verdict. Maps to creator-intent: what role does this shot
- *  play in the reel?
+/** Editorial category of a shot's underlying video content. Text overlay
+ *  is orthogonal (most UGC shots have one) — see `ocr_text` per-shot
+ *  and `text_overlay_pct` on the result for that signal.
  *  - talking_head: creator on camera, lip-synced with audio (real speaker)
  *  - broll_talking_head: face on camera, NOT lip-synced (someone else's clip)
  *  - talking_head_unknown: face on camera, sync ambiguous (model unsure)
- *  - text_card: no face, OCR text present (typographic shot, recipe step, list item)
- *  - broll_visual: no face, no text (product shot, scene, ambient cutaway)
+ *  - broll_visual: no face — product shot, scene, ambient cutaway, or
+ *    text-on-color card (we can't distinguish without OCR-bbox + background
+ *    analysis; left as a future split)
  */
 export type ClipType =
   | 'talking_head'
   | 'broll_talking_head'
   | 'talking_head_unknown'
-  | 'text_card'
   | 'broll_visual';
 
 export const CLIP_TYPES: ClipType[] = [
   'talking_head',
   'broll_talking_head',
   'talking_head_unknown',
-  'text_card',
   'broll_visual',
 ];
 

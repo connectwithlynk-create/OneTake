@@ -14,7 +14,6 @@ export type ClipType =
   | 'talking_head'
   | 'broll_talking_head'
   | 'talking_head_unknown'
-  | 'text_card'
   | 'broll_visual';
 
 export interface ReelShot {

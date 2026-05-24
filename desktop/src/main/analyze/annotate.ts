@@ -4,19 +4,17 @@ import type { Shot } from './scene-detect';
 import type { ShotSpeakerInfo, SpeakerVerdict } from './speaker';
 import type { ClipType, ReelShot } from './types';
 
-/** Pure derivation: shot category from face presence, OCR text, and
- *  speaker verdict. See ClipType doc for category meanings.
- *
- *  When the speaker pipeline returns 'no_face', that's authoritative —
- *  its 2.5s windowed face detection beats a single rep frame, which can
- *  fire on a one-frame partial or BlazeFace false-positive. */
+/** Pure derivation: underlying-video category from face presence + speaker
+ *  verdict. Text overlay is orthogonal (carried in ocr_text), not part of
+ *  the clip type. When the speaker pipeline returns 'no_face' that's
+ *  authoritative — its 2.5s windowed face detection beats a single rep
+ *  frame, which can fire on a one-frame partial or BlazeFace false-positive. */
 export function classifyClipType(
   hasFace: boolean,
-  ocrText: string | null,
   speakerVerdict: SpeakerVerdict,
 ): ClipType {
   if (!hasFace || speakerVerdict === 'no_face') {
-    return ocrText && ocrText.length > 0 ? 'text_card' : 'broll_visual';
+    return 'broll_visual';
   }
   switch (speakerVerdict) {
     case 'speaker':
@@ -63,7 +61,7 @@ export async function annotateShots(
       speaker_verdict: verdict,
       speaker_confidence: sp?.confidence ?? 0,
       sync_conf: sp?.sync_conf ?? 0,
-      clip_type: classifyClipType(hasFace, ocrText, verdict),
+      clip_type: classifyClipType(hasFace, verdict),
     });
   }
   return out;

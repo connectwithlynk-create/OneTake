@@ -5,7 +5,7 @@ import { detectSpeaker, type ShotSpeakerInfo } from './speaker';
 import { CLIP_TYPES, type ClipType, type ReelShot } from './types';
 
 /** Bump when the analysis algorithm changes meaningfully. */
-export const ANALYSIS_VERSION = 5;
+export const ANALYSIS_VERSION = 6;
 
 export interface ReelAnalysisInput {
   playableUrl: string;
