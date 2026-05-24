@@ -61,9 +61,11 @@ async function main(): Promise<void> {
         console.log('  face_region: (no face shots)');
       }
       console.log(
-        `  audio: energy_mean=${a.audio_energy_mean.toFixed(3)} ` +
-          `energy_std=${a.audio_energy_std.toFixed(3)} ` +
-          `silence_pct=${(a.audio_silence_pct * 100).toFixed(0)}%`,
+        `  audio: voiceover=${(a.voiceover_pct * 100).toFixed(0)}% ` +
+          `music=${(a.music_pct * 100).toFixed(0)}% ` +
+          `silence=${(a.audio_silence_pct * 100).toFixed(0)}% | ` +
+          `energy_mean=${a.audio_energy_mean.toFixed(3)} ` +
+          `energy_std=${a.audio_energy_std.toFixed(3)}`,
       );
       if (a.text_region_dominant !== null) {
         console.log(`  text_region: ${a.text_region_dominant}`);
@@ -89,11 +91,15 @@ async function main(): Promise<void> {
         const tDisplay = (
           tregions.length === 0 ? '--' : tregions.join(',')
         ).padEnd(34);
+        const audSplit =
+          `vo${(s.audio_speech_pct * 100).toFixed(0).padStart(3)}% ` +
+          `mu${(s.audio_music_pct * 100).toFixed(0).padStart(3)}% ` +
+          `sl${(s.audio_silence_pct * 100).toFixed(0).padStart(3)}%`;
         console.log(
           `    ${String(i).padStart(2, '0')}  ${s.start_ms}-${s.end_ms}ms  ` +
             `${s.clip_type.padEnd(22)} ${s.speaker_verdict.padEnd(8)} ` +
             `conf=${s.speaker_confidence.toFixed(2)} face=${fregion} h=${fsize} ` +
-            `text=${tDisplay} rms=${s.audio_rms_mean.toFixed(3)} sil=${(s.audio_silence_pct * 100).toFixed(0)}%`,
+            `text=${tDisplay} ${audSplit}`,
         );
       });
     } catch (e) {

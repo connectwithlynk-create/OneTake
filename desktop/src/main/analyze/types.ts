@@ -94,8 +94,14 @@ export interface ReelShot {
   text_moments: TextMoment[];
   /** Mean RMS amplitude in the shot, [0, 1]. */
   audio_rms_mean: number;
-  /** Fraction of the shot's 30ms frames below silence threshold, [0, 1]. */
-  audio_silence_pct: number;
   /** Peak per-frame RMS amplitude in the shot, [0, 1]. */
   audio_peak_rms: number;
+  /** Fraction of the shot's 32ms frames below silence threshold, [0, 1]. */
+  audio_silence_pct: number;
+  /** Fraction of the shot's 32ms frames flagged as speech by Silero
+   *  VAD (post-hysteresis), [0, 1]. */
+  audio_speech_pct: number;
+  /** Fraction of the shot's 32ms frames that are audible non-speech
+   *  (music, ambient, SFX), [0, 1]. */
+  audio_music_pct: number;
 }

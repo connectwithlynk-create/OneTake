@@ -7,6 +7,7 @@ import {
 import { extractShotFrames } from './frame-extractor';
 import { detectScenes } from './scene-detect';
 import { detectSpeaker, type ShotSpeakerInfo } from './speaker';
+import { runVAD, speechMaskFromProbs } from './vad';
 import {
   CLIP_TYPES,
   FRAME_REGIONS,
@@ -16,7 +17,7 @@ import {
 } from './types';
 
 /** Bump when the analysis algorithm changes meaningfully. */
-export const ANALYSIS_VERSION = 13;
+export const ANALYSIS_VERSION = 14;
 
 export interface ReelAnalysisInput {
   playableUrl: string;
@@ -64,6 +65,11 @@ export interface ReelAnalysisResult {
   audio_energy_std: number;
   /** Fraction of total duration that's near-silent. */
   audio_silence_pct: number;
+  /** Fraction of total duration flagged as speech by Silero VAD. */
+  voiceover_pct: number;
+  /** Fraction of total duration that's audible but non-speech (music,
+   *  ambient, SFX) — the "music or other non-vocal" bucket. */
+  music_pct: number;
 }
 
 function median(values: number[]): number {
@@ -105,6 +111,8 @@ export function deriveMetrics(
       audio_energy_mean: 0,
       audio_energy_std: 0,
       audio_silence_pct: 0,
+      voiceover_pct: 0,
+      music_pct: 0,
     };
   }
   const durations = shots.map((s) => s.end_ms - s.start_ms);
@@ -180,10 +188,14 @@ export function deriveMetrics(
   // Audio aggregates - duration-weighted across shots.
   let weightedRmsSum = 0;
   let weightedSilenceSum = 0;
+  let weightedSpeechSum = 0;
+  let weightedMusicSum = 0;
   for (const s of shots) {
     const w = (s.end_ms - s.start_ms) / totalDur;
     weightedRmsSum += s.audio_rms_mean * w;
     weightedSilenceSum += s.audio_silence_pct * w;
+    weightedSpeechSum += s.audio_speech_pct * w;
+    weightedMusicSum += s.audio_music_pct * w;
   }
   const audioEnergyMean = weightedRmsSum;
   // Std of per-shot RMS (unweighted) — a usable dynamic-range proxy.
@@ -215,6 +227,8 @@ export function deriveMetrics(
     audio_energy_mean: audioEnergyMean,
     audio_energy_std: audioEnergyStd,
     audio_silence_pct: weightedSilenceSum,
+    voiceover_pct: weightedSpeechSum,
+    music_pct: weightedMusicSum,
   };
 }
 
@@ -269,13 +283,42 @@ export async function analyzeReel(
   }
   console.error('[analyze] speaker detection done');
 
-  // Audio extraction + per-shot metrics. Best-effort; never aborts the
-  // pipeline (a reel with no audio track shouldn't kill analysis).
-  let shotAudio: ShotAudio[];
+  // Audio extraction + VAD + per-shot metrics. Best-effort throughout;
+  // never aborts the pipeline. VAD is independent of extraction — if VAD
+  // fails (model missing, runtime error) we still get RMS/silence/peak,
+  // just no speech/music split.
+  const audioFallback: ShotAudio[] = shots.map(() => ({
+    rms_mean: 0,
+    peak_rms: 0,
+    silence_pct: 1,
+    speech_pct: 0,
+    music_pct: 0,
+  }));
+  let shotAudio: ShotAudio[] = audioFallback;
   try {
     const samples = await extractReelAudio(input.playableUrl);
     if (samples) {
-      shotAudio = audioMetricsForShots(samples, shots);
+      let speechMask: boolean[] | undefined;
+      try {
+        const probs = await runVAD(samples);
+        if (probs) {
+          speechMask = speechMaskFromProbs(probs);
+          const speechFrames = speechMask.filter(Boolean).length;
+          console.error(
+            '[vad] ran on',
+            probs.length,
+            'frames;',
+            speechFrames,
+            'flagged as speech',
+          );
+        }
+      } catch (err) {
+        console.error(
+          '[vad] failed:',
+          err instanceof Error ? err.message : String(err),
+        );
+      }
+      shotAudio = audioMetricsForShots(samples, shots, speechMask);
       console.error(
         '[audio] extracted',
         samples.length,
@@ -283,22 +326,12 @@ export async function analyzeReel(
       );
     } else {
       console.error('[audio] extraction returned no samples');
-      shotAudio = shots.map(() => ({
-        rms_mean: 0,
-        silence_pct: 1,
-        peak_rms: 0,
-      }));
     }
   } catch (err) {
     console.error(
       '[audio] failed:',
       err instanceof Error ? err.message : String(err),
     );
-    shotAudio = shots.map(() => ({
-      rms_mean: 0,
-      silence_pct: 1,
-      peak_rms: 0,
-    }));
   }
 
   const annotated = await annotateShots(shotFrames, shots, speaker, shotAudio);

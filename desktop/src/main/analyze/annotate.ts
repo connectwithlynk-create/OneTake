@@ -135,7 +135,15 @@ export async function annotateShots(
       dur,
     );
     const sp = speaker[i];
-    const ad = audio[i] ?? { rms_mean: 0, silence_pct: 1, peak_rms: 0 };
+    const ad =
+      audio[i] ??
+      ({
+        rms_mean: 0,
+        peak_rms: 0,
+        silence_pct: 1,
+        speech_pct: 0,
+        music_pct: 0,
+      } as const);
     const hasFace = rep?.face != null;
     const verdict = sp?.verdict ?? 'unknown';
     let face_bbox: NormBBox | null = null;
@@ -160,8 +168,10 @@ export async function annotateShots(
       face_region,
       text_moments: moments,
       audio_rms_mean: ad.rms_mean,
-      audio_silence_pct: ad.silence_pct,
       audio_peak_rms: ad.peak_rms,
+      audio_silence_pct: ad.silence_pct,
+      audio_speech_pct: ad.speech_pct,
+      audio_music_pct: ad.music_pct,
     });
   }
   return out;

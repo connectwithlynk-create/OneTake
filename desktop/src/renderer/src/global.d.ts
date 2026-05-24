@@ -47,8 +47,10 @@ export interface ReelShot {
   face_region: FrameRegion | null;
   text_moments: TextMoment[];
   audio_rms_mean: number;
-  audio_silence_pct: number;
   audio_peak_rms: number;
+  audio_silence_pct: number;
+  audio_speech_pct: number;
+  audio_music_pct: number;
 }
 
 export interface TextMoment {
@@ -77,6 +79,8 @@ export interface ReelAnalysisResult {
   audio_energy_mean: number;
   audio_energy_std: number;
   audio_silence_pct: number;
+  voiceover_pct: number;
+  music_pct: number;
 }
 
 declare global {

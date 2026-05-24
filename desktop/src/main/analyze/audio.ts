@@ -7,11 +7,10 @@ import { execFile } from 'child_process';
 import type { Shot } from './scene-detect';
 
 const FFMPEG = process.env.FFMPEG_PATH || 'ffmpeg';
-const SAMPLE_RATE_VAD = 16000;
-/** ~30ms frame at 16 kHz. Used both as RMS window and as the silence
- *  detection granularity. Matches Silero VAD's expected frame size for
- *  pass 2, so the same buffer feeds both. */
-const FRAME_SAMPLES = 480;
+export const SAMPLE_RATE_VAD = 16000;
+/** 32ms at 16 kHz — matches Silero VAD's required frame size, so RMS
+ *  frames and VAD frames are 1:1 (same buffer, same indexing). */
+export const FRAME_SAMPLES = 512;
 /** Per-frame RMS below this counts as silent. Float samples in [-1, 1];
  *  0.01 is roughly -40 dBFS, a common "near silence" threshold. */
 const SILENCE_RMS = 0.01;
@@ -58,12 +57,18 @@ export function extractAudioPCM(
 }
 
 export interface ShotAudio {
-  /** Mean RMS amplitude across the shot's 30ms frames, in [0, 1]. */
+  /** Mean RMS amplitude across the shot's 32ms frames, in [0, 1]. */
   rms_mean: number;
-  /** Fraction of the shot's frames whose RMS < SILENCE_RMS, in [0, 1]. */
-  silence_pct: number;
   /** Peak per-frame RMS in the shot, in [0, 1]. */
   peak_rms: number;
+  /** Fraction of the shot's frames whose RMS < SILENCE_RMS. */
+  silence_pct: number;
+  /** Fraction of the shot's frames flagged as speech by Silero VAD
+   *  (after hysteresis). 0 when no VAD probs are supplied. */
+  speech_pct: number;
+  /** Fraction of the shot's frames that are non-speech AND above the
+   *  silence threshold — effectively "music or non-speech audio." */
+  music_pct: number;
 }
 
 /** Extract the entire reel's audio as float32 mono samples in [-1, 1]
@@ -117,10 +122,15 @@ function rms(samples: Float32Array, start: number, end: number): number {
   return n > 0 ? Math.sqrt(sum / n) : 0;
 }
 
-/** Compute per-shot audio metrics from the reel's full sample buffer. */
+/** Compute per-shot audio metrics from the reel's full sample buffer.
+ *  When `speechMask` is supplied (one bool per FRAME_SAMPLES frame from
+ *  Silero VAD post-hysteresis), shots get speech_pct + music_pct split;
+ *  otherwise both are 0. Silence, speech, music are mutually exclusive
+ *  per frame: silent first, then speech, then everything else = music. */
 export function audioMetricsForShots(
   samples: Float32Array,
   shots: Shot[],
+  speechMask?: boolean[],
 ): ShotAudio[] {
   return shots.map((shot) => {
     const startSample = Math.floor(
@@ -128,23 +138,50 @@ export function audioMetricsForShots(
     );
     const endSample = Math.floor((shot.end_ms / 1000) * SAMPLE_RATE_VAD);
     if (endSample <= startSample || startSample >= samples.length) {
-      return { rms_mean: 0, silence_pct: 1, peak_rms: 0 };
+      return {
+        rms_mean: 0,
+        peak_rms: 0,
+        silence_pct: 1,
+        speech_pct: 0,
+        music_pct: 0,
+      };
     }
     let sumRms = 0;
     let silentFrames = 0;
+    let speechFrames = 0;
+    let musicFrames = 0;
     let peak = 0;
     let frames = 0;
     for (let s = startSample; s < endSample; s += FRAME_SAMPLES) {
       const r = rms(samples, s, s + FRAME_SAMPLES);
       sumRms += r;
-      if (r < SILENCE_RMS) silentFrames++;
       if (r > peak) peak = r;
+      const frameIdx = Math.floor(s / FRAME_SAMPLES);
+      const isSpeech = speechMask?.[frameIdx] === true;
+      if (r < SILENCE_RMS) {
+        silentFrames++;
+      } else if (isSpeech) {
+        speechFrames++;
+      } else {
+        musicFrames++;
+      }
       frames++;
     }
+    if (frames === 0) {
+      return {
+        rms_mean: 0,
+        peak_rms: 0,
+        silence_pct: 1,
+        speech_pct: 0,
+        music_pct: 0,
+      };
+    }
     return {
-      rms_mean: frames > 0 ? sumRms / frames : 0,
-      silence_pct: frames > 0 ? silentFrames / frames : 1,
+      rms_mean: sumRms / frames,
       peak_rms: peak,
+      silence_pct: silentFrames / frames,
+      speech_pct: speechFrames / frames,
+      music_pct: musicFrames / frames,
     };
   });
 }
