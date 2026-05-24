@@ -1,25 +1,30 @@
-// SFX (sound effect) detection via energy-based onset analysis.
+// SFX (sound effect) detection via high-passed energy onset analysis.
 //
-// Computes per-frame RMS over the audio buffer (same FRAME_SAMPLES as
-// VAD so indexing is shared), finds frames where energy spikes
-// significantly above a lagging baseline, applies non-max suppression,
-// and filters out onsets that fall inside VAD-flagged speech (those are
-// word boundaries, not SFX). Remaining onsets characterize the
-// creator's SFX usage: density + alignment with visual cuts.
+// UGC reels frequently layer SFX (whooshes, dings, stings, risers) on
+// top of continuous voiceover. Energy onset detection on the raw audio
+// can't distinguish those from word onsets, and gating by VAD's speech
+// mask drops them entirely (because they fire during speech). The fix:
+// high-pass the audio first. Speech is dominantly 100-3000 Hz; UGC SFX
+// carry significant energy above ~3 kHz. After HPF the speech baseline
+// drops dramatically while SFX onsets stay strong — clean S/N.
 //
 // No new model — pure signal processing on the audio buffer the VAD
 // pipeline already extracted.
 import { FRAME_SAMPLES, SAMPLE_RATE_VAD } from './audio';
 import type { Shot } from './scene-detect';
 
+/** High-pass cutoff (Hz) applied before onset detection. ~3 kHz strips
+ *  most speech-band energy and keeps whoosh/ding/sting content. */
+const HPF_CUTOFF_HZ = 3000;
 /** Frames averaged into the lagging baseline. ~192ms at 32ms/frame. */
 const SMOOTHING_FRAMES = 6;
-/** Current-frame RMS / baseline ratio that counts as an onset. 2.0 = a
- *  sudden doubling of energy relative to the recent average. */
+/** Current-frame RMS / baseline ratio that counts as an onset. */
 const ONSET_RATIO = 2.0;
-/** Floor on absolute RMS at the onset — keeps quiet-to-less-quiet
- *  ratio spikes from firing in near-silence. ~-26 dBFS. */
-const ONSET_MIN_RMS = 0.05;
+/** Floor on absolute RMS (on the HPF'd signal) at the onset — keeps
+ *  quiet-to-less-quiet ratio spikes from firing in near-silence. The
+ *  HPF significantly reduces overall amplitude vs raw audio, so the
+ *  floor is correspondingly lower. */
+const ONSET_MIN_RMS = 0.008;
 /** Minimum spacing between detected onsets, in frames. ~96ms. */
 const NMS_FRAMES = 3;
 /** Window around a shot's start to count an onset as "at-cut", in ms. */
@@ -47,14 +52,35 @@ function perFrameRms(samples: Float32Array): Float32Array {
   return out;
 }
 
-/** Detect SFX-style onsets in the audio buffer. When `speechMask` is
- *  supplied, onsets inside speech frames are dropped (those are word
- *  boundaries, not SFX). */
+/** First-order IIR high-pass filter. Cheap, single-pass, attenuates
+ *  energy below `cutoffHz`. Good enough for separating SFX (HF
+ *  transients) from voice (mid-band). */
+function highPass(
+  samples: Float32Array,
+  cutoffHz: number,
+  sampleRate: number,
+): Float32Array {
+  const RC = 1.0 / (2 * Math.PI * cutoffHz);
+  const dt = 1.0 / sampleRate;
+  const alpha = RC / (RC + dt);
+  const out = new Float32Array(samples.length);
+  out[0] = samples[0];
+  for (let i = 1; i < samples.length; i++) {
+    out[i] = alpha * (out[i - 1] + samples[i] - samples[i - 1]);
+  }
+  return out;
+}
+
+/** Detect SFX-style onsets in the audio buffer. The `speechMask`
+ *  parameter is kept for API compatibility but no longer gates onsets
+ *  — the high-pass front-end suppresses speech energy enough that we
+ *  detect SFX layered over voiceover too. */
 export function detectSfxOnsets(
   samples: Float32Array,
-  speechMask?: boolean[],
+  _speechMask?: boolean[],
 ): SfxEvent[] {
-  const rms = perFrameRms(samples);
+  const hpf = highPass(samples, HPF_CUTOFF_HZ, SAMPLE_RATE_VAD);
+  const rms = perFrameRms(hpf);
   const n = rms.length;
   if (n < SMOOTHING_FRAMES + 2) return [];
 
@@ -75,7 +101,6 @@ export function detectSfxOnsets(
   const events: SfxEvent[] = [];
   let lastEventFrame = -NMS_FRAMES - 1;
   for (let i = 1; i < n - 1; i++) {
-    if (speechMask?.[i]) continue;
     if (rms[i] < ONSET_MIN_RMS) continue;
     const baseline = Math.max(smoothed[i - 1], 1e-6);
     const ratio = rms[i] / baseline;
