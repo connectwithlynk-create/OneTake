@@ -5,9 +5,11 @@
 import { execFile } from 'child_process';
 import jpeg from 'jpeg-js';
 import { detectFaceData, type FaceDetection } from './face';
+import type { Shot } from './scene-detect';
 
 const FFMPEG = process.env.FFMPEG_PATH || 'ffmpeg';
 const CONCURRENCY = 6;
+const SAMPLES_PER_SHOT = 3;
 
 export interface ExtractedFrame {
   jpegBase64: string;
@@ -122,4 +124,64 @@ export async function extractFrames(
   }
 
   return extracted.map((item) => (item ? item.frame : null));
+}
+
+/**
+ * Pick one representative frame per shot from multiple sampled timestamps.
+ * For each shot, extracts SAMPLES_PER_SHOT frames spread evenly across the
+ * shot duration and runs face detection on each. Selection:
+ *  - If any candidate has a face: pick the one with the LARGEST face bbox.
+ *  - Otherwise: pick the middle candidate (closest to the shot midpoint).
+ *  - If all extractions failed: null for that shot.
+ *
+ * Catches faces that happen to miss the exact midpoint — common in shots
+ * with motion, brief occlusion, or position shifts. Costs ~SAMPLES_PER_SHOT×
+ * the face-detection budget; ffmpeg seeks are cheap.
+ */
+export async function extractShotFrames(
+  url: string,
+  shots: Shot[],
+  options?: { maxDimension?: number; samplesPerShot?: number },
+): Promise<(ExtractedFrame | null)[]> {
+  if (!url || shots.length === 0) return [];
+  const samples = options?.samplesPerShot ?? SAMPLES_PER_SHOT;
+
+  // Spread N timestamps evenly across each shot, avoiding the very edges
+  // (k/(N+1)) so we don't land on shot-boundary frames.
+  const allTimestamps: number[] = [];
+  const shotIndex: number[] = [];
+  for (let i = 0; i < shots.length; i++) {
+    const s = shots[i];
+    const dur = s.end_ms - s.start_ms;
+    for (let k = 1; k <= samples; k++) {
+      allTimestamps.push(Math.round(s.start_ms + (dur * k) / (samples + 1)));
+      shotIndex.push(i);
+    }
+  }
+
+  const frames = await extractFrames(url, allTimestamps, options);
+
+  const byShot: (ExtractedFrame | null)[][] = shots.map(() => []);
+  for (let i = 0; i < frames.length; i++) {
+    byShot[shotIndex[i]].push(frames[i]);
+  }
+
+  return byShot.map((candidates) => {
+    const withFace = candidates.filter(
+      (c): c is ExtractedFrame => c !== null && c.face !== null,
+    );
+    if (withFace.length > 0) {
+      withFace.sort(
+        (a, b) =>
+          b.face!.box.w * b.face!.box.h - a.face!.box.w * a.face!.box.h,
+      );
+      return withFace[0];
+    }
+    const nonNull = candidates.filter(
+      (c): c is ExtractedFrame => c !== null,
+    );
+    if (nonNull.length === 0) return null;
+    // Middle candidate ≈ shot midpoint.
+    return nonNull[Math.floor(nonNull.length / 2)];
+  });
 }

@@ -1,5 +1,5 @@
 import { annotateShots } from './annotate';
-import { extractFrames } from './frame-extractor';
+import { extractShotFrames } from './frame-extractor';
 import { detectScenes } from './scene-detect';
 import { detectSpeaker, type ShotSpeakerInfo } from './speaker';
 import {
@@ -11,7 +11,7 @@ import {
 } from './types';
 
 /** Bump when the analysis algorithm changes meaningfully. */
-export const ANALYSIS_VERSION = 8;
+export const ANALYSIS_VERSION = 9;
 
 export interface ReelAnalysisInput {
   playableUrl: string;
@@ -169,14 +169,19 @@ export async function analyzeReel(
   console.error('[analyze] start, duration', input.durationMs, 'ms');
   const shots = await detectScenes(input.playableUrl, input.durationMs);
   console.error('[analyze] detected', shots.length, 'shots');
-  const midpoints = shots.map((s) => Math.round((s.start_ms + s.end_ms) / 2));
-  const frames = await extractFrames(input.playableUrl, midpoints);
+  // Multi-frame sampling: each shot gets several candidate timestamps and
+  // we pick the rep frame with the best face detection. Catches faces
+  // that miss the exact midpoint (motion, brief occlusion, position shifts).
+  const frames = await extractShotFrames(input.playableUrl, shots);
+  const facesFound = frames.filter((f) => f?.face != null).length;
   console.error(
     '[analyze] extracted',
     frames.filter(Boolean).length,
     'of',
     shots.length,
-    'rep frames',
+    'rep frames (',
+    facesFound,
+    'with face)',
   );
 
   // Speaker detection (SyncNet) - best-effort; never aborts the pipeline.
