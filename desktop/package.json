@@ -10,6 +10,7 @@
     "start": "electron-vite preview"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.98.0",
     "@tensorflow-models/face-detection": "^1.0.3",
     "@tensorflow/tfjs": "^4.22.0",
     "@tensorflow/tfjs-backend-wasm": "^4.22.0",
@@ -26,6 +27,7 @@
     "@vitejs/plugin-react": "^5.2.0",
     "electron": "^41.7.0",
     "electron-vite": "^5.0.0",
+    "tsx": "^4.22.3",
     "typescript": "^6.0.3",
     "vite": "^7.3.3"
   }

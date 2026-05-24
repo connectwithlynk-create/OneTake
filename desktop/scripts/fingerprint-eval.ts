@@ -5,7 +5,10 @@
 // Run from desktop/:
 //   SYNCNET_MODEL_DIR=resources/models npx tsx scripts/fingerprint-eval.ts <url1> <url2> [...]
 import { analyzeReel, type ReelAnalysisResult } from '../src/main/analyze';
-import { assembleFingerprint } from '../src/main/analyze/fingerprint';
+import {
+  assembleFingerprint,
+  assembleFingerprintWithHooks,
+} from '../src/main/analyze/fingerprint';
 import { resolveReel } from '../src/main/resolver';
 
 async function main(): Promise<void> {
@@ -49,7 +52,12 @@ async function main(): Promise<void> {
     return;
   }
 
-  const fp = assembleFingerprint(results);
+  // Use the async assembler when ANTHROPIC_API_KEY is set so hooks get
+  // clustered into reusable archetypes; otherwise fall back to the
+  // pure-function output (hook_archetypes will be null).
+  const fp = process.env.ANTHROPIC_API_KEY
+    ? await assembleFingerprintWithHooks(results)
+    : assembleFingerprint(results);
 
   console.log('\n=== CollectionFingerprint ===');
   console.log(`n_reels=${fp.n_reels}  n_shots=${fp.n_shots}`);
@@ -141,6 +149,25 @@ async function main(): Promise<void> {
   for (const h of fp.hook_texts) {
     const oneLine = h.replace(/\s+/g, ' ').slice(0, 80);
     console.log(`  "${oneLine}"`);
+  }
+
+  if (fp.hook_archetypes && fp.hook_archetypes.length > 0) {
+    console.log(`\nHook archetypes:`);
+    for (const a of fp.hook_archetypes) {
+      console.log(
+        `  [${(a.weight * 100).toFixed(0)}%] ${a.template}\n` +
+          `         ${a.description}`,
+      );
+      for (const ex of a.examples) {
+        console.log(`         e.g. "${ex.replace(/\s+/g, ' ').slice(0, 80)}"`);
+      }
+    }
+  } else if (process.env.ANTHROPIC_API_KEY) {
+    console.log(`\nHook archetypes: (clustering returned no results)`);
+  } else {
+    console.log(
+      `\nHook archetypes: (set ANTHROPIC_API_KEY to enable clustering)`,
+    );
   }
 }
 

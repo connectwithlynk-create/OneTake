@@ -114,6 +114,13 @@ export interface ReelAnalysisResult {
   sfx_classified_total: number;
 }
 
+export interface HookArchetype {
+  template: string;
+  weight: number;
+  examples: string[];
+  description: string;
+}
+
 declare global {
   interface Window {
     api: {

@@ -6,6 +6,7 @@
 // persistence. The renderer (or any downstream consumer) calls this
 // after the analyzer has produced per-reel results.
 import type { ReelAnalysisResult } from './analyze';
+import { clusterHooks, type HookArchetype } from './hook-cluster';
 import { SFX_TYPES, type SfxType } from './sfx-classify';
 import {
   CLIP_TYPES,
@@ -14,6 +15,8 @@ import {
   type FrameRegion,
   type ReelShot,
 } from './types';
+
+export type { HookArchetype } from './hook-cluster';
 
 /** Bump when the fingerprint shape or aggregation semantics change. */
 export const FINGERPRINT_VERSION = 1;
@@ -100,9 +103,13 @@ export interface CollectionFingerprint {
   sfx_classified_total: number;
 
   // ---- Hooks ----
-  /** Hook text from the first shot of each reel — raw strings, no
-   *  clustering yet (future: cluster into archetypes). */
+  /** Hook text from the first shot of each reel — raw strings, in
+   *  reel order. Always populated. */
   hook_texts: string[];
+  /** LLM-clustered reusable hook templates with weight + examples.
+   *  Null when clustering wasn't run (no API key) or failed. When
+   *  null, callers should fall back to hook_texts. */
+  hook_archetypes: HookArchetype[] | null;
 
   // ---- Beat template (autocut / script-gen bridge) ----
   beat_template: FingerprintBeat[];
@@ -223,6 +230,19 @@ function buildBeatTemplate(allShots: ReelShot[]): FingerprintBeat[] {
  *    face_region only averaged over face-bearing reels).
  *  - beat_template: pooled across ALL shots in the collection.
  */
+/** Async variant that also calls Claude to cluster the hooks into
+ *  archetypes. Falls back to the pure-function output (with
+ *  hook_archetypes=null) if no ANTHROPIC_API_KEY is set or the call
+ *  fails — clustering is opt-in, not load-bearing. */
+export async function assembleFingerprintWithHooks(
+  reels: ReelAnalysisResult[],
+): Promise<CollectionFingerprint> {
+  const fp = assembleFingerprint(reels);
+  if (fp.hook_texts.length === 0) return fp;
+  const archetypes = await clusterHooks(fp.hook_texts);
+  return { ...fp, hook_archetypes: archetypes };
+}
+
 export function assembleFingerprint(
   reels: ReelAnalysisResult[],
 ): CollectionFingerprint {
@@ -284,6 +304,10 @@ export function assembleFingerprint(
     hook_texts: reels
       .map((r) => r.hook_text)
       .filter((t): t is string => t !== null && t.length > 0),
+    // Filled in by assembleFingerprintWithHooks when an API key is
+    // available; pure-function callers get null and can fall back to
+    // hook_texts.
+    hook_archetypes: null,
 
     beat_template: buildBeatTemplate(allShots),
   };
