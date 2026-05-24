@@ -2,10 +2,15 @@ import { annotateShots } from './annotate';
 import { extractFrames } from './frame-extractor';
 import { detectScenes } from './scene-detect';
 import { detectSpeaker, type ShotSpeakerInfo } from './speaker';
-import { CLIP_TYPES, type ClipType, type ReelShot } from './types';
+import {
+  CLIP_TYPES,
+  type ClipType,
+  type FrameRegion,
+  type ReelShot,
+} from './types';
 
 /** Bump when the analysis algorithm changes meaningfully. */
-export const ANALYSIS_VERSION = 6;
+export const ANALYSIS_VERSION = 7;
 
 export interface ReelAnalysisInput {
   playableUrl: string;
@@ -31,6 +36,12 @@ export interface ReelAnalysisResult {
   /** Duration-weighted share of each clip type, summing to ~1. Empty
    *  categories are present with value 0 so the shape is stable. */
   clip_type_distribution: Record<ClipType, number>;
+  /** Vertical-third region most face shots sit in, or null if no faces.
+   *  "mixed" when no single region claims a clear majority (>50%). */
+  face_region_dominant: FrameRegion | 'mixed' | null;
+  /** Median face bbox HEIGHT (normalized 0-1) across all face shots — a
+   *  proxy for typical face size / closeness. Null if no faces. */
+  face_size_median: number | null;
 }
 
 function median(values: number[]): number {
@@ -64,6 +75,8 @@ export function deriveMetrics(
       real_speaker_pct: 0,
       broll_talking_head_pct: 0,
       clip_type_distribution: emptyClipDistribution(),
+      face_region_dominant: null,
+      face_size_median: null,
     };
   }
   const durations = shots.map((s) => s.end_ms - s.start_ms);
@@ -87,6 +100,32 @@ export function deriveMetrics(
     clipDist[s.clip_type] += (s.end_ms - s.start_ms) / totalDur;
   }
 
+  // Face layout aggregates - face shots only.
+  const faceShots = shots.filter((s) => s.face_bbox !== null);
+  let faceRegionDominant: FrameRegion | 'mixed' | null = null;
+  let faceSizeMedian: number | null = null;
+  if (faceShots.length > 0) {
+    const regionCounts: Record<FrameRegion, number> = {
+      top: 0,
+      middle: 0,
+      bottom: 0,
+    };
+    for (const s of faceShots) {
+      if (s.face_region) regionCounts[s.face_region]++;
+    }
+    const total = faceShots.length;
+    const [topRegion, topCount] = Object.entries(regionCounts).sort(
+      ([, a], [, b]) => b - a,
+    )[0] as [FrameRegion, number];
+    faceRegionDominant = topCount / total > 0.5 ? topRegion : 'mixed';
+    const heights = faceShots.map((s) => s.face_bbox?.h ?? 0).sort();
+    const mid = Math.floor(heights.length / 2);
+    faceSizeMedian =
+      heights.length % 2
+        ? heights[mid]
+        : (heights[mid - 1] + heights[mid]) / 2;
+  }
+
   const hook = shots[0];
   return {
     hook_text: hook.ocr_text,
@@ -99,6 +138,8 @@ export function deriveMetrics(
     real_speaker_pct: realSpeaker / shots.length,
     broll_talking_head_pct: brollHead / shots.length,
     clip_type_distribution: clipDist,
+    face_region_dominant: faceRegionDominant,
+    face_size_median: faceSizeMedian,
   };
 }
 
@@ -132,7 +173,7 @@ export async function analyzeReel(
   // Pass the rep-frame face flags so no-face shots skip the heavy work.
   let speaker: ShotSpeakerInfo[];
   try {
-    const hasFaceHints = frames.map((f) => f?.hasFace ?? false);
+    const hasFaceHints = frames.map((f) => f?.face != null);
     speaker = await detectSpeaker(input.playableUrl, shots, hasFaceHints);
   } catch (err) {
     console.error(

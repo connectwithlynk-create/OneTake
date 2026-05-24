@@ -4,7 +4,7 @@
 // timestamps - a failed timestamp is null, so callers keep their indexing.
 import { execFile } from 'child_process';
 import jpeg from 'jpeg-js';
-import { detectFace } from './face';
+import { detectFaceData, type FaceDetection } from './face';
 
 const FFMPEG = process.env.FFMPEG_PATH || 'ffmpeg';
 const CONCURRENCY = 6;
@@ -14,7 +14,8 @@ export interface ExtractedFrame {
   width: number;
   height: number;
   timestampMs: number;
-  hasFace: boolean;
+  /** Largest detected face on this frame in pixel coords, or null. */
+  face: FaceDetection | null;
 }
 
 function ffmpegFrame(
@@ -103,7 +104,7 @@ export async function extractFrames(
       width: decoded.width,
       height: decoded.height,
       timestampMs: ms,
-      hasFace: false,
+      face: null,
     };
     return { frame, pixels: decoded.data };
   });
@@ -112,7 +113,7 @@ export async function extractFrames(
   // one shared context, not suited to the concurrent ffmpeg pool.
   for (const item of extracted) {
     if (item) {
-      item.frame.hasFace = await detectFace(
+      item.frame.face = await detectFaceData(
         item.pixels,
         item.frame.width,
         item.frame.height,

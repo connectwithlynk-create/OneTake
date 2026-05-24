@@ -23,6 +23,18 @@ export const CLIP_TYPES: ClipType[] = [
   'broll_visual',
 ];
 
+/** Normalized bounding box (0-1 in both axes), origin top-left. */
+export interface NormBBox {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+/** Vertical-third region a face/text sits in. Derived from a centroid Y
+ *  in [0,1]. */
+export type FrameRegion = 'top' | 'middle' | 'bottom';
+
 /** One detected shot with its annotation. Field names mirror the
  *  analysis result so persistence stays a 1:1 write. */
 export interface ReelShot {
@@ -40,4 +52,8 @@ export interface ReelShot {
   sync_conf: number;
   /** Editorial clip type derived from has_face + ocr_text + speaker_verdict. */
   clip_type: ClipType;
+  /** Largest face bbox on the rep frame, normalized 0-1, or null. */
+  face_bbox: NormBBox | null;
+  /** Vertical third the face centroid sits in. Null if no face. */
+  face_region: FrameRegion | null;
 }

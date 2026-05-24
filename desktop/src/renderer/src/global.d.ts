@@ -16,6 +16,15 @@ export type ClipType =
   | 'talking_head_unknown'
   | 'broll_visual';
 
+export type FrameRegion = 'top' | 'middle' | 'bottom';
+
+export interface NormBBox {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
 export interface ReelShot {
   start_ms: number;
   end_ms: number;
@@ -25,6 +34,8 @@ export interface ReelShot {
   speaker_confidence: number;
   sync_conf: number;
   clip_type: ClipType;
+  face_bbox: NormBBox | null;
+  face_region: FrameRegion | null;
 }
 
 export interface ReelAnalysisResult {
@@ -39,6 +50,8 @@ export interface ReelAnalysisResult {
   real_speaker_pct: number;
   broll_talking_head_pct: number;
   clip_type_distribution: Record<ClipType, number>;
+  face_region_dominant: FrameRegion | 'mixed' | null;
+  face_size_median: number | null;
 }
 
 declare global {

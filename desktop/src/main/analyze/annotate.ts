@@ -2,7 +2,34 @@ import type { ExtractedFrame } from './frame-extractor';
 import { recognizeText } from './ocr';
 import type { Shot } from './scene-detect';
 import type { ShotSpeakerInfo, SpeakerVerdict } from './speaker';
-import type { ClipType, ReelShot } from './types';
+import type {
+  ClipType,
+  FrameRegion,
+  NormBBox,
+  ReelShot,
+} from './types';
+
+/** Vertical thirds: top, middle, bottom from a normalized centroid Y. */
+export function regionForY(y: number): FrameRegion {
+  if (y < 1 / 3) return 'top';
+  if (y < 2 / 3) return 'middle';
+  return 'bottom';
+}
+
+/** Normalize a face bbox by frame dimensions and clamp to [0,1]. */
+function normalizeBBox(
+  box: { x: number; y: number; w: number; h: number },
+  width: number,
+  height: number,
+): NormBBox {
+  const clamp = (v: number): number => Math.max(0, Math.min(1, v));
+  return {
+    x: clamp(box.x / width),
+    y: clamp(box.y / height),
+    w: clamp(box.w / width),
+    h: clamp(box.h / height),
+  };
+}
 
 /** Pure derivation: underlying-video category from face presence + speaker
  *  verdict. Text overlay is orthogonal (carried in ocr_text), not part of
@@ -51,8 +78,14 @@ export async function annotateShots(
       }
     }
     const sp = speaker[i];
-    const hasFace = rep?.hasFace ?? false;
+    const hasFace = rep?.face != null;
     const verdict = sp?.verdict ?? 'unknown';
+    let face_bbox: NormBBox | null = null;
+    let face_region: FrameRegion | null = null;
+    if (rep?.face && rep.width > 0 && rep.height > 0) {
+      face_bbox = normalizeBBox(rep.face.box, rep.width, rep.height);
+      face_region = regionForY(face_bbox.y + face_bbox.h / 2);
+    }
     out.push({
       start_ms: shots[i].start_ms,
       end_ms: shots[i].end_ms,
@@ -62,6 +95,8 @@ export async function annotateShots(
       speaker_confidence: sp?.confidence ?? 0,
       sync_conf: sp?.sync_conf ?? 0,
       clip_type: classifyClipType(hasFace, verdict),
+      face_bbox,
+      face_region,
     });
   }
   return out;

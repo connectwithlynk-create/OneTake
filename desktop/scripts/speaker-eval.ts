@@ -46,11 +46,18 @@ async function main(): Promise<void> {
         .map(([t, pct]) => `${t} ${(pct * 100).toFixed(0)}%`)
         .join(' | ');
       console.log(`  clip_types: ${distLine || '(none)'}`);
+      const faceLine =
+        a.face_region_dominant !== null
+          ? `face_region: ${a.face_region_dominant} | face_size_median: ${(a.face_size_median ?? 0).toFixed(2)}`
+          : 'face_region: (no face shots)';
+      console.log(`  ${faceLine}`);
       a.shots.forEach((s, i) => {
+        const region = s.face_region ? s.face_region.padEnd(6) : '------';
+        const fsize = s.face_bbox ? s.face_bbox.h.toFixed(2) : '----';
         console.log(
           `    ${String(i).padStart(2, '0')}  ${s.start_ms}-${s.end_ms}ms  ` +
             `${s.clip_type.padEnd(22)} ${s.speaker_verdict.padEnd(8)} ` +
-            `conf=${s.speaker_confidence.toFixed(2)}`,
+            `conf=${s.speaker_confidence.toFixed(2)} face=${region} h=${fsize}`,
         );
       });
     } catch (e) {
