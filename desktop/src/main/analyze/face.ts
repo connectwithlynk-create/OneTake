@@ -107,8 +107,49 @@ function rgbaToRgb(
   return rgb;
 }
 
+/** Symmetric padding ratio per side. BlazeFace drops faces flush against
+ *  the frame edge; padding with neutral gray gives the detector context
+ *  around an edge face so it can fire. 0.2 means 20% added on each side. */
+const FACE_PAD_RATIO = 0.2;
+
+interface PaddedRgba {
+  rgba: Uint8Array;
+  width: number;
+  height: number;
+  padX: number;
+  padY: number;
+}
+
+function padRgba(rgba: Uint8Array, width: number, height: number): PaddedRgba {
+  const padX = Math.round(width * FACE_PAD_RATIO);
+  const padY = Math.round(height * FACE_PAD_RATIO);
+  const newW = width + 2 * padX;
+  const newH = height + 2 * padY;
+  const out = new Uint8Array(newW * newH * 4);
+  // Neutral gray, opaque alpha.
+  for (let i = 0; i < newW * newH; i++) {
+    const o = i * 4;
+    out[o] = 128;
+    out[o + 1] = 128;
+    out[o + 2] = 128;
+    out[o + 3] = 255;
+  }
+  for (let y = 0; y < height; y++) {
+    const srcRow = y * width * 4;
+    const dstRow = ((y + padY) * newW + padX) * 4;
+    out.set(rgba.subarray(srcRow, srcRow + width * 4), dstRow);
+  }
+  return { rgba: out, width: newW, height: newH, padX, padY };
+}
+
 /** Largest detected face - box plus eye/mouth keypoints. Null on no face
- *  or error, so one bad frame never aborts analysis. */
+ *  or error, so one bad frame never aborts analysis.
+ *
+ *  Input is padded with neutral gray before detection so faces flush
+ *  against an edge still have context for BlazeFace to fire. Returned
+ *  coordinates are mapped back to the original frame, so an edge face
+ *  can have negative x/y (the box extends slightly past the visible
+ *  frame). Downstream normalization should accept that. */
 export async function detectFaceData(
   rgba: Uint8Array,
   width: number,
@@ -116,9 +157,10 @@ export async function detectFaceData(
 ): Promise<FaceDetection | null> {
   try {
     const detector = await getDetector();
+    const padded = padRgba(rgba, width, height);
     const input = tf.tensor3d(
-      rgbaToRgb(rgba, width, height),
-      [height, width, 3],
+      rgbaToRgb(padded.rgba, padded.width, padded.height),
+      [padded.height, padded.width, 3],
       'int32',
     );
     const faces = await detector.estimateFaces(input);
@@ -132,15 +174,15 @@ export async function detectFaceData(
     }
     const kp = (name: string): Point | undefined => {
       const k = best.keypoints?.find((p) => p.name === name);
-      return k ? { x: k.x, y: k.y } : undefined;
+      return k ? { x: k.x - padded.padX, y: k.y - padded.padY } : undefined;
     };
     const le = kp('leftEye');
     const re = kp('rightEye');
     const mc = kp('mouthCenter');
     return {
       box: {
-        x: best.box.xMin,
-        y: best.box.yMin,
+        x: best.box.xMin - padded.padX,
+        y: best.box.yMin - padded.padY,
         w: best.box.width,
         h: best.box.height,
       },

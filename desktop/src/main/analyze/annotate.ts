@@ -18,18 +18,19 @@ export function regionForXY(x: number, y: number): FrameRegion {
   return `${row}_${col}` as FrameRegion;
 }
 
-/** Normalize a face bbox by frame dimensions and clamp to [0,1]. */
+/** Normalize a face bbox by frame dimensions. Coords may be slightly
+ *  negative or exceed 1 when an edge-framed face extends past the visible
+ *  frame — that's accurate, not a bug, and consumers should handle it. */
 function normalizeBBox(
   box: { x: number; y: number; w: number; h: number },
   width: number,
   height: number,
 ): NormBBox {
-  const clamp = (v: number): number => Math.max(0, Math.min(1, v));
   return {
-    x: clamp(box.x / width),
-    y: clamp(box.y / height),
-    w: clamp(box.w / width),
-    h: clamp(box.h / height),
+    x: box.x / width,
+    y: box.y / height,
+    w: box.w / width,
+    h: box.h / height,
   };
 }
 
