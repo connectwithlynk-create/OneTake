@@ -3,7 +3,10 @@
 // aggregation logic against multi-reel input.
 //
 // Run from desktop/:
-//   SYNCNET_MODEL_DIR=resources/models npx tsx scripts/fingerprint-eval.ts <url1> <url2> [...]
+//   npx tsx scripts/fingerprint-eval.ts <url1> <url2> [...]
+// Keys + config: copy .env.example -> .env and fill in OPENAI_API_KEY
+// for hook clustering. SYNCNET_MODEL_DIR defaults to resources/models.
+import './_env';
 import { analyzeReel, type ReelAnalysisResult } from '../src/main/analyze';
 import {
   assembleFingerprint,

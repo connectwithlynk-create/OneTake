@@ -13,6 +13,7 @@
 //     --external:onnxruntime-web
 //   LIGHT_ASD_MODEL_PATH="$PWD/resources/models/light-asd.onnx" \
 //     node /tmp/eval.cjs <reel-url> [reel-url ...]
+import './_env';
 import { analyzeReel } from '../src/main/analyze';
 import { resolveReel } from '../src/main/resolver';
 
