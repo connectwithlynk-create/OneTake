@@ -106,12 +106,16 @@ async function main(): Promise<void> {
             `conf=${s.speaker_confidence.toFixed(2)} face=${fregion} h=${fsize} ` +
             `text=${tDisplay} ${audSplit}`,
         );
-        for (const ev of s.sfx_matches) {
-          const top = ev.matches[0];
-          if (!top) continue;
-          const sim = top.similarity.toFixed(2);
+        for (const ev of s.sfx_classifications) {
+          const f = ev.features;
           console.log(
-            `        sfx@${String(ev.ms).padStart(5)}ms -> "${top.name}" (sim=${sim}, ${top.slug})`,
+            `        sfx@${String(ev.ms).padStart(5)}ms  ${ev.type.padEnd(15)} ` +
+              `conf=${ev.confidence.toFixed(2)}  ` +
+              `spike=${f.spike_ratio.toFixed(1)}x ` +
+              `cent=${(f.delta_centroid_hz / 1000).toFixed(1)}kHz ` +
+              `flat=${f.delta_flatness.toFixed(2)} ` +
+              `voice=${(f.delta_voice_band_ratio * 100).toFixed(0)}% ` +
+              `hi=${(f.delta_high_band_ratio * 100).toFixed(0)}%`,
           );
         }
       });

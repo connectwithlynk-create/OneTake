@@ -6,6 +6,7 @@
 // persistence. The renderer (or any downstream consumer) calls this
 // after the analyzer has produced per-reel results.
 import type { ReelAnalysisResult } from './analyze';
+import { SFX_TYPES, type SfxType } from './sfx-classify';
 import {
   CLIP_TYPES,
   FRAME_REGIONS,
@@ -16,22 +17,6 @@ import {
 
 /** Bump when the fingerprint shape or aggregation semantics change. */
 export const FINGERPRINT_VERSION = 1;
-
-export interface TopSfxUsage {
-  slug: string;
-  name: string;
-  source_url: string;
-  /** Number of onsets across the collection that matched this entry
-   *  as their top-1 with similarity >= MIN_MATCH_SIMILARITY. */
-  count: number;
-  /** Average top-1 similarity across the matching onsets. */
-  mean_similarity: number;
-}
-
-/** Minimum top-1 cosine similarity for a match to count toward
- *  top_sfx_used. Below this we treat the match as noise. Tune by eye
- *  once we see real data. */
-const MIN_MATCH_SIMILARITY = 0.85;
 
 /** One canonical "beat" the creator uses — derived by grouping shots
  *  across the collection by clip_type and computing per-bucket stats.
@@ -105,10 +90,14 @@ export interface CollectionFingerprint {
    *  shot boundary. Tells you whether this creator uses SFX as
    *  transition stings or as ambient embellishment. */
   sfx_at_cuts_pct: number;
-  /** Top library entries this creator's reels use, by total occurrence
-   *  count across the collection. Each entry's matches are deduped per
-   *  onset (top-1 only) so an onset can vote at most once. */
-  top_sfx_used: TopSfxUsage[];
+  /** Distribution of detected SFX onsets across acoustic types
+   *  (impulse_tonal, impulse_noisy, sweep, vocal, sustained, other),
+   *  fractions summing to ~1. Empty categories are present with value
+   *  0 so the shape is stable. Tells you "creator uses bells + whooshes"
+   *  even when exact-library identity isn't recoverable. */
+  sfx_type_distribution: Record<SfxType, number>;
+  /** Total SFX onsets in the collection used to compute the distribution. */
+  sfx_classified_total: number;
 
   // ---- Hooks ----
   /** Hook text from the first shot of each reel — raw strings, no
@@ -168,41 +157,28 @@ function pickDominant<K extends string>(
   return topValue > 0.5 ? topKey : 'mixed';
 }
 
-/** Roll up SFX library usage across every onset's top-1 match in the
- *  collection. Each onset votes once; matches below MIN_MATCH_SIMILARITY
- *  are ignored. */
-function collectTopSfxUsage(allShots: ReelShot[]): TopSfxUsage[] {
-  const counts = new Map<
-    string,
-    { name: string; source_url: string; n: number; sumSim: number }
-  >();
+/** Count each onset's acoustic-type classification and return the
+ *  per-type fraction (sums to ~1). */
+function collectSfxTypeDistribution(
+  allShots: ReelShot[],
+): { dist: Record<SfxType, number>; total: number } {
+  const counts = Object.fromEntries(
+    SFX_TYPES.map((t) => [t, 0]),
+  ) as Record<SfxType, number>;
+  let total = 0;
   for (const shot of allShots) {
-    for (const ev of shot.sfx_matches) {
-      const top = ev.matches[0];
-      if (!top || top.similarity < MIN_MATCH_SIMILARITY) continue;
-      const cur = counts.get(top.slug) ?? {
-        name: top.name,
-        source_url: top.source_url,
-        n: 0,
-        sumSim: 0,
-      };
-      cur.n++;
-      cur.sumSim += top.similarity;
-      counts.set(top.slug, cur);
+    for (const ev of shot.sfx_classifications) {
+      counts[ev.type]++;
+      total++;
     }
   }
-  const out: TopSfxUsage[] = [];
-  for (const [slug, v] of counts) {
-    out.push({
-      slug,
-      name: v.name,
-      source_url: v.source_url,
-      count: v.n,
-      mean_similarity: v.sumSim / v.n,
-    });
+  if (total === 0) {
+    return { dist: counts, total: 0 };
   }
-  out.sort((a, b) => b.count - a.count || b.mean_similarity - a.mean_similarity);
-  return out;
+  const dist = Object.fromEntries(
+    SFX_TYPES.map((t) => [t, counts[t] / total]),
+  ) as Record<SfxType, number>;
+  return { dist, total };
 }
 
 /** Group all shots across reels by clip_type and compute per-bucket
@@ -300,7 +276,10 @@ export function assembleFingerprint(
     sfx_per_min: mean(reels.map((r) => r.sfx_per_min)),
     cuts_with_sfx_pct: mean(reels.map((r) => r.cuts_with_sfx_pct)),
     sfx_at_cuts_pct: mean(reels.map((r) => r.sfx_at_cuts_pct)),
-    top_sfx_used: collectTopSfxUsage(allShots),
+    ...(() => {
+      const { dist, total } = collectSfxTypeDistribution(allShots);
+      return { sfx_type_distribution: dist, sfx_classified_total: total };
+    })(),
 
     hook_texts: reels
       .map((r) => r.hook_text)

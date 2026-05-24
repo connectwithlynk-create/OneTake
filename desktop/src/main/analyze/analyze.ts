@@ -12,14 +12,8 @@ import {
   shotSfxMetrics,
   type ShotSfx,
 } from './sfx';
-import {
-  computeFingerprint,
-  loadLibrary,
-  matchAgainstLibrary,
-  sliceWindow,
-  type SfxMatch,
-} from './sfx-match';
-import type { SfxMatchPerEvent } from './types';
+import { classifyOnset } from './sfx-classify';
+import type { SfxClassifiedEvent } from './types';
 import { detectSpeaker, type ShotSpeakerInfo } from './speaker';
 import { runVAD, speechMaskFromProbs } from './vad';
 import {
@@ -31,7 +25,7 @@ import {
 } from './types';
 
 /** Bump when the analysis algorithm changes meaningfully. */
-export const ANALYSIS_VERSION = 16;
+export const ANALYSIS_VERSION = 18;
 
 export interface ReelAnalysisInput {
   playableUrl: string;
@@ -332,7 +326,9 @@ export async function analyzeReel(
     sfx_count: 0,
     sfx_at_start: false,
   }));
-  let sfxMatchesPerShot: SfxMatchPerEvent[][] = shots.map(() => []);
+  let sfxClassificationsPerShot: SfxClassifiedEvent[][] = shots.map(
+    () => [],
+  );
   let sfxAtCutsPct = 0;
   try {
     const samples = await extractReelAudio(input.playableUrl);
@@ -375,39 +371,40 @@ export async function analyzeReel(
           (sfxAtCutsPct * 100).toFixed(0) + '% land near a cut',
         );
 
-        // Library matching: fingerprint each onset window, cosine-match
-        // against the fingerprinted myinstants library. Skipped silently
-        // when the library index is missing or no entries are
-        // fingerprinted yet.
-        sfxMatchesPerShot = shots.map(() => []);
-        const library = loadLibrary();
-        if (library && library.entries.some((e) => e.fingerprint)) {
-          let matchedEvents = 0;
-          for (let s = 0; s < shots.length; s++) {
-            const shot = shots[s];
-            const eventsInShot = sfxEvents.filter(
-              (e) => e.ms >= shot.start_ms && e.ms < shot.end_ms,
-            );
-            const perEvent: SfxMatchPerEvent[] = [];
-            for (const ev of eventsInShot) {
-              const clip = sliceWindow(samples, ev.ms);
-              const fp = computeFingerprint(clip);
-              const matches = fp
-                ? matchAgainstLibrary(fp, library.entries, 3)
-                : ([] as SfxMatch[]);
-              perEvent.push({ ms: ev.ms, matches });
-              if (matches.length > 0) matchedEvents++;
-            }
-            sfxMatchesPerShot[s] = perEvent;
-          }
-          console.error(
-            '[sfx-match] matched',
-            matchedEvents,
-            'of',
-            sfxEvents.length,
-            'onsets to library',
+        // Acoustic-type classification for each detected onset. Replaces
+        // the earlier identity-matching attempts (MFCC-cosine, Shazam-
+        // hash) — both failed on impulse SFX layered under voiceover.
+        // Type classification is robust to mixing and is what downstream
+        // (autocut + script-gen) actually needs.
+        sfxClassificationsPerShot = shots.map(() => []);
+        let classifiedEvents = 0;
+        for (let s = 0; s < shots.length; s++) {
+          const shot = shots[s];
+          const eventsInShot = sfxEvents.filter(
+            (e) => e.ms >= shot.start_ms && e.ms < shot.end_ms,
           );
+          const perEvent: SfxClassifiedEvent[] = [];
+          for (const ev of eventsInShot) {
+            const cls = classifyOnset(samples, ev.ms);
+            if (cls) {
+              perEvent.push({
+                ms: ev.ms,
+                type: cls.type,
+                confidence: cls.confidence,
+                features: cls.features,
+              });
+              classifiedEvents++;
+            }
+          }
+          sfxClassificationsPerShot[s] = perEvent;
         }
+        console.error(
+          '[sfx-classify] classified',
+          classifiedEvents,
+          'of',
+          sfxEvents.length,
+          'onsets',
+        );
       } catch (err) {
         console.error(
           '[sfx] failed:',
@@ -430,7 +427,7 @@ export async function analyzeReel(
     speaker,
     shotAudio,
     shotSfx,
-    sfxMatchesPerShot,
+    sfxClassificationsPerShot,
   );
   console.error('[analyze] annotation done');
   const metrics = deriveMetrics(annotated, input.durationMs);

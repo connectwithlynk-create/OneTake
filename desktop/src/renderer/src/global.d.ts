@@ -53,19 +53,30 @@ export interface ReelShot {
   audio_music_pct: number;
   sfx_count: number;
   sfx_at_start: boolean;
-  sfx_matches: SfxMatchPerEvent[];
+  sfx_classifications: SfxClassifiedEvent[];
 }
 
-export interface SfxMatchPerEvent {
+export type SfxType =
+  | 'impulse_tonal'
+  | 'impulse_noisy'
+  | 'sweep'
+  | 'vocal'
+  | 'sustained'
+  | 'other';
+
+export interface SfxClassifiedEvent {
   ms: number;
-  matches: SfxMatchEntry[];
-}
-
-export interface SfxMatchEntry {
-  slug: string;
-  name: string;
-  source_url: string;
-  similarity: number;
+  type: SfxType;
+  confidence: number;
+  features: {
+    rise_time_ms: number;
+    decay_90_ms: number;
+    duration_above_floor_ms: number;
+    spectral_centroid_hz: number;
+    spectral_flatness: number;
+    voice_band_ratio: number;
+    peak_rms: number;
+  };
 }
 
 export interface TextMoment {
@@ -99,6 +110,8 @@ export interface ReelAnalysisResult {
   sfx_per_min: number;
   cuts_with_sfx_pct: number;
   sfx_at_cuts_pct: number;
+  sfx_type_distribution: Record<SfxType, number>;
+  sfx_classified_total: number;
 }
 
 declare global {

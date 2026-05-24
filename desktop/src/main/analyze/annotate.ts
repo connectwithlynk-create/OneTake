@@ -4,7 +4,7 @@ import { recognizeText } from './ocr';
 import type { Shot } from './scene-detect';
 import type { ShotSpeakerInfo, SpeakerVerdict } from './speaker';
 import type { ShotSfx } from './sfx';
-import type { SfxMatchPerEvent } from './types';
+import type { SfxClassifiedEvent } from './types';
 import type {
   ClipType,
   FrameRegion,
@@ -127,7 +127,7 @@ export async function annotateShots(
   speaker: ShotSpeakerInfo[],
   audio: ShotAudio[],
   sfx: ShotSfx[],
-  sfxMatchesPerShot: SfxMatchPerEvent[][],
+  sfxClassificationsPerShot: SfxClassifiedEvent[][],
 ): Promise<ReelShot[]> {
   const out: ReelShot[] = [];
   for (let i = 0; i < shots.length; i++) {
@@ -149,7 +149,7 @@ export async function annotateShots(
         music_pct: 0,
       } as const);
     const sx = sfx[i] ?? { sfx_count: 0, sfx_at_start: false };
-    const sxMatches = sfxMatchesPerShot[i] ?? [];
+    const sxClassifications = sfxClassificationsPerShot[i] ?? [];
     const hasFace = rep?.face != null;
     const verdict = sp?.verdict ?? 'unknown';
     let face_bbox: NormBBox | null = null;
@@ -180,7 +180,7 @@ export async function annotateShots(
       audio_music_pct: ad.music_pct,
       sfx_count: sx.sfx_count,
       sfx_at_start: sx.sfx_at_start,
-      sfx_matches: sxMatches,
+      sfx_classifications: sxClassifications,
     });
   }
   return out;

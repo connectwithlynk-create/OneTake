@@ -110,23 +110,25 @@ export interface ReelShot {
   /** True when an SFX onset is within ±200ms of the shot's start —
    *  the canonical "whoosh on the cut" pattern. */
   sfx_at_start: boolean;
-  /** For each SFX onset in this shot (in onset-time order), the top-k
-   *  best library matches sorted by similarity descending. Empty per
-   *  onset when no library / no qualifying matches. */
-  sfx_matches: SfxMatchPerEvent[];
+  /** For each SFX onset in this shot (in onset-time order), the
+   *  acoustic-type classification. Identity matching (which exact
+   *  library entry) is not attempted here — see sfx-classify.ts for the
+   *  rationale (impulse SFX in heavy voiceover can't be identified
+   *  reliably with pure-JS DSP). */
+  sfx_classifications: SfxClassifiedEvent[];
 }
 
-export interface SfxMatchPerEvent {
+import type { SfxType, SfxFeatures } from './sfx-classify';
+export type { SfxType, SfxFeatures } from './sfx-classify';
+
+export interface SfxClassifiedEvent {
   /** Onset time in ms from reel start. */
   ms: number;
-  /** Top library matches for this onset. */
-  matches: SfxMatchEntry[];
-}
-
-export interface SfxMatchEntry {
-  slug: string;
-  name: string;
-  source_url: string;
-  /** Cosine similarity in [-1, 1]. */
-  similarity: number;
+  /** Coarse acoustic category. */
+  type: SfxType;
+  /** Heuristic confidence in [0, 1]. */
+  confidence: number;
+  /** Raw features that drove the classification — useful for debugging
+   *  and future ML upgrades. */
+  features: SfxFeatures;
 }

@@ -14,11 +14,8 @@ import { FRAME_SAMPLES, SAMPLE_RATE_VAD } from './audio';
 import type { Shot } from './scene-detect';
 
 /** High-pass cutoff (Hz) applied before onset detection. ~3 kHz strips
- *  most speech-band energy and keeps whoosh/ding/sting content. The same
- *  cutoff is reused by the SFX matcher so library + query share the
- *  same spectral front-end. */
-export const SFX_HPF_CUTOFF_HZ = 3000;
-const HPF_CUTOFF_HZ = SFX_HPF_CUTOFF_HZ;
+ *  most speech-band energy and keeps whoosh/ding/sting content. */
+const HPF_CUTOFF_HZ = 3000;
 /** Frames averaged into the lagging baseline. ~192ms at 32ms/frame. */
 const SMOOTHING_FRAMES = 6;
 /** Current-frame RMS / baseline ratio that counts as an onset. */
@@ -57,10 +54,8 @@ function perFrameRms(samples: Float32Array): Float32Array {
 
 /** First-order IIR high-pass filter. Cheap, single-pass, attenuates
  *  energy below `cutoffHz`. Good enough for separating SFX (HF
- *  transients) from voice (mid-band). Exported so the SFX-matching
- *  pipeline can apply the same front-end to library clips and query
- *  clips before fingerprinting. */
-export function highPass(
+ *  transients) from voice (mid-band) in the onset detector. */
+function highPass(
   samples: Float32Array,
   cutoffHz: number,
   sampleRate: number,
