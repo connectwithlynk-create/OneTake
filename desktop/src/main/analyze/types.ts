@@ -104,4 +104,10 @@ export interface ReelShot {
   /** Fraction of the shot's 32ms frames that are audible non-speech
    *  (music, ambient, SFX), [0, 1]. */
   audio_music_pct: number;
+  /** Number of SFX onsets (sharp non-speech energy spikes) inside the
+   *  shot's time range. */
+  sfx_count: number;
+  /** True when an SFX onset is within ±200ms of the shot's start —
+   *  the canonical "whoosh on the cut" pattern. */
+  sfx_at_start: boolean;
 }

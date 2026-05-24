@@ -80,6 +80,15 @@ export interface CollectionFingerprint {
   music_pct: number;
   audio_silence_pct: number;
   audio_energy_mean: number;
+  /** SFX onsets per minute across the collection (mean of per-reel rates). */
+  sfx_per_min: number;
+  /** Fraction of shot starts that have an SFX onset within ±200ms,
+   *  averaged across reels. The "whoosh-on-every-cut" signature. */
+  cuts_with_sfx_pct: number;
+  /** Of all SFX onsets in the collection, the fraction that land near a
+   *  shot boundary. Tells you whether this creator uses SFX as
+   *  transition stings or as ambient embellishment. */
+  sfx_at_cuts_pct: number;
 
   // ---- Hooks ----
   /** Hook text from the first shot of each reel — raw strings, no
@@ -231,6 +240,9 @@ export function assembleFingerprint(
     music_pct: mean(reels.map((r) => r.music_pct)),
     audio_silence_pct: mean(reels.map((r) => r.audio_silence_pct)),
     audio_energy_mean: mean(reels.map((r) => r.audio_energy_mean)),
+    sfx_per_min: mean(reels.map((r) => r.sfx_per_min)),
+    cuts_with_sfx_pct: mean(reels.map((r) => r.cuts_with_sfx_pct)),
+    sfx_at_cuts_pct: mean(reels.map((r) => r.sfx_at_cuts_pct)),
 
     hook_texts: reels
       .map((r) => r.hook_text)

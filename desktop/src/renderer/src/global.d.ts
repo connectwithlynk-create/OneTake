@@ -51,6 +51,8 @@ export interface ReelShot {
   audio_silence_pct: number;
   audio_speech_pct: number;
   audio_music_pct: number;
+  sfx_count: number;
+  sfx_at_start: boolean;
 }
 
 export interface TextMoment {
@@ -81,6 +83,9 @@ export interface ReelAnalysisResult {
   audio_silence_pct: number;
   voiceover_pct: number;
   music_pct: number;
+  sfx_per_min: number;
+  cuts_with_sfx_pct: number;
+  sfx_at_cuts_pct: number;
 }
 
 declare global {

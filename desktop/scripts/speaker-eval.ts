@@ -67,6 +67,11 @@ async function main(): Promise<void> {
           `energy_mean=${a.audio_energy_mean.toFixed(3)} ` +
           `energy_std=${a.audio_energy_std.toFixed(3)}`,
       );
+      console.log(
+        `  sfx: ${a.sfx_per_min.toFixed(1)}/min | ` +
+          `${(a.cuts_with_sfx_pct * 100).toFixed(0)}% of cuts have SFX | ` +
+          `${(a.sfx_at_cuts_pct * 100).toFixed(0)}% of SFX land on cuts`,
+      );
       if (a.text_region_dominant !== null) {
         console.log(`  text_region: ${a.text_region_dominant}`);
         const tdist = a.text_region_distribution ?? {};

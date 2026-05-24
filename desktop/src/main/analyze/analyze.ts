@@ -6,6 +6,12 @@ import {
 } from './audio';
 import { extractShotFrames } from './frame-extractor';
 import { detectScenes } from './scene-detect';
+import {
+  detectSfxOnsets,
+  sfxAtCutsRatio,
+  shotSfxMetrics,
+  type ShotSfx,
+} from './sfx';
 import { detectSpeaker, type ShotSpeakerInfo } from './speaker';
 import { runVAD, speechMaskFromProbs } from './vad';
 import {
@@ -17,7 +23,7 @@ import {
 } from './types';
 
 /** Bump when the analysis algorithm changes meaningfully. */
-export const ANALYSIS_VERSION = 14;
+export const ANALYSIS_VERSION = 15;
 
 export interface ReelAnalysisInput {
   playableUrl: string;
@@ -70,6 +76,13 @@ export interface ReelAnalysisResult {
   /** Fraction of total duration that's audible but non-speech (music,
    *  ambient, SFX) — the "music or other non-vocal" bucket. */
   music_pct: number;
+  /** SFX onsets per minute, computed from total events / reel duration. */
+  sfx_per_min: number;
+  /** Fraction of shot starts that have an SFX onset within ±200ms — the
+   *  "whoosh on every cut" signature. */
+  cuts_with_sfx_pct: number;
+  /** Of all SFX onsets, the fraction that land near a shot boundary. */
+  sfx_at_cuts_pct: number;
 }
 
 function median(values: number[]): number {
@@ -113,6 +126,9 @@ export function deriveMetrics(
       audio_silence_pct: 0,
       voiceover_pct: 0,
       music_pct: 0,
+      sfx_per_min: 0,
+      cuts_with_sfx_pct: 0,
+      sfx_at_cuts_pct: 0,
     };
   }
   const durations = shots.map((s) => s.end_ms - s.start_ms);
@@ -190,13 +206,19 @@ export function deriveMetrics(
   let weightedSilenceSum = 0;
   let weightedSpeechSum = 0;
   let weightedMusicSum = 0;
+  let totalSfx = 0;
+  let cutsWithSfx = 0;
   for (const s of shots) {
     const w = (s.end_ms - s.start_ms) / totalDur;
     weightedRmsSum += s.audio_rms_mean * w;
     weightedSilenceSum += s.audio_silence_pct * w;
     weightedSpeechSum += s.audio_speech_pct * w;
     weightedMusicSum += s.audio_music_pct * w;
+    totalSfx += s.sfx_count;
+    if (s.sfx_at_start) cutsWithSfx++;
   }
+  const sfxPerMin = totalDur > 0 ? (totalSfx * 60_000) / totalDur : 0;
+  const cutsWithSfxPct = cutsWithSfx / shots.length;
   const audioEnergyMean = weightedRmsSum;
   // Std of per-shot RMS (unweighted) — a usable dynamic-range proxy.
   const rmsValues = shots.map((s) => s.audio_rms_mean);
@@ -229,6 +251,10 @@ export function deriveMetrics(
     audio_silence_pct: weightedSilenceSum,
     voiceover_pct: weightedSpeechSum,
     music_pct: weightedMusicSum,
+    sfx_per_min: sfxPerMin,
+    cuts_with_sfx_pct: cutsWithSfxPct,
+    // Filled in by analyzeReel - deriveMetrics can't see the raw events.
+    sfx_at_cuts_pct: 0,
   };
 }
 
@@ -283,10 +309,9 @@ export async function analyzeReel(
   }
   console.error('[analyze] speaker detection done');
 
-  // Audio extraction + VAD + per-shot metrics. Best-effort throughout;
-  // never aborts the pipeline. VAD is independent of extraction — if VAD
-  // fails (model missing, runtime error) we still get RMS/silence/peak,
-  // just no speech/music split.
+  // Audio extraction + VAD + SFX + per-shot metrics. Best-effort
+  // throughout; never aborts the pipeline. VAD/SFX failures degrade
+  // gracefully to RMS-only and zero-SFX respectively.
   const audioFallback: ShotAudio[] = shots.map(() => ({
     rms_mean: 0,
     peak_rms: 0,
@@ -295,6 +320,11 @@ export async function analyzeReel(
     music_pct: 0,
   }));
   let shotAudio: ShotAudio[] = audioFallback;
+  let shotSfx: ShotSfx[] = shots.map(() => ({
+    sfx_count: 0,
+    sfx_at_start: false,
+  }));
+  let sfxAtCutsPct = 0;
   try {
     const samples = await extractReelAudio(input.playableUrl);
     if (samples) {
@@ -324,6 +354,23 @@ export async function analyzeReel(
         samples.length,
         'samples; per-shot metrics done',
       );
+
+      try {
+        const sfxEvents = detectSfxOnsets(samples, speechMask);
+        shotSfx = shotSfxMetrics(sfxEvents, shots);
+        sfxAtCutsPct = sfxAtCutsRatio(sfxEvents, shots);
+        console.error(
+          '[sfx] detected',
+          sfxEvents.length,
+          'onsets;',
+          (sfxAtCutsPct * 100).toFixed(0) + '% land near a cut',
+        );
+      } catch (err) {
+        console.error(
+          '[sfx] failed:',
+          err instanceof Error ? err.message : String(err),
+        );
+      }
     } else {
       console.error('[audio] extraction returned no samples');
     }
@@ -334,7 +381,17 @@ export async function analyzeReel(
     );
   }
 
-  const annotated = await annotateShots(shotFrames, shots, speaker, shotAudio);
+  const annotated = await annotateShots(
+    shotFrames,
+    shots,
+    speaker,
+    shotAudio,
+    shotSfx,
+  );
   console.error('[analyze] annotation done');
-  return { shots: annotated, ...deriveMetrics(annotated, input.durationMs) };
+  const metrics = deriveMetrics(annotated, input.durationMs);
+  // deriveMetrics can't see the raw event list, so it leaves
+  // sfx_at_cuts_pct as 0 - fill it in here.
+  metrics.sfx_at_cuts_pct = sfxAtCutsPct;
+  return { shots: annotated, ...metrics };
 }

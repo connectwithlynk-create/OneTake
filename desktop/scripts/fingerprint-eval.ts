@@ -107,6 +107,11 @@ async function main(): Promise<void> {
       `silence=${(fp.audio_silence_pct * 100).toFixed(0)}%`,
   );
   console.log(`  energy_mean=${fp.audio_energy_mean.toFixed(3)}`);
+  console.log(
+    `  sfx: ${fp.sfx_per_min.toFixed(1)}/min | ` +
+      `${(fp.cuts_with_sfx_pct * 100).toFixed(0)}% of cuts have SFX | ` +
+      `${(fp.sfx_at_cuts_pct * 100).toFixed(0)}% of SFX land on cuts`,
+  );
 
   console.log(`\nBeat template (sorted by shot count):`);
   for (const b of fp.beat_template) {
