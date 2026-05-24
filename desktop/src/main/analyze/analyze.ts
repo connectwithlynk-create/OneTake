@@ -13,6 +13,7 @@ import {
   type ShotSfx,
 } from './sfx';
 import { classifyOnset } from './sfx-classify';
+import { transcribeHook } from './transcribe';
 import type { SfxClassifiedEvent } from './types';
 import { detectSpeaker, type ShotSpeakerInfo } from './speaker';
 import { runVAD, speechMaskFromProbs } from './vad';
@@ -78,6 +79,12 @@ export interface ReelAnalysisResult {
   /** Fraction of total duration that's audible but non-speech (music,
    *  ambient, SFX) — the "music or other non-vocal" bucket. */
   music_pct: number;
+  /** Whisper transcript of the first ~5 seconds of audio — the
+   *  SPOKEN hook. Preferred over OCR hook_text for clustering because
+   *  it captures the creator's actual opening words, not whatever text
+   *  overlay happened to land at the start. Null when no OPENAI_API_KEY
+   *  is set or the transcription call failed. */
+  hook_speech: string | null;
   /** SFX onsets per minute, computed from total events / reel duration. */
   sfx_per_min: number;
   /** Fraction of shot starts that have an SFX onset within ±200ms — the
@@ -128,6 +135,7 @@ export function deriveMetrics(
       audio_silence_pct: 0,
       voiceover_pct: 0,
       music_pct: 0,
+      hook_speech: null,
       sfx_per_min: 0,
       cuts_with_sfx_pct: 0,
       sfx_at_cuts_pct: 0,
@@ -253,6 +261,8 @@ export function deriveMetrics(
     audio_silence_pct: weightedSilenceSum,
     voiceover_pct: weightedSpeechSum,
     music_pct: weightedMusicSum,
+    // hook_speech filled in by analyzeReel (deriveMetrics is pure).
+    hook_speech: null,
     sfx_per_min: sfxPerMin,
     cuts_with_sfx_pct: cutsWithSfxPct,
     // Filled in by analyzeReel - deriveMetrics can't see the raw events.
@@ -330,6 +340,7 @@ export async function analyzeReel(
     () => [],
   );
   let sfxAtCutsPct = 0;
+  let hookSpeech: string | null = null;
   try {
     const samples = await extractReelAudio(input.playableUrl);
     if (samples) {
@@ -359,6 +370,23 @@ export async function analyzeReel(
         samples.length,
         'samples; per-shot metrics done',
       );
+
+      // Hook speech: transcribe the first few seconds of audio via
+      // Whisper. Best-effort — returns null when no OPENAI_API_KEY.
+      try {
+        hookSpeech = await transcribeHook(samples);
+        if (hookSpeech) {
+          console.error(
+            '[hook-speech]',
+            `"${hookSpeech.replace(/\s+/g, ' ').slice(0, 80)}"`,
+          );
+        }
+      } catch (err) {
+        console.error(
+          '[hook-speech] failed:',
+          err instanceof Error ? err.message : String(err),
+        );
+      }
 
       try {
         const sfxEvents = detectSfxOnsets(samples, speechMask);
@@ -431,8 +459,9 @@ export async function analyzeReel(
   );
   console.error('[analyze] annotation done');
   const metrics = deriveMetrics(annotated, input.durationMs);
-  // deriveMetrics can't see the raw event list, so it leaves
-  // sfx_at_cuts_pct as 0 - fill it in here.
+  // deriveMetrics can't see the raw event list or the transcription
+  // result, so we fill those in here.
   metrics.sfx_at_cuts_pct = sfxAtCutsPct;
+  metrics.hook_speech = hookSpeech;
   return { shots: annotated, ...metrics };
 }

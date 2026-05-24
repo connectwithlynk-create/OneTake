@@ -107,6 +107,7 @@ export interface ReelAnalysisResult {
   audio_silence_pct: number;
   voiceover_pct: number;
   music_pct: number;
+  hook_speech: string | null;
   sfx_per_min: number;
   cuts_with_sfx_pct: number;
   sfx_at_cuts_pct: number;

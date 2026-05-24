@@ -103,12 +103,16 @@ export interface CollectionFingerprint {
   sfx_classified_total: number;
 
   // ---- Hooks ----
-  /** Hook text from the first shot of each reel — raw strings, in
-   *  reel order. Always populated. */
+  /** Spoken hook (Whisper transcript of the first ~5s of each reel),
+   *  with OCR fallback when speech is unavailable. In reel order.
+   *  This is the source the hook-archetype clustering reads from. */
+  hook_speeches: string[];
+  /** OCR'd text from the first shot's frame — kept for the text-overlay
+   *  pillar but no longer used as the hook source. In reel order. */
   hook_texts: string[];
   /** LLM-clustered reusable hook templates with weight + examples.
    *  Null when clustering wasn't run (no API key) or failed. When
-   *  null, callers should fall back to hook_texts. */
+   *  null, callers should fall back to hook_speeches. */
   hook_archetypes: HookArchetype[] | null;
 
   // ---- Beat template (autocut / script-gen bridge) ----
@@ -238,8 +242,8 @@ export async function assembleFingerprintWithHooks(
   reels: ReelAnalysisResult[],
 ): Promise<CollectionFingerprint> {
   const fp = assembleFingerprint(reels);
-  if (fp.hook_texts.length === 0) return fp;
-  const archetypes = await clusterHooks(fp.hook_texts);
+  if (fp.hook_speeches.length === 0) return fp;
+  const archetypes = await clusterHooks(fp.hook_speeches);
   return { ...fp, hook_archetypes: archetypes };
 }
 
@@ -301,12 +305,15 @@ export function assembleFingerprint(
       return { sfx_type_distribution: dist, sfx_classified_total: total };
     })(),
 
+    hook_speeches: reels
+      .map((r) => r.hook_speech ?? r.hook_text)
+      .filter((t): t is string => t !== null && t.length > 0),
     hook_texts: reels
       .map((r) => r.hook_text)
       .filter((t): t is string => t !== null && t.length > 0),
     // Filled in by assembleFingerprintWithHooks when an API key is
     // available; pure-function callers get null and can fall back to
-    // hook_texts.
+    // hook_speeches.
     hook_archetypes: null,
 
     beat_template: buildBeatTemplate(allShots),

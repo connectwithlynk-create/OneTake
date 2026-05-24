@@ -24,33 +24,67 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  const results: ReelAnalysisResult[] = [];
-  for (const url of urls) {
-    console.log(`\n--- analyzing ${url} ---`);
-    const t0 = Date.now();
-    try {
-      const r = await resolveReel(url);
-      if ('error' in r) {
-        console.log('  resolve failed:', r.error);
-        continue;
-      }
-      const a = await analyzeReel({
-        playableUrl: r.playable_url,
-        durationMs: r.duration_ms,
-      });
-      console.log(
-        `  ${a.shots.length} shots | vo=${(a.voiceover_pct * 100).toFixed(0)}% ` +
-          `music=${(a.music_pct * 100).toFixed(0)}% | ` +
-          `face_region=${a.face_region_dominant ?? '-'} | ` +
-          `${((Date.now() - t0) / 1000).toFixed(1)}s`,
-      );
-      results.push(a);
-    } catch (e) {
-      console.log('  ERROR:', e instanceof Error ? e.message : String(e));
-    }
-  }
+  // Concurrency: ffmpeg subprocesses + network resolves parallelize
+  // cleanly; the WASM workloads (tfjs face, ONNX SyncNet/VAD,
+  // tesseract) still serialize since they share singletons in one Node
+  // process. Real speedup ≈ 2-3x at 4 workers. Tunable via env.
+  const maxConcurrent = Math.max(
+    1,
+    Number(process.env.ANALYZE_CONCURRENCY ?? 4),
+  );
 
-  if (results.length === 0) {
+  const t0 = Date.now();
+  console.log(
+    `\nanalyzing ${urls.length} reel(s), concurrency=${maxConcurrent}\n`,
+  );
+
+  const results: (ReelAnalysisResult | null)[] = new Array(urls.length).fill(
+    null,
+  );
+  let next = 0;
+  const worker = async (): Promise<void> => {
+    while (next < urls.length) {
+      const idx = next++;
+      const url = urls[idx];
+      const reelT0 = Date.now();
+      try {
+        const r = await resolveReel(url);
+        if ('error' in r) {
+          console.log(`  [${idx + 1}] ${url} resolve failed: ${r.error}`);
+          continue;
+        }
+        const a = await analyzeReel({
+          playableUrl: r.playable_url,
+          durationMs: r.duration_ms,
+        });
+        console.log(
+          `  [${idx + 1}] ${a.shots.length} shots | ` +
+            `vo=${(a.voiceover_pct * 100).toFixed(0)}% ` +
+            `music=${(a.music_pct * 100).toFixed(0)}% | ` +
+            `face=${a.face_region_dominant ?? '-'} | ` +
+            `${((Date.now() - reelT0) / 1000).toFixed(1)}s   ${url}`,
+        );
+        results[idx] = a;
+      } catch (e) {
+        console.log(
+          `  [${idx + 1}] ERROR: ${e instanceof Error ? e.message : String(e)}   ${url}`,
+        );
+      }
+    }
+  };
+  await Promise.all(
+    Array.from({ length: Math.min(maxConcurrent, urls.length) }, worker),
+  );
+
+  const validResults = results.filter(
+    (r): r is ReelAnalysisResult => r !== null,
+  );
+  console.log(
+    `\nanalyzed ${validResults.length}/${urls.length} reels in ` +
+      `${((Date.now() - t0) / 1000).toFixed(1)}s\n`,
+  );
+
+  if (validResults.length === 0) {
     console.log('\nno reels analyzed; nothing to assemble.');
     return;
   }
@@ -59,8 +93,8 @@ async function main(): Promise<void> {
   // clustered into reusable archetypes; otherwise fall back to the
   // pure-function output (hook_archetypes will be null).
   const fp = process.env.OPENAI_API_KEY
-    ? await assembleFingerprintWithHooks(results)
-    : assembleFingerprint(results);
+    ? await assembleFingerprintWithHooks(validResults)
+    : assembleFingerprint(validResults);
 
   console.log('\n=== CollectionFingerprint ===');
   console.log(`n_reels=${fp.n_reels}  n_shots=${fp.n_shots}`);
@@ -148,10 +182,19 @@ async function main(): Promise<void> {
     );
   }
 
-  console.log(`\nHook texts (${fp.hook_texts.length}):`);
-  for (const h of fp.hook_texts) {
-    const oneLine = h.replace(/\s+/g, ' ').slice(0, 80);
+  console.log(
+    `\nHook speech (Whisper, ${fp.hook_speeches.length} reels):`,
+  );
+  for (const h of fp.hook_speeches) {
+    const oneLine = h.replace(/\s+/g, ' ').slice(0, 100);
     console.log(`  "${oneLine}"`);
+  }
+  if (fp.hook_texts.length > 0) {
+    console.log(`\nHook OCR text (text overlays, for reference):`);
+    for (const h of fp.hook_texts) {
+      const oneLine = h.replace(/\s+/g, ' ').slice(0, 80);
+      console.log(`  "${oneLine}"`);
+    }
   }
 
   if (fp.hook_archetypes && fp.hook_archetypes.length > 0) {
