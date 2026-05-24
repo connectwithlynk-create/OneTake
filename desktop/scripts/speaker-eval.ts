@@ -60,13 +60,26 @@ async function main(): Promise<void> {
       } else {
         console.log('  face_region: (no face shots)');
       }
+      if (a.text_region_dominant !== null) {
+        console.log(`  text_region: ${a.text_region_dominant}`);
+        const tdist = a.text_region_distribution ?? {};
+        const tdistLine = Object.entries(tdist)
+          .filter(([, pct]) => (pct as number) > 0)
+          .sort(([, a1], [, b1]) => (b1 as number) - (a1 as number))
+          .map(([r, pct]) => `${r} ${((pct as number) * 100).toFixed(0)}%`)
+          .join(' | ');
+        console.log(`  text_grid:  ${tdistLine || '(none)'}`);
+      } else {
+        console.log('  text_region: (no text shots)');
+      }
       a.shots.forEach((s, i) => {
-        const region = s.face_region ? s.face_region.padEnd(14) : '--------------';
+        const fregion = s.face_region ? s.face_region.padEnd(14) : '--------------';
         const fsize = s.face_bbox ? s.face_bbox.h.toFixed(2) : '----';
+        const tregion = s.text_region ? s.text_region.padEnd(14) : '--------------';
         console.log(
           `    ${String(i).padStart(2, '0')}  ${s.start_ms}-${s.end_ms}ms  ` +
             `${s.clip_type.padEnd(22)} ${s.speaker_verdict.padEnd(8)} ` +
-            `conf=${s.speaker_confidence.toFixed(2)} face=${region} h=${fsize}`,
+            `conf=${s.speaker_confidence.toFixed(2)} face=${fregion} h=${fsize} text=${tregion}`,
         );
       });
     } catch (e) {

@@ -71,11 +71,19 @@ export async function annotateShots(
   for (let i = 0; i < shots.length; i++) {
     const rep = frames[i];
     let ocrText: string | null = null;
+    let text_bbox: NormBBox | null = null;
+    let text_region: FrameRegion | null = null;
     if (rep?.jpegBase64) {
       try {
-        const raw = await recognizeText(rep.jpegBase64);
-        const trimmed = raw.trim();
-        ocrText = trimmed.length > 0 ? trimmed : null;
+        const ocr = await recognizeText(rep.jpegBase64);
+        ocrText = ocr.text.length > 0 ? ocr.text : null;
+        if (ocr.textBox && rep.width > 0 && rep.height > 0) {
+          text_bbox = normalizeBBox(ocr.textBox, rep.width, rep.height);
+          text_region = regionForXY(
+            text_bbox.x + text_bbox.w / 2,
+            text_bbox.y + text_bbox.h / 2,
+          );
+        }
       } catch {
         ocrText = null;
       }
@@ -103,6 +111,8 @@ export async function annotateShots(
       clip_type: classifyClipType(hasFace, verdict),
       face_bbox,
       face_region,
+      text_bbox,
+      text_region,
     });
   }
   return out;

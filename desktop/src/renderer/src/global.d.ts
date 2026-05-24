@@ -45,6 +45,8 @@ export interface ReelShot {
   clip_type: ClipType;
   face_bbox: NormBBox | null;
   face_region: FrameRegion | null;
+  text_bbox: NormBBox | null;
+  text_region: FrameRegion | null;
 }
 
 export interface ReelAnalysisResult {
@@ -62,6 +64,8 @@ export interface ReelAnalysisResult {
   face_region_dominant: FrameRegion | 'mixed' | null;
   face_region_distribution: Record<FrameRegion, number> | null;
   face_size_median: number | null;
+  text_region_dominant: FrameRegion | 'mixed' | null;
+  text_region_distribution: Record<FrameRegion, number> | null;
 }
 
 declare global {

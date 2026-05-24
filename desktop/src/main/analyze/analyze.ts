@@ -11,7 +11,7 @@ import {
 } from './types';
 
 /** Bump when the analysis algorithm changes meaningfully. */
-export const ANALYSIS_VERSION = 9;
+export const ANALYSIS_VERSION = 10;
 
 export interface ReelAnalysisInput {
   playableUrl: string;
@@ -46,6 +46,12 @@ export interface ReelAnalysisResult {
   /** Median face bbox HEIGHT (normalized 0-1) across all face shots — a
    *  proxy for typical face size / closeness. Null if no faces. */
   face_size_median: number | null;
+  /** 3x3 grid cell where text overlays most commonly sit. "mixed" when
+   *  no cell wins a clear majority. Null when no text was detected. */
+  text_region_dominant: FrameRegion | 'mixed' | null;
+  /** Per-cell distribution of text overlays across the 3x3 grid (text
+   *  shots only). Null when there are no text shots. */
+  text_region_distribution: Record<FrameRegion, number> | null;
 }
 
 function median(values: number[]): number {
@@ -82,6 +88,8 @@ export function deriveMetrics(
       face_region_dominant: null,
       face_region_distribution: null,
       face_size_median: null,
+      text_region_dominant: null,
+      text_region_distribution: null,
     };
   }
   const durations = shots.map((s) => s.end_ms - s.start_ms);
@@ -135,6 +143,27 @@ export function deriveMetrics(
         : (heights[mid - 1] + heights[mid]) / 2;
   }
 
+  // Text overlay layout aggregates - text-bearing shots only.
+  const textShotsForLayout = shots.filter((s) => s.text_region !== null);
+  let textRegionDominant: FrameRegion | 'mixed' | null = null;
+  let textRegionDistribution: Record<FrameRegion, number> | null = null;
+  if (textShotsForLayout.length > 0) {
+    const counts = Object.fromEntries(
+      FRAME_REGIONS.map((r) => [r, 0]),
+    ) as Record<FrameRegion, number>;
+    for (const s of textShotsForLayout) {
+      if (s.text_region) counts[s.text_region]++;
+    }
+    const total = textShotsForLayout.length;
+    const [topRegion, topCount] = Object.entries(counts).sort(
+      ([, a], [, b]) => b - a,
+    )[0] as [FrameRegion, number];
+    textRegionDominant = topCount / total > 0.5 ? topRegion : 'mixed';
+    textRegionDistribution = Object.fromEntries(
+      FRAME_REGIONS.map((r) => [r, counts[r] / total]),
+    ) as Record<FrameRegion, number>;
+  }
+
   const hook = shots[0];
   return {
     hook_text: hook.ocr_text,
@@ -150,6 +179,8 @@ export function deriveMetrics(
     face_region_dominant: faceRegionDominant,
     face_region_distribution: faceRegionDistribution,
     face_size_median: faceSizeMedian,
+    text_region_dominant: textRegionDominant,
+    text_region_distribution: textRegionDistribution,
   };
 }
 

@@ -75,6 +75,11 @@ export interface ReelShot {
   clip_type: ClipType;
   /** Largest face bbox on the rep frame, normalized 0-1, or null. */
   face_bbox: NormBBox | null;
-  /** Vertical third the face centroid sits in. Null if no face. */
+  /** 3x3 grid cell the face centroid sits in. Null if no face. */
   face_region: FrameRegion | null;
+  /** Tight union of all high-confidence OCR word bboxes, normalized 0-1.
+   *  Null when no text was recognized. */
+  text_bbox: NormBBox | null;
+  /** 3x3 grid cell the text bbox centroid sits in. Null if no text. */
+  text_region: FrameRegion | null;
 }
