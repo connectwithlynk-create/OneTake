@@ -5,13 +5,17 @@ import type { ShotSpeakerInfo, SpeakerVerdict } from './speaker';
 import type { ClipType, ReelShot } from './types';
 
 /** Pure derivation: shot category from face presence, OCR text, and
- *  speaker verdict. See ClipType doc for category meanings. */
+ *  speaker verdict. See ClipType doc for category meanings.
+ *
+ *  When the speaker pipeline returns 'no_face', that's authoritative —
+ *  its 2.5s windowed face detection beats a single rep frame, which can
+ *  fire on a one-frame partial or BlazeFace false-positive. */
 export function classifyClipType(
   hasFace: boolean,
   ocrText: string | null,
   speakerVerdict: SpeakerVerdict,
 ): ClipType {
-  if (!hasFace) {
+  if (!hasFace || speakerVerdict === 'no_face') {
     return ocrText && ocrText.length > 0 ? 'text_card' : 'broll_visual';
   }
   switch (speakerVerdict) {
@@ -20,7 +24,6 @@ export function classifyClipType(
     case 'broll':
       return 'broll_talking_head';
     default:
-      // 'unknown', or 'no_face' (defensive — shouldn't fire when hasFace)
       return 'talking_head_unknown';
   }
 }
