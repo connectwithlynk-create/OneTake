@@ -23,10 +23,17 @@ import React, { useEffect } from 'react';
 import { View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
+import { attachNativeErrorListener } from '../../modules/nle-player';
+import { crumb, initCrashLog, recordError } from '@/lib/crash-log';
 import { gcExpiredClips } from '@/lib/repo';
 import { invalidate } from '@/lib/store';
 import { runSync } from '@/lib/sync';
 import { palette } from '@/theme';
+
+// One-shot: install the JS-side global error handler before any other
+// module imports run code. Sits at module top-level so it executes once
+// per JS context, before React mounts.
+initCrashLog();
 
 const navTheme = {
   ...DarkTheme,
@@ -66,6 +73,10 @@ function Nav() {
       <Stack.Screen name="preview/[projectId]" />
       <Stack.Screen name="collection/[id]" />
       <Stack.Screen name="swipe/[collectionId]" />
+      <Stack.Screen
+        name="debug-crash"
+        options={{ presentation: 'modal', title: 'Crash log' }}
+      />
     </Stack>
   );
 }
@@ -104,6 +115,22 @@ export default function RootLayout() {
         if (n > 0) invalidate();
       })
       .catch(() => {});
+  }, []);
+
+  // Funnel native-side errors from the NLE player (caught throws inside
+  // the composition build, etc.) into the same crash-log JS errors
+  // already write to. Uncaught NSExceptions are written directly by the
+  // module's NSSetUncaughtExceptionHandler — see NlePlayerModule.swift.
+  useEffect(() => {
+    crumb('app', 'boot');
+    const detach = attachNativeErrorListener((ev) => {
+      recordError(
+        new Error(ev.message ?? 'native error'),
+        ev.source ?? 'native',
+        ev.detail ? { detail: ev.detail } : undefined
+      );
+    });
+    return () => detach();
   }, []);
 
   const [bricolage] = useBricolage({

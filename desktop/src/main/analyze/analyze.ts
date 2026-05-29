@@ -13,20 +13,25 @@ import {
   type ShotSfx,
 } from './sfx';
 import { classifyOnset } from './sfx-classify';
-import { transcribeHook } from './transcribe';
+import { captionShots, type ShotFramesForCaption } from './shot-caption';
+import { spokenWindow, transcribeReel } from './transcribe';
 import type { SfxClassifiedEvent } from './types';
 import { detectSpeaker, type ShotSpeakerInfo } from './speaker';
 import { runVAD, speechMaskFromProbs } from './vad';
 import {
   CLIP_TYPES,
   FRAME_REGIONS,
+  OVERLAY_KINDS,
+  OVERLAY_MOTIONS,
   type ClipType,
   type FrameRegion,
+  type OverlayKind,
+  type OverlayMotion,
   type ReelShot,
 } from './types';
 
 /** Bump when the analysis algorithm changes meaningfully. */
-export const ANALYSIS_VERSION = 18;
+export const ANALYSIS_VERSION = 23;
 
 export interface ReelAnalysisInput {
   playableUrl: string;
@@ -92,6 +97,22 @@ export interface ReelAnalysisResult {
   cuts_with_sfx_pct: number;
   /** Of all SFX onsets, the fraction that land near a shot boundary. */
   sfx_at_cuts_pct: number;
+  /** Fraction of shots that contain at least one media overlay
+   *  (sticker / GIF / image / PiP video / emoji graphic). Text
+   *  captions are NOT counted here — see text_overlay_pct for those. */
+  media_overlay_pct: number;
+  /** Total detected overlays per minute of reel duration. */
+  overlays_per_min: number;
+  /** Distribution across OverlayKind, fraction of detected overlays in
+   *  each bucket. Empty buckets present with value 0 so the shape is
+   *  stable. Null when no overlays were detected. */
+  overlay_kind_distribution: Record<OverlayKind, number> | null;
+  /** Distribution across OverlayMotion (static / animated), fraction of
+   *  detected overlays in each bucket. Null when no overlays. */
+  overlay_motion_distribution: Record<OverlayMotion, number> | null;
+  /** Distribution across the 3x3 grid for overlay centroids. Null when
+   *  no overlays. */
+  overlay_region_distribution: Record<FrameRegion, number> | null;
 }
 
 function median(values: number[]): number {
@@ -139,6 +160,11 @@ export function deriveMetrics(
       sfx_per_min: 0,
       cuts_with_sfx_pct: 0,
       sfx_at_cuts_pct: 0,
+      media_overlay_pct: 0,
+      overlays_per_min: 0,
+      overlay_kind_distribution: null,
+      overlay_motion_distribution: null,
+      overlay_region_distribution: null,
     };
   }
   const durations = shots.map((s) => s.end_ms - s.start_ms);
@@ -211,6 +237,41 @@ export function deriveMetrics(
     ) as Record<FrameRegion, number>;
   }
 
+  // Overlay aggregates - count overlay INSTANCES across all shots,
+  // mirroring how text aggregates count text moments. A long shot with
+  // multiple overlays contributes each one to the distributions.
+  const allOverlays = shots.flatMap((s) => s.overlays);
+  const shotsWithOverlay = shots.filter((s) => s.overlays.length > 0).length;
+  let overlayKindDist: Record<OverlayKind, number> | null = null;
+  let overlayMotionDist: Record<OverlayMotion, number> | null = null;
+  let overlayRegionDist: Record<FrameRegion, number> | null = null;
+  if (allOverlays.length > 0) {
+    const k = Object.fromEntries(OVERLAY_KINDS.map((x) => [x, 0])) as Record<
+      OverlayKind,
+      number
+    >;
+    const m = Object.fromEntries(OVERLAY_MOTIONS.map((x) => [x, 0])) as Record<
+      OverlayMotion,
+      number
+    >;
+    const r = Object.fromEntries(FRAME_REGIONS.map((x) => [x, 0])) as Record<
+      FrameRegion,
+      number
+    >;
+    for (const o of allOverlays) {
+      k[o.kind]++;
+      m[o.motion]++;
+      r[o.region]++;
+    }
+    const n = allOverlays.length;
+    for (const key of OVERLAY_KINDS) k[key] /= n;
+    for (const key of OVERLAY_MOTIONS) m[key] /= n;
+    for (const key of FRAME_REGIONS) r[key] /= n;
+    overlayKindDist = k;
+    overlayMotionDist = m;
+    overlayRegionDist = r;
+  }
+
   // Audio aggregates - duration-weighted across shots.
   let weightedRmsSum = 0;
   let weightedSilenceSum = 0;
@@ -267,6 +328,12 @@ export function deriveMetrics(
     cuts_with_sfx_pct: cutsWithSfxPct,
     // Filled in by analyzeReel - deriveMetrics can't see the raw events.
     sfx_at_cuts_pct: 0,
+    media_overlay_pct: shotsWithOverlay / shots.length,
+    overlays_per_min:
+      totalDur > 0 ? (allOverlays.length * 60_000) / totalDur : 0,
+    overlay_kind_distribution: overlayKindDist,
+    overlay_motion_distribution: overlayMotionDist,
+    overlay_region_distribution: overlayRegionDist,
   };
 }
 
@@ -287,9 +354,14 @@ export async function analyzeReel(
   const shots = await detectScenes(input.playableUrl, input.durationMs);
   console.error('[analyze] detected', shots.length, 'shots');
   // Multi-frame sampling: each shot gets several candidate timestamps and
-  // we pick the rep frame with the best face detection. Catches faces
-  // that miss the exact midpoint (motion, brief occlusion, position shifts).
-  const shotFrames = await extractShotFrames(input.playableUrl, shots);
+  // we pick the rep frame with the best face detection. We bump samples
+  // to 5 here so the first and last samples are spread far enough apart
+  // (~17% to ~83% of the shot) to expose motion for the paired-frame
+  // captioner — start/end of three samples is too close together for
+  // longer shots to show clear motion.
+  const shotFrames = await extractShotFrames(input.playableUrl, shots, {
+    samplesPerShot: 5,
+  });
   const reps = shotFrames.map((sf) => sf.rep);
   const facesFound = reps.filter((r) => r?.face != null).length;
   console.error(
@@ -341,6 +413,7 @@ export async function analyzeReel(
   );
   let sfxAtCutsPct = 0;
   let hookSpeech: string | null = null;
+  let transcriptWords: import('./transcribe').TranscriptWord[] = [];
   try {
     const samples = await extractReelAudio(input.playableUrl);
     if (samples) {
@@ -371,19 +444,31 @@ export async function analyzeReel(
         'samples; per-shot metrics done',
       );
 
-      // Hook speech: transcribe the first few seconds of audio via
-      // Whisper. Best-effort — returns null when no OPENAI_API_KEY.
+      // Full-reel transcription via Whisper verbose_json. One API call
+      // gives us both the hook (derived slice of the first ~5s of
+      // words) and the word-level timestamps we use to annotate each
+      // detected media overlay with what was being said while it was
+      // on screen. Best-effort — returns null when no OPENAI_API_KEY.
       try {
-        hookSpeech = await transcribeHook(samples);
-        if (hookSpeech) {
+        const transcript = await transcribeReel(samples);
+        if (transcript) {
+          transcriptWords = transcript.words;
+          hookSpeech = transcript.hook.length > 0 ? transcript.hook : null;
+          if (hookSpeech) {
+            console.error(
+              '[hook-speech]',
+              `"${hookSpeech.replace(/\s+/g, ' ').slice(0, 80)}"`,
+            );
+          }
           console.error(
-            '[hook-speech]',
-            `"${hookSpeech.replace(/\s+/g, ' ').slice(0, 80)}"`,
+            '[transcribe] reel transcript:',
+            transcript.words.length,
+            'words',
           );
         }
       } catch (err) {
         console.error(
-          '[hook-speech] failed:',
+          '[transcribe] reel transcription failed:',
           err instanceof Error ? err.message : String(err),
         );
       }
@@ -458,6 +543,84 @@ export async function analyzeReel(
     sfxClassificationsPerShot,
   );
   console.error('[analyze] annotation done');
+
+  // Per-shot spoken_window: every shot gets the transcript text that
+  // played during its [start_ms, end_ms]. This is the glue the
+  // synthesis engine needs — for a target line, find the best-matching
+  // shot from the collection by comparing its visual_caption against
+  // shots whose spoken_window covers a similar topic.
+  if (transcriptWords.length > 0) {
+    for (const shot of annotated) {
+      shot.spoken_window = spokenWindow(
+        transcriptWords,
+        shot.start_ms,
+        shot.end_ms,
+      );
+      for (const ov of shot.overlays) {
+        ov.spoken_window = spokenWindow(
+          transcriptWords,
+          ov.start_ms,
+          ov.end_ms,
+        );
+      }
+    }
+    const shotsWithSpoken = annotated.filter(
+      (s) => s.spoken_window.length > 0,
+    ).length;
+    console.error(
+      '[transcribe] mapped transcript onto',
+      shotsWithSpoken,
+      'of',
+      annotated.length,
+      'shots',
+    );
+  }
+
+  // Per-shot motion-aware caption via OpenAI vision. We pass the
+  // FIRST and LAST sample frames so the LLM can describe in-shot
+  // motion (zoom, pan, scroll) instead of treating every shot as a
+  // static moment. Falls back to single-frame caption when only one
+  // sample is available. Returns all-null when no OPENAI_API_KEY.
+  try {
+    const captionInputs: (ShotFramesForCaption | null)[] = shotFrames.map(
+      (sf) => {
+        const valid = sf.samples.filter(
+          (s): s is NonNullable<typeof s> => s !== null && !!s.jpegBase64,
+        );
+        if (valid.length === 0) {
+          // Last resort: try the rep frame alone.
+          if (sf.rep?.jpegBase64) {
+            return { start: sf.rep.jpegBase64, end: sf.rep.jpegBase64 };
+          }
+          return null;
+        }
+        const first = valid[0].jpegBase64;
+        const last = valid[valid.length - 1].jpegBase64;
+        return { start: first, end: last };
+      },
+    );
+    const captions = await captionShots(captionInputs);
+    let filled = 0;
+    for (let i = 0; i < annotated.length; i++) {
+      annotated[i].visual_caption = captions[i] ?? null;
+      if (captions[i]) filled++;
+    }
+    if (filled > 0) {
+      console.error(
+        '[shot-caption] captioned',
+        filled,
+        'of',
+        annotated.length,
+        'shots (motion-aware)',
+      );
+    }
+  } catch (err) {
+    console.error(
+      '[shot-caption] batch failed:',
+      err instanceof Error ? err.message : String(err),
+    );
+  }
+
   const metrics = deriveMetrics(annotated, input.durationMs);
   // deriveMetrics can't see the raw event list or the transcription
   // result, so we fill those in here.

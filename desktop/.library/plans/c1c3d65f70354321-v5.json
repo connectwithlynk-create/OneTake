@@ -1,0 +1,888 @@
+{
+  "total_duration_ms": 16108,
+  "shots": [
+    {
+      "shot_idx": 0,
+      "start_ms": 0,
+      "end_ms": 1186,
+      "duration_ms": 1186,
+      "spoken_during": "▎ What is this",
+      "structure_role": "hook",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.95,
+          "likelihood": null,
+          "broll_description": "Close-up of a vibrant grocery store aisle filled with various fresh produce and products.",
+          "asset": {
+            "method": "manual",
+            "web_capture": null,
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": {
+              "instruction": "Record a 1.19s steady close-up of a colorful grocery store aisle featuring diverse products. Maintain focus and ensure bright lighting."
+            },
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "lots of footage from grocery stores — creator builds reels around the subject's technology in action",
+          "rationale": "This type of footage captures attention and sets up the context of the target topic."
+        }
+      ],
+      "broll_description": "Close-up of a vibrant grocery store aisle filled with various fresh produce and products.",
+      "asset": {
+        "method": "manual",
+        "web_capture": null,
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": {
+          "instruction": "Record a 1.19s steady close-up of a colorful grocery store aisle featuring diverse products. Maintain focus and ensure bright lighting."
+        },
+        "camera_move": null
+      },
+      "placement": {
+        "aspect": "9:16",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "lots of footage from grocery stores — creator builds reels around the subject's technology in action",
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DYg26zgRiGS/",
+        "shot_idx": 0,
+        "pattern": "vibrant grocery store footage showcasing products"
+      },
+      "text_overlay": "▎ What is this",
+      "text_position": "middle_center",
+      "animation_cue": null,
+      "sfx_cue": "vocal hit",
+      "clip_type": "broll_visual",
+      "rationale": "The visual opens with a vibrant hook and pulls the viewer into the narrative."
+    },
+    {
+      "shot_idx": 1,
+      "start_ms": 1186,
+      "end_ms": 4150,
+      "duration_ms": 2964,
+      "spoken_during": "this startup that just went viral? ▎ This",
+      "structure_role": "intro",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.93,
+          "likelihood": null,
+          "broll_description": "Wide shot showing people in a grocery store engaging with items, depicting a lively environment.",
+          "asset": {
+            "method": "manual",
+            "web_capture": null,
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": {
+              "instruction": "Capture a dynamic shot showing shoppers interacting with the grocery items for 2.96 seconds."
+            },
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "lots of footage from grocery stores — creator builds reels around the subject's technology in action",
+          "rationale": "This shot conveys the sense of activity in a grocery environment, supporting the introduction."
+        }
+      ],
+      "broll_description": "Wide shot showing people in a grocery store engaging with items, depicting a lively environment.",
+      "asset": {
+        "method": "manual",
+        "web_capture": null,
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": {
+          "instruction": "Capture a dynamic shot showing shoppers interacting with the grocery items for 2.96 seconds."
+        },
+        "camera_move": null
+      },
+      "placement": {
+        "aspect": "9:16",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "lots of footage from grocery stores — creator builds reels around the subject's technology in action",
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DYg26zgRiGS/",
+        "shot_idx": 1,
+        "pattern": "activity showing shopper interaction in grocery settings"
+      },
+      "text_overlay": "this startup that just went viral? ▎ This",
+      "text_position": "middle_center",
+      "animation_cue": null,
+      "sfx_cue": null,
+      "clip_type": "broll_visual",
+      "rationale": "The introduction builds on the hook, attracting curiosity about the startup."
+    },
+    {
+      "shot_idx": 2,
+      "start_ms": 4150,
+      "end_ms": 5461,
+      "duration_ms": 1311,
+      "spoken_during": "This is Vori.",
+      "structure_role": "body",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.96,
+          "likelihood": null,
+          "broll_description": "Close-up of a presenter explaining the grocery technology with a passionate expression.",
+          "asset": {
+            "method": "manual",
+            "web_capture": null,
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": {
+              "instruction": "Record a 1.31s close-up of a presenter enthusiastically discussing Vori's technology. Center their face and ensure good lighting."
+            },
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "close-up shots of people interacting with grocery items or technology",
+          "rationale": "Bringing a personal touch to the explanation, enhances connection with the audience."
+        }
+      ],
+      "broll_description": "Close-up of a presenter explaining the grocery technology with a passionate expression.",
+      "asset": {
+        "method": "manual",
+        "web_capture": null,
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": {
+          "instruction": "Record a 1.31s close-up of a presenter enthusiastically discussing Vori's technology. Center their face and ensure good lighting."
+        },
+        "camera_move": null
+      },
+      "placement": {
+        "aspect": "9:16",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "close-up shots of people interacting with grocery items or technology",
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DYg26zgRiGS/",
+        "shot_idx": 3,
+        "pattern": "presenter speaking animatedly about technology"
+      },
+      "text_overlay": "This is Vori.",
+      "text_position": "middle_center",
+      "animation_cue": null,
+      "sfx_cue": null,
+      "clip_type": "talking_head",
+      "rationale": "The body of the narration transitions smoothly and maintains engagement."
+    },
+    {
+      "shot_idx": 3,
+      "start_ms": 5461,
+      "end_ms": 7958,
+      "duration_ms": 2497,
+      "spoken_during": "and it's the AI brain for grocery",
+      "structure_role": "body",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.94,
+          "likelihood": null,
+          "broll_description": "Footage of grocery items being scanned by a digital system, demonstrating Vori's functionality.",
+          "asset": {
+            "method": "manual",
+            "web_capture": null,
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": {
+              "instruction": "Capture a 2.5s footage showing grocery items being scanned through a digital interface. Make sure to show the action clearly."
+            },
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "lots of footage from grocery stores — creator builds reels around the subject's technology in action",
+          "rationale": "This showcases the technology in action, reinforcing its key role."
+        }
+      ],
+      "broll_description": "Footage of grocery items being scanned by a digital system, demonstrating Vori's functionality.",
+      "asset": {
+        "method": "manual",
+        "web_capture": null,
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": {
+          "instruction": "Capture a 2.5s footage showing grocery items being scanned through a digital interface. Make sure to show the action clearly."
+        },
+        "camera_move": null
+      },
+      "placement": {
+        "aspect": "9:16",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "lots of footage from grocery stores — creator builds reels around the subject's technology in action",
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DYg26zgRiGS/",
+        "shot_idx": 4,
+        "pattern": "grocery technology performing its function"
+      },
+      "text_overlay": "and it's the AI brain for grocery",
+      "text_position": "middle_center",
+      "animation_cue": null,
+      "sfx_cue": null,
+      "clip_type": "broll_visual",
+      "rationale": "Complements the spoken narrative about Vori's function."
+    },
+    {
+      "shot_idx": 4,
+      "start_ms": 7958,
+      "end_ms": 9019,
+      "duration_ms": 1061,
+      "spoken_during": "grocery stores. ▎",
+      "structure_role": "body",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": null,
+          "broll_description": "Visual showing various grocery store layouts to emphasize the AI's versatility.",
+          "asset": {
+            "method": "manual",
+            "web_capture": null,
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": {
+              "instruction": "Record a 1.06s sequence showing various grocery store layouts focused on item organization."
+            },
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "lots of footage from grocery stores — creator builds reels around the subject's technology in action",
+          "rationale": "Broadening the visualization of the application of the technology makes for a strong personal connection."
+        }
+      ],
+      "broll_description": "Visual showing various grocery store layouts to emphasize the AI's versatility.",
+      "asset": {
+        "method": "manual",
+        "web_capture": null,
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": {
+          "instruction": "Record a 1.06s sequence showing various grocery store layouts focused on item organization."
+        },
+        "camera_move": null
+      },
+      "placement": {
+        "aspect": "9:16",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "lots of footage from grocery stores — creator builds reels around the subject's technology in action",
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DYg26zgRiGS/",
+        "shot_idx": 5,
+        "pattern": "layouts highlighting grocery interactions"
+      },
+      "text_overlay": "grocery stores. ▎",
+      "text_position": "middle_center",
+      "animation_cue": null,
+      "sfx_cue": null,
+      "clip_type": "broll_visual",
+      "rationale": "Reinforces the narrative focus on grocery stores."
+    },
+    {
+      "shot_idx": 5,
+      "start_ms": 9019,
+      "end_ms": 9862,
+      "duration_ms": 843,
+      "spoken_during": "▎ After going",
+      "structure_role": "body",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.8,
+          "likelihood": null,
+          "broll_description": "High-energy shots of items being stocked on shelves, illustrating the fast-paced environment.",
+          "asset": {
+            "method": "manual",
+            "web_capture": null,
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": {
+              "instruction": "Capture fast-paced stocking of grocery items on shelves for 0.84 seconds."
+            },
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "lots of footage from grocery stores — creator builds reels around the subject's technology in action",
+          "rationale": "This adds energy and context to Vori's story."
+        }
+      ],
+      "broll_description": "High-energy shots of items being stocked on shelves, illustrating the fast-paced environment.",
+      "asset": {
+        "method": "manual",
+        "web_capture": null,
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": {
+          "instruction": "Capture fast-paced stocking of grocery items on shelves for 0.84 seconds."
+        },
+        "camera_move": null
+      },
+      "placement": {
+        "aspect": "9:16",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "lots of footage from grocery stores — creator builds reels around the subject's technology in action",
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DYg26zgRiGS/",
+        "shot_idx": 6,
+        "pattern": "stocking images indicating grocery activity"
+      },
+      "text_overlay": "▎ After going",
+      "text_position": "middle_center",
+      "animation_cue": null,
+      "sfx_cue": null,
+      "clip_type": "broll_visual",
+      "rationale": "Sets up the narrative leading to the next key point."
+    },
+    {
+      "shot_idx": 6,
+      "start_ms": 9862,
+      "end_ms": 10517,
+      "duration_ms": 655,
+      "spoken_during": "going viral,",
+      "structure_role": "body",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.85,
+          "likelihood": null,
+          "broll_description": "Footage of a celebratory atmosphere in a grocery store after major success.",
+          "asset": {
+            "method": "manual",
+            "web_capture": null,
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": {
+              "instruction": "Show vibrant scenes of celebration in the grocery aisle upon major success; keep it lasting 0.66 seconds."
+            },
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "lots of footage from grocery stores — creator builds reels around the subject's technology in action",
+          "rationale": "Celebrate success, resonating with Vori's narrative of achievement."
+        }
+      ],
+      "broll_description": "Footage of a celebratory atmosphere in a grocery store after major success.",
+      "asset": {
+        "method": "manual",
+        "web_capture": null,
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": {
+          "instruction": "Show vibrant scenes of celebration in the grocery aisle upon major success; keep it lasting 0.66 seconds."
+        },
+        "camera_move": null
+      },
+      "placement": {
+        "aspect": "9:16",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "lots of footage from grocery stores — creator builds reels around the subject's technology in action",
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DYg26zgRiGS/",
+        "shot_idx": 7,
+        "pattern": "celebratory footage in grocery settings"
+      },
+      "text_overlay": "going viral,",
+      "text_position": "middle_center",
+      "animation_cue": null,
+      "sfx_cue": null,
+      "clip_type": "broll_visual",
+      "rationale": "It indicates the moment of success leading into the next point."
+    },
+    {
+      "shot_idx": 7,
+      "start_ms": 10517,
+      "end_ms": 12389,
+      "duration_ms": 1872,
+      "spoken_during": "viral, Vori raised 22 million dollars.",
+      "structure_role": "body",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.95,
+          "likelihood": null,
+          "broll_description": "Close-up of a news headline about Vori raising money, dynamic articles scrolling.",
+          "asset": {
+            "method": "manual",
+            "web_capture": null,
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": {
+              "instruction": "Record a close-up of a phone or screen with news articles regarding Vori's $22 million raise for 1.87 seconds."
+            },
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "static informational graphics related to funding and business success",
+          "rationale": "Dynamically showcases Vori's success in a manner that captivates viewers."
+        }
+      ],
+      "broll_description": "Close-up of a news headline about Vori raising money, dynamic articles scrolling.",
+      "asset": {
+        "method": "manual",
+        "web_capture": null,
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": {
+          "instruction": "Record a close-up of a phone or screen with news articles regarding Vori's $22 million raise for 1.87 seconds."
+        },
+        "camera_move": null
+      },
+      "placement": {
+        "aspect": "9:16",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "static informational graphics related to funding and business success",
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DYg26zgRiGS/",
+        "shot_idx": 8,
+        "pattern": "highlighting success with financial articles"
+      },
+      "text_overlay": "viral, Vori raised 22 million dollars.",
+      "text_position": "middle_center",
+      "animation_cue": null,
+      "sfx_cue": null,
+      "clip_type": "broll_visual",
+      "rationale": "It provides clear information about the business's financial success."
+    },
+    {
+      "shot_idx": 8,
+      "start_ms": 12389,
+      "end_ms": 16108,
+      "duration_ms": 3719,
+      "spoken_during": "dollars. ▎ Would you let Vori run your bodega?",
+      "structure_role": "cta",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.98,
+          "likelihood": null,
+          "broll_description": "Engaging footage of a bodega or small grocery store owner interacting with customers.",
+          "asset": {
+            "method": "manual",
+            "web_capture": null,
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": {
+              "instruction": "Record a lively scene in a small bodega interacting with customers for 3.72 seconds."
+            },
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "lots of footage from grocery stores — creator builds reels around the subject's technology in action",
+          "rationale": "Engages the audience and prompts them to think about the practicality of using Vori."
+        }
+      ],
+      "broll_description": "Engaging footage of a bodega or small grocery store owner interacting with customers.",
+      "asset": {
+        "method": "manual",
+        "web_capture": null,
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": {
+          "instruction": "Record a lively scene in a small bodega interacting with customers for 3.72 seconds."
+        },
+        "camera_move": null
+      },
+      "placement": {
+        "aspect": "9:16",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "lots of footage from grocery stores — creator builds reels around the subject's technology in action",
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DYg26zgRiGS/",
+        "shot_idx": 7,
+        "pattern": "small grocery store interactions to resonate with 'bodega' context"
+      },
+      "text_overlay": "Would you let Vori run your bodega?",
+      "text_position": "middle_center",
+      "animation_cue": null,
+      "sfx_cue": null,
+      "clip_type": "talking_head",
+      "rationale": "Creates a relatable call-to-action that resonates with viewers."
+    }
+  ],
+  "structure_sections": [
+    {
+      "role": "hook",
+      "script_template": "What is this <descriptor> that <bold claim>?",
+      "target_fill": "What is this",
+      "target_start_ms": 0,
+      "target_end_ms": 1190,
+      "shot_count": 1,
+      "visual_signature": {
+        "dominant_clip_type": "broll_visual",
+        "placement_pattern": "fullbleed 9:16",
+        "text_overlay_pattern": "large center caption",
+        "sfx_pattern": "vocal hit on cut in",
+        "motion_pattern": "static cut",
+        "scene_elements": []
+      }
+    },
+    {
+      "role": "intro",
+      "script_template": "this <subject> that <bold claim>? This is <subject>.",
+      "target_fill": "this startup that just went viral? This",
+      "target_start_ms": 1190,
+      "target_end_ms": 4150,
+      "shot_count": 1,
+      "visual_signature": {
+        "dominant_clip_type": "broll_visual",
+        "placement_pattern": "fullbleed 9:16",
+        "text_overlay_pattern": "large center caption",
+        "sfx_pattern": "silent open",
+        "motion_pattern": "static cut",
+        "scene_elements": []
+      }
+    },
+    {
+      "role": "body",
+      "script_template": "This is <subject>.",
+      "target_fill": "This is Vori.",
+      "target_start_ms": 4150,
+      "target_end_ms": 5460,
+      "shot_count": 1,
+      "visual_signature": {
+        "dominant_clip_type": "talking_head",
+        "placement_pattern": "fullbleed 9:16",
+        "text_overlay_pattern": "small bottom strip",
+        "sfx_pattern": "silent open",
+        "motion_pattern": "static cut",
+        "scene_elements": []
+      }
+    },
+    {
+      "role": "body",
+      "script_template": "and it's the <claim> for <claim>.",
+      "target_fill": "and it's the AI brain for grocery",
+      "target_start_ms": 5460,
+      "target_end_ms": 7960,
+      "shot_count": 1,
+      "visual_signature": {
+        "dominant_clip_type": "broll_visual",
+        "placement_pattern": "fullbleed 9:16",
+        "text_overlay_pattern": "large center caption",
+        "sfx_pattern": "silent open",
+        "motion_pattern": "static cut",
+        "scene_elements": []
+      }
+    },
+    {
+      "role": "body",
+      "script_template": "<claim> stores.",
+      "target_fill": "grocery stores.",
+      "target_start_ms": 7960,
+      "target_end_ms": 9020,
+      "shot_count": 1,
+      "visual_signature": {
+        "dominant_clip_type": "broll_visual",
+        "placement_pattern": "fullbleed 9:16",
+        "text_overlay_pattern": "large center caption",
+        "sfx_pattern": "silent open",
+        "motion_pattern": "static cut",
+        "scene_elements": []
+      }
+    },
+    {
+      "role": "body",
+      "script_template": "<claim> going.",
+      "target_fill": "After going",
+      "target_start_ms": 9020,
+      "target_end_ms": 9860,
+      "shot_count": 1,
+      "visual_signature": {
+        "dominant_clip_type": "broll_visual",
+        "placement_pattern": "fullbleed 9:16",
+        "text_overlay_pattern": "large center caption",
+        "sfx_pattern": "silent open",
+        "motion_pattern": "static cut",
+        "scene_elements": []
+      }
+    },
+    {
+      "role": "body",
+      "script_template": "<claim> viral.",
+      "target_fill": "going viral,",
+      "target_start_ms": 9860,
+      "target_end_ms": 10520,
+      "shot_count": 1,
+      "visual_signature": {
+        "dominant_clip_type": "broll_visual",
+        "placement_pattern": "fullbleed 9:16",
+        "text_overlay_pattern": "large center caption",
+        "sfx_pattern": "silent open",
+        "motion_pattern": "static cut",
+        "scene_elements": []
+      }
+    },
+    {
+      "role": "body",
+      "script_template": "<claim>, <subject> <claim>.",
+      "target_fill": "Vori raised 22 million dollars.",
+      "target_start_ms": 10520,
+      "target_end_ms": 123900,
+      "shot_count": 1,
+      "visual_signature": {
+        "dominant_clip_type": "broll_visual",
+        "placement_pattern": "fullbleed 9:16",
+        "text_overlay_pattern": "large center caption",
+        "sfx_pattern": "silent open",
+        "motion_pattern": "static cut",
+        "scene_elements": []
+      }
+    },
+    {
+      "role": "cta",
+      "script_template": "Would you <ask>?",
+      "target_fill": "Would you let Vori run your bodega?",
+      "target_start_ms": 123900,
+      "target_end_ms": 161100,
+      "shot_count": 1,
+      "visual_signature": {
+        "dominant_clip_type": "talking_head",
+        "placement_pattern": "fullbleed 9:16",
+        "text_overlay_pattern": "large center caption",
+        "sfx_pattern": "silent open",
+        "motion_pattern": "static cut",
+        "scene_elements": []
+      }
+    }
+  ],
+  "structure_confidence": "high",
+  "structure_rationale": "The structure is consistent with high confidence as it distinctly outlines hooks, intros, and body sections based on the provided templates.",
+  "structure_alternatives": null,
+  "content_source_patterns": [
+    "lots of footage from grocery stores — creator builds reels around the subject's technology in action",
+    "close-up shots of people interacting with grocery items or technology",
+    "static informational graphics related to funding and business success"
+  ],
+  "style_summary": "- reel 1: 15.7s, 21 shots, cuts/sec=1.27, text=95%, SFX=61/min\n- reel 2: 14.7s, 7 shots, cuts/sec=0.41, text=100%, SFX=33/min\n- reel 3: 17.2s, 9 shots, cuts/sec=0.46, text=100%, SFX=63/min\n- reel 4: 12.5s, 8 shots, cuts/sec=0.56, text=100%, SFX=29/min\n- reel 5: 13.5s, 11 shots, cuts/sec=0.74, text=100%, SFX=58/min\n- reel 6: 17.2s, 9 shots, cuts/sec=0.46, text=100%, SFX=63/min",
+  "content_sources": [
+    "https://www.instagram.com/p/DYlQlfYuTc7/",
+    "https://www.instagram.com/p/DYg26zgRiGS/",
+    "https://www.instagram.com/reel/DYxLMnNRzQ5/?igsh=bXhtY2JlNjhsYzNm",
+    "https://www.instagram.com/reel/DYg26zgRiGS/?igsh=enl3MzA3dnFnNHNv"
+  ],
+  "target_metrics": {
+    "fingerprint_version": 2,
+    "computed_at": 1779825871602,
+    "n_reels": 3,
+    "n_shots": 41,
+    "median_shot_ms": 800,
+    "cuts_per_sec": 0.824773034674918,
+    "clip_type_distribution": {
+      "talking_head": 0.18879615960103024,
+      "broll_talking_head": 0.15212545748307824,
+      "talking_head_unknown": 0.23018327944028208,
+      "broll_visual": 0.42889510347560944
+    },
+    "real_speaker_pct": 0.14381914381914382,
+    "broll_talking_head_pct": 0.10678210678210677,
+    "face_size_median": 0.38286084681749344,
+    "face_region_distribution": {
+      "top_left": 0,
+      "top_center": 0.2111111111111111,
+      "top_right": 0.027777777777777776,
+      "middle_left": 0.027777777777777776,
+      "middle_center": 0.4444444444444444,
+      "middle_right": 0,
+      "bottom_left": 0.027777777777777776,
+      "bottom_center": 0.2611111111111111,
+      "bottom_right": 0
+    },
+    "face_region_dominant": "mixed",
+    "text_overlay_pct": 0.9841269841269842,
+    "text_region_distribution": {
+      "top_left": 0.07886671593988669,
+      "top_center": 0.11313993594481399,
+      "top_right": 0.06004804138950479,
+      "middle_left": 0.09960704607046071,
+      "middle_center": 0.24571199802907118,
+      "middle_right": 0.09450726779995072,
+      "bottom_left": 0.0722690317812269,
+      "bottom_center": 0.1902648435575265,
+      "bottom_right": 0.04558511948755851
+    },
+    "text_region_dominant": "mixed",
+    "media_overlay_pct": 0.046176046176046176,
+    "overlays_per_min": 4.0186759877647065,
+    "overlay_kind_distribution": {
+      "image": 0.75,
+      "sticker": 0,
+      "gif": 0,
+      "pip_video": 0.25,
+      "emoji_graphic": 0
+    },
+    "overlay_motion_distribution": {
+      "static": 0.75,
+      "animated": 0.25
+    },
+    "overlay_region_distribution": {
+      "top_left": 0,
+      "top_center": 0,
+      "top_right": 0,
+      "middle_left": 0,
+      "middle_center": 0.25,
+      "middle_right": 0.25,
+      "bottom_left": 0.5,
+      "bottom_center": 0,
+      "bottom_right": 0
+    },
+    "overlay_region_dominant": "mixed",
+    "voiceover_pct": 0.9435582225394666,
+    "music_pct": 0.032620378021250764,
+    "audio_silence_pct": 0.023821399439282593,
+    "audio_energy_mean": 0.10428770224085625,
+    "sfx_per_min": 60.46126471431764,
+    "cuts_with_sfx_pct": 0.481962481962482,
+    "sfx_at_cuts_pct": 0.46901709401709396,
+    "sfx_type_distribution": {
+      "impulse_tonal": 0.3404255319148936,
+      "impulse_noisy": 0.0425531914893617,
+      "sweep": 0,
+      "vocal": 0.48936170212765956,
+      "sustained": 0,
+      "other": 0.1276595744680851
+    },
+    "sfx_classified_total": 47,
+    "hook_speeches": [
+      "Who's the Stanford student that thinks he's Steve Jobs This is Tony and he's building",
+      "'re building autonomous ornithopters with\n\nr-class flight times, low acoustic signatur\n\ni natural bird-like flight. This makes\n\nadyne's drones harder for humans and\n\nnter-UAS systems to detect, classify, and\n\nget.\n\ne Found\n\nSTARTUR\n\nourg’s Master's thesis is built on 2+ years c\n\nearch and development in flapping-wing\n\nnes. His work has received multiple awarc\n\nTU",
+      "my official ley\n\no stanford university,\n\n~\n\n» -"
+    ],
+    "hook_texts": [
+      "<\n\n&\n\nWHO\n\niS\n\nZZ. —",
+      "'re building autonomous ornithopters with\n\nr-class flight times, low acoustic signatur\n\ni natural bird-like flight. This makes\n\nadyne's drones harder for humans and\n\nnter-UAS systems to detect, classify, and\n\nget.\n\ne Found\n\nSTARTUR\n\nourg’s Master's thesis is built on 2+ years c\n\nearch and development in flapping-wing\n\nnes. His work has received multiple awarc\n\nTU",
+      "my official ley\n\no stanford university,\n\n~\n\n» -"
+    ],
+    "hook_archetypes": null,
+    "beat_template": [
+      {
+        "clip_type": "broll_visual",
+        "n_shots": 17,
+        "duration_p50_ms": 734,
+        "has_text_p": 0.9411764705882353,
+        "has_face_p": 0,
+        "is_speaker_p": 0
+      },
+      {
+        "clip_type": "talking_head_unknown",
+        "n_shots": 15,
+        "duration_p50_ms": 566,
+        "has_text_p": 1,
+        "has_face_p": 1,
+        "is_speaker_p": 0
+      },
+      {
+        "clip_type": "talking_head",
+        "n_shots": 5,
+        "duration_p50_ms": 800,
+        "has_text_p": 1,
+        "has_face_p": 1,
+        "is_speaker_p": 1
+      },
+      {
+        "clip_type": "broll_talking_head",
+        "n_shots": 4,
+        "duration_p50_ms": 1434,
+        "has_text_p": 1,
+        "has_face_p": 1,
+        "is_speaker_p": 0
+      }
+    ]
+  }
+}

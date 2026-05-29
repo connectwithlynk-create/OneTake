@@ -3,7 +3,129 @@ import CoreImage
 import CoreImage.CIFilterBuiltins
 import Foundation
 import QuartzCore
+import UIKit
 import Vision
+
+/// Counter accessed from AVFoundation's concurrent CIFilter handler
+/// queue. Uses os_unfair_lock for atomic increment — the closure can
+/// fire from multiple threads in parallel and a plain Int increment
+/// would race.
+final class HandlerCounter {
+  private var value: UInt64 = 0
+  private var lock = os_unfair_lock_s()
+  func next() -> UInt64 {
+    os_unfair_lock_lock(&lock)
+    value &+= 1
+    let v = value
+    os_unfair_lock_unlock(&lock)
+    return v
+  }
+}
+
+/// Resident memory of this process in megabytes. Reads
+/// `mach_task_basic_info`, which is what jetsam consults when deciding
+/// whether to kill a backgrounded/foreground app for OOM. Cheap (~µs).
+/// Returns -1 on failure so callers don't have to handle optionals
+/// inside the crumb data dict.
+func processResidentMB() -> Double {
+  var info = mach_task_basic_info()
+  var count = mach_msg_type_number_t(
+    MemoryLayout<mach_task_basic_info>.size / MemoryLayout<integer_t>.size
+  )
+  let kr = withUnsafeMutablePointer(to: &info) {
+    $0.withMemoryRebound(to: integer_t.self, capacity: Int(count)) {
+      task_info(mach_task_self_, task_flavor_t(MACH_TASK_BASIC_INFO), $0, &count)
+    }
+  }
+  if kr != KERN_SUCCESS { return -1 }
+  return Double(info.resident_size) / (1024.0 * 1024.0)
+}
+
+/// Persistent ring of native breadcrumbs, batch-flushed to
+/// `<docs>/native-breadcrumbs.jsonl` on a serial queue. Survives
+/// process death (jetsam / watchdog / SIGSEGV) so the JS-side
+/// /debug-crash screen can show what the native side was doing in
+/// the last ~200ms before the kill.
+///
+/// Why a file: NSLog goes to the unified system log, which Metro
+/// doesn't show — users staring at Metro see "nothing" when iOS
+/// terminates the app. A simple JSONL file in the document dir is
+/// readable from JS on the next launch.
+final class NativeCrumbStore {
+  static let shared = NativeCrumbStore()
+  private let queue = DispatchQueue(label: "nle.crumb", qos: .utility)
+  private var pending: [String] = []
+  private let pathOnce: () -> String = {
+    let docs =
+      NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true)
+        .first ?? NSTemporaryDirectory()
+    return (docs as NSString).appendingPathComponent("native-breadcrumbs.jsonl")
+  }
+  private lazy var path: String = pathOnce()
+  private let maxBytes: UInt64 = 96 * 1024 // 96KB rolling cap
+  private var lastFlush: Date = .distantPast
+
+  func add(source: String, msg: String, data: [String: Any]? = nil) {
+    let ts = Date().timeIntervalSince1970 * 1000 // ms epoch, matches JS
+    var entry: [String: Any] = [
+      "ts": ts,
+      "source": source,
+      "msg": msg,
+    ]
+    if let data = data { entry["data"] = data }
+    queue.async {
+      if let json = try? JSONSerialization.data(withJSONObject: entry, options: []),
+         let line = String(data: json, encoding: .utf8) {
+        self.pending.append(line + "\n")
+        self.maybeFlushLocked()
+      }
+    }
+  }
+
+  /// Force a flush — useful right before a known-risky op so the file
+  /// reflects everything up to that point even if the op kills us.
+  func flush() {
+    queue.sync { self.flushLocked() }
+  }
+
+  private func maybeFlushLocked() {
+    // Flush aggressively (every entry, no debounce) so the trail is on
+    // disk as fast as we can write it. The disk cost is small compared
+    // to the value of capturing what was happening in the last few
+    // milliseconds before iOS terminates us. Without this, batched
+    // flushes leave a black hole right where the crash lives.
+    flushLocked()
+    lastFlush = Date()
+  }
+
+  private func flushLocked() {
+    if pending.isEmpty { return }
+    let blob = pending.joined()
+    pending.removeAll(keepingCapacity: true)
+    // Roll if oversize.
+    if let attrs = try? FileManager.default.attributesOfItem(atPath: path),
+       let size = attrs[.size] as? UInt64, size > maxBytes {
+      if let text = try? String(contentsOfFile: path, encoding: .utf8) {
+        let tail = String(text.suffix(Int(maxBytes / 2)))
+        // Strip a partial leading line so the JSONL stays parseable.
+        if let nl = tail.firstIndex(of: "\n") {
+          try? tail[tail.index(after: nl)...].write(
+            toFile: path, atomically: true, encoding: .utf8
+          )
+        } else {
+          try? "".write(toFile: path, atomically: true, encoding: .utf8)
+        }
+      }
+    }
+    if let fh = FileHandle(forWritingAtPath: path) {
+      fh.seekToEndOfFile()
+      if let d = blob.data(using: .utf8) { fh.write(d) }
+      fh.closeFile()
+    } else {
+      try? blob.write(toFile: path, atomically: true, encoding: .utf8)
+    }
+  }
+}
 
 /// One clip on the composed timeline.
 struct NleClip {
@@ -107,6 +229,20 @@ final class NleEngine {
     // Allows the AVPlayer to keep playing when the screen goes to sleep
     // in pathological cases. iOS pauses bg playback by default anyway.
     self.player.automaticallyWaitsToMinimizeStalling = false
+    // Subscribe to memory warnings — when iOS fires this we're close to
+    // jetsam kill. The crumb gives us the smoking gun if a kill follows.
+    NotificationCenter.default.addObserver(
+      forName: UIApplication.didReceiveMemoryWarningNotification,
+      object: nil,
+      queue: .main
+    ) { [weak self] _ in
+      guard let self = self else { return }
+      self.crumb(
+        "MEMORY WARNING",
+        data: ["residentMB": processResidentMB()]
+      )
+      NativeCrumbStore.shared.flush()
+    }
   }
 
   deinit {
@@ -119,6 +255,16 @@ final class NleEngine {
   // MARK: - Public API
 
   func setClips(_ clips: [NleClip]) {
+    crumb(
+      "setClips",
+      data: [
+        "n": clips.count,
+        "ids": clips.map { String($0.id.prefix(6)) },
+        "prevTot": totalMs,
+        "playing": player.timeControlStatus == .playing,
+        "t": currentTimeMs(),
+      ]
+    )
     self.clips = clips
     // Recompute cumulative timeline (ms).
     var cum: [Double] = [0]
@@ -132,23 +278,106 @@ final class NleEngine {
   }
 
   func play() {
+    crumb("play", data: ["t": currentTimeMs(), "tot": totalMs])
     player.play()
     startDisplayLink()
     emit("onPlayingChange", ["isPlaying": true])
   }
 
   func pause() {
+    crumb("pause", data: ["t": currentTimeMs()])
     player.pause()
     emit("onPlayingChange", ["isPlaying": false])
     // Keep display link running briefly so the JS side gets a final
     // tick reflecting the paused time; it'll idle itself otherwise.
   }
 
+  // Scrub-coalescing state. seek(ms:) writes chaseMs and kicks off an
+  // actual AVPlayer seek only if none is in flight; the completion
+  // handler chases to whatever the latest target became while it was
+  // working. Without this, scroll-driven scrub (one seek per ScrollView
+  // frame, .zero tolerance) piles up inside AVFoundation and wedges
+  // the player — Apple QA1820 antipattern.
+  private var chaseMs: Double = -1
+  private var isSeekInProgress = false
+
+  // Scrub bypass. JS sets this true on scroll begin / false on settle
+  // (onMomentumScrollEnd / scrubEndTimer). When true, the CIFilter
+  // handler returns request.sourceImage unmodified — skipping color
+  // adjust + Vision personSegmentation + chroma key. Vision requests in
+  // particular are stateful + not thread-safe and have been the prime
+  // suspect for native crashes during fast scrub (no NSException, no
+  // jetsam, just death — classic EXC_BAD_ACCESS).
+  //
+  // Atomic-ish access: reading a Bool from a CIFilter handler on a
+  // background queue while main writes is safe in practice on aligned
+  // platforms; we don't need a lock.
+  private var isScrubbing = false
+  /// Sampled-by-8 counter for the seek breadcrumb. Sub-counting avoids
+  /// hammering the crumb file at 60Hz scrub.
+  private var seekCallCount: UInt = 0
+
+  func setScrubbing(_ on: Bool) {
+    isScrubbing = on
+    crumb("setScrubbing", data: ["on": on])
+    NativeCrumbStore.shared.flush()
+  }
+
   func seek(ms: Double) {
-    let target = max(0, min(totalMs, ms))
-    let time = CMTime(value: CMTimeValue(target), timescale: 1000)
-    player.seek(to: time, toleranceBefore: .zero, toleranceAfter: .zero)
+    chaseMs = max(0, min(totalMs, ms))
+    seekCallCount &+= 1
+    if seekCallCount % 8 == 0 {
+      crumb(
+        "seek (sampled 1:8)",
+        data: [
+          "chaseMs": chaseMs,
+          "inFlight": isSeekInProgress,
+          "residentMB": processResidentMB(),
+        ]
+      )
+    }
+    if !isSeekInProgress { actuallySeek() }
     tickEmit() // immediate UI feedback
+  }
+
+  /// Best-effort breadcrumb. Goes to two places:
+  ///   1. NSLog → unified system log (Xcode console / log stream)
+  ///   2. NativeCrumbStore → persistent JSONL the JS side reads on the
+  ///      next launch after an iOS-level kill (jetsam / watchdog /
+  ///      SIGSEGV won't reach any handler, but the file persists).
+  /// Keep call sites narrow — scrub paths fire thousands of times a
+  /// second and shouldn't drown the log.
+  private func crumb(_ msg: String, data: [String: Any]? = nil) {
+    NSLog("[NleEngine h=%d] %@", handle, msg)
+    NativeCrumbStore.shared.add(
+      source: "nle.engine.h\(handle)", msg: msg, data: data
+    )
+  }
+
+  /// Run the AVPlayer seek for the current chase target. ~50ms tolerance
+  /// is loose enough that rapid scrub seeks finish before the next one
+  /// arrives; the settle commit (onMomentumScrollEnd) seeks once more
+  /// via the same path — also at 50ms — which is fine for editor scrub.
+  /// Frame-accurate seeks are reserved for rebuildComposition's
+  /// position-restore path, which has its own completion handler.
+  private func actuallySeek() {
+    let toSeek = chaseMs
+    if toSeek < 0 { return }
+    isSeekInProgress = true
+    let time = CMTime(value: CMTimeValue(toSeek), timescale: 1000)
+    let tol = CMTime(value: 50, timescale: 1000)
+    player.seek(to: time, toleranceBefore: tol, toleranceAfter: tol) { [weak self] _ in
+      guard let self = self else { return }
+      self.isSeekInProgress = false
+      if abs(self.chaseMs - toSeek) > 1 {
+        self.actuallySeek()
+      } else {
+        // End of a scrub burst — flush so the crumb file reflects the
+        // last seek even if the next thing the user does is the thing
+        // that kills the app.
+        NativeCrumbStore.shared.flush()
+      }
+    }
   }
 
   func setClipVolume(clipId: String, volume: Double) {
@@ -187,6 +416,10 @@ final class NleEngine {
   private func rebuildComposition() {
     buildId += 1
     let myBuildId = buildId
+    crumb(
+      "rebuildComposition begin buildId=\(myBuildId) clips=\(clips.count)",
+      data: ["residentMB": processResidentMB()]
+    )
 
     // Preserve current playback position so a rebuild during scrub /
     // trim doesn't snap the playhead back to zero.
@@ -213,14 +446,26 @@ final class NleEngine {
       )
 
       // One layer instruction for the single composed video track,
-      // with a setTransform(_:at:) per clip insert so each segment
-      // applies its source's preferredTransform. Without this, portrait
-      // phone video (90° transform baked into the source) renders
-      // outside the layer's render rect → black preview.
+      // with a SINGLE setTransform(_:at: .zero) using the first clip's
+      // preferredTransform. Per-clip setTransform calls created a step
+      // function that crashed AVFoundation at clip boundaries (silent
+      // SIGKILL with no crumb flush). All clips in a recording session
+      // are assumed same-orientation; mixed-orientation projects will
+      // render the off-orientation clips rotated wrong rather than
+      // crash, which is the better failure mode.
       let layerInstruction = videoTrack.map {
         AVMutableVideoCompositionLayerInstruction(assetTrack: $0)
       }
       var renderSize: CGSize = .zero
+      // Per-clip preferredTransforms parallel to `snapshot` (NOT to
+      // the inserted clips), so indexFor(time:cumulative:) — which uses
+      // cumulativeS built from `snapshot` — can look up the right
+      // transform. Skipped clips stay at .identity; their slots on the
+      // composition timeline are empty anyway. The CIFilter handler
+      // path doesn't pick up layer-instruction transforms, so we apply
+      // these to request.sourceImage ourselves at handler time.
+      var clipTransforms: [CGAffineTransform] =
+        Array(repeating: .identity, count: snapshot.count)
 
       var insertionTime = CMTime.zero
       var insertedVideo = false
@@ -280,16 +525,44 @@ final class NleEngine {
             try videoTrack.insertTimeRange(range, of: v, at: insertionTime)
             insertedVideo = true
 
-            // Apply the source's preferredTransform from this clip's
-            // insertion point forward — it stays in effect until the
-            // next setTransform on the same layer instruction.
             let transform = v.preferredTransform
-            layerInstruction?.setTransform(transform, at: insertionTime)
+            clipTransforms[cIdx] = transform
 
-            // Render size = post-transform size of the first clip. For
-            // a portrait recording the raw naturalSize is landscape
-            // and the 90° transform swaps the axes.
+            // Rotation diagnostic. iPhone portrait clips should land
+            // here with naturalSize=(1920,1080) and transform≈
+            // (a=0,b=1,c=-1,d=0,tx=1080,ty=0). If we see identity or
+            // unexpected values, the source itself is wrong (recording
+            // pipeline lost orientation metadata) and no amount of
+            // composition wiring fixes it.
+            let ns = v.naturalSize
+            self.crumb(
+              "clip transform",
+              data: [
+                "cIdx": cIdx,
+                "id": c.id,
+                "naturalW": Double(ns.width),
+                "naturalH": Double(ns.height),
+                "a": Double(transform.a),
+                "b": Double(transform.b),
+                "c": Double(transform.c),
+                "d": Double(transform.d),
+                "tx": Double(transform.tx),
+                "ty": Double(transform.ty),
+              ]
+            )
+
+            // Use the FIRST clip's preferredTransform as the single,
+            // time-invariant transform on the layer instruction.
+            // Multiple setTransform(_:at:) calls (one per seam) create
+            // a step-function transform that AVFoundation has been
+            // observed to choke on at clip boundaries — silent decoder
+            // kills with no NSException, no jetsam, no native crumb
+            // flush. Single setTransform avoids the discontinuity.
+            // Assumption: clips in a single recording session share
+            // orientation. If a mixed-orientation clip appears, it
+            // will render rotated wrong rather than crashing.
             if renderSize == .zero {
+              layerInstruction?.setTransform(transform, at: .zero)
               let rect = CGRect(origin: .zero, size: v.naturalSize)
                 .applying(transform)
               renderSize = CGSize(
@@ -298,7 +571,19 @@ final class NleEngine {
               )
             }
           } catch {
-            // Skip just this clip; keep building.
+            // Skip just this clip; keep building. Surface to JS via
+            // onNativeError so the user has something to read on
+            // /debug-crash instead of a silent gap in the composition.
+            let msg = error.localizedDescription
+            let detail = "clipId=\(c.id) inMs=\(c.inMs) outMs=\(c.outMs)"
+            self.crumb("insertTimeRange threw: \(msg) (\(detail))")
+            await MainActor.run {
+              self.emit("onNativeError", [
+                "source": "nle.insertTimeRange",
+                "message": msg,
+                "detail": detail,
+              ])
+            }
           }
         }
         if let au = audios.first, let audioTrack = audioTrack {
@@ -359,26 +644,64 @@ final class NleEngine {
 
         let videoComp: AVMutableVideoComposition
         if needsColor {
-          // Apply per-frame CIFilter chain. The initializer applies
-          // each asset track's preferredTransform before handing the
-          // image to our handler, so request.sourceImage is the
-          // already-oriented frame. We must NOT override renderSize
-          // after that — the framework picks one that matches the
-          // pre-transformed frame, and overriding to something else
-          // produces letterbox bars where the video doesn't cover.
+          // Apply per-frame CIFilter chain. The
+          // (asset:applyingCIFiltersWithHandler:) initializer DOES
+          // auto-apply each asset track's preferredTransform before
+          // delivering the source image — confirmed empirically.
+          // weak self is captured so the handler can early-out when
+          // the user is scrubbing: skipping color + Vision saves the
+          // suspected crash path (Vision request stateful + UB under
+          // the handler's concurrent queue).
+          weak var weakSelf = self
+          // Sampled-call counter — bumped on every handler invocation
+          // so we can crumb 1:30 (~once per second at 30fps) for
+          // visibility on whether the handler is being called at all
+          // during scrub and how its rate spikes.
+          let handlerCount = HandlerCounter()
           videoComp = AVMutableVideoComposition(asset: comp) { request in
+            let cnt = handlerCount.next()
+            let scrubbing = weakSelf?.isScrubbing == true
+            if scrubbing {
+              // Bypass everything during scrub. The framework already
+              // applied preferredTransform to sourceImage; pass it
+              // through. User just wants to see roughly which frame
+              // is at the playhead — color/chroma/cutout will resume
+              // applying as soon as scroll settles.
+              if cnt % 30 == 0 {
+                NativeCrumbStore.shared.add(
+                  source: "nle.filter",
+                  msg: "frame (scrub bypass)",
+                  data: ["count": cnt]
+                )
+              }
+              request.finish(with: request.sourceImage, context: nil)
+              return
+            }
             let t = request.compositionTime
             let idx = NleEngine.indexFor(time: t, cumulative: cumulativeS)
             let source = request.sourceImage.clampedToExtent()
             let clip = (idx >= 0 && idx < snapshotClips.count) ? snapshotClips[idx] : nil
+            if cnt % 30 == 0 {
+              NativeCrumbStore.shared.add(
+                source: "nle.filter",
+                msg: "frame",
+                data: [
+                  "count": cnt,
+                  "clipIdx": idx,
+                  "cutout": clip?.cutoutEnabled ?? false,
+                  "chroma": clip?.chromaEnabled ?? false,
+                ]
+              )
+            }
             let filtered = NleEngine.applyColor(image: source, clip: clip)
               .cropped(to: request.sourceImage.extent)
             request.finish(with: filtered, context: nil)
           }
         } else {
           // Single instruction spanning the whole composed timeline,
-          // carrying the single per-track layer instruction whose
-          // setTransform calls switch transform per segment.
+          // carrying the per-track layer instruction with a single
+          // setTransform at .zero (see comment up where the
+          // layerInstruction is configured).
           let mainInstruction = AVMutableVideoCompositionInstruction()
           mainInstruction.timeRange = CMTimeRange(
             start: .zero,
@@ -392,7 +715,7 @@ final class NleEngine {
           // Only override renderSize on the non-filter path. The
           // CIFilter-handler initializer already picked one that
           // matches the pre-transformed source frame; overriding it
-          // there causes the letterbox-bar bug.
+          // there rotates/letterboxes the preview against the layer.
           videoComp.renderSize = renderSize == .zero
             ? CGSize(width: 1080, height: 1920)
             : renderSize
@@ -445,14 +768,34 @@ final class NleEngine {
           self?.emit("onPlayToEnd", [:])
         }
 
+        self.crumb(
+          "rebuildComposition done buildId=\(myBuildId) skipped=\(skipped.count) renderSize=\(Int(videoComp.renderSize.width))x\(Int(videoComp.renderSize.height)) needsColor=\(needsColor)",
+          data: ["residentMB": processResidentMB()]
+        )
+        // Pause before the swap. The OLD item could otherwise be
+        // mid-decode for a frame past the new composition's total when
+        // we replace it — that's the most plausible silent-kill window
+        // on a play-into-deleted-region scenario.
+        let resumeAfterSwap = (self.player.timeControlStatus == .playing)
+        if resumeAfterSwap {
+          self.player.pause()
+          self.crumb("rebuildComposition paused for swap")
+        }
+        self.crumb("replaceCurrentItem begin")
         self.player.replaceCurrentItem(with: item)
+        self.crumb(
+          "replaceCurrentItem done",
+          data: ["newTot": self.totalMs]
+        )
 
         // Restore playback position after the new item is ready. clamp
         // into the new composed duration in case a trim shortened the
         // timeline past where we were.
-        let clampedMs = min(
-          max(0, CMTimeGetSeconds(previousTime) * 1000.0),
-          self.totalMs
+        let prevMs = CMTimeGetSeconds(previousTime) * 1000.0
+        let clampedMs = min(max(0, prevMs), self.totalMs)
+        self.crumb(
+          "position restore",
+          data: ["prevMs": prevMs, "clampedMs": clampedMs, "totalMs": self.totalMs]
         )
         let restoreTime = CMTime(value: CMTimeValue(clampedMs), timescale: 1000)
         self.player.seek(
@@ -461,7 +804,8 @@ final class NleEngine {
           toleranceAfter: .zero
         ) { [weak self] _ in
           guard let self = self else { return }
-          if wasPlaying { self.player.play() }
+          self.crumb("position restore done")
+          if resumeAfterSwap || wasPlaying { self.player.play() }
         }
       }
     }
@@ -684,22 +1028,24 @@ final class NleEngine {
 }
 
 /// Runs Vision person-segmentation on a CIImage frame and returns a
-/// single-channel mask CIImage sized to the input frame. The request
-/// object is reused across calls; only the per-frame buffer changes.
+/// single-channel mask CIImage sized to the input frame.
+///
+/// IMPORTANT: a fresh `VNGeneratePersonSegmentationRequest` is built
+/// per call. Previously this class kept a single shared request and
+/// called `handler.perform([request])` from the CIFilter handler
+/// queue, which AVFoundation can call from multiple threads in
+/// parallel. Vision requests hold mutable `results` state and are not
+/// thread-safe — concurrent use was UB and the most likely source of
+/// the EXC_BAD_ACCESS-class crashes observed during fast scrub (no
+/// NSException, no jetsam, just death).
+///
+/// The `CIContext` IS thread-safe per Apple docs and can stay shared.
 final class PersonMaskRunner {
-  private let request: VNGeneratePersonSegmentationRequest = {
-    let r = VNGeneratePersonSegmentationRequest()
-    r.qualityLevel = .balanced
-    r.outputPixelFormat = kCVPixelFormatType_OneComponent8
-    return r
-  }()
   private let context = CIContext(options: nil)
 
   /// Returns nil if Vision didn't surface a mask (no person detected
   /// or an error). Callers should fall back to the unmasked image.
   func mask(for image: CIImage) -> CIImage? {
-    // Vision needs a CGImage / CVPixelBuffer. Render the input to a
-    // pixel buffer at the source extent.
     let extent = image.extent
     guard extent.width > 0, extent.height > 0 else { return nil }
     let w = Int(extent.width)
@@ -721,6 +1067,12 @@ final class PersonMaskRunner {
     guard let buf = pb else { return nil }
     context.render(image, to: buf)
 
+    // Per-call request so concurrent CIFilter handler calls don't
+    // share mutable Vision state.
+    let request = VNGeneratePersonSegmentationRequest()
+    request.qualityLevel = .balanced
+    request.outputPixelFormat = kCVPixelFormatType_OneComponent8
+
     let handler = VNImageRequestHandler(cvPixelBuffer: buf, options: [:])
     do {
       try handler.perform([request])
@@ -733,8 +1085,6 @@ final class PersonMaskRunner {
     else {
       return nil
     }
-    // Mask comes back at the segmenter's working resolution; CIImage
-    // scaling lines it back up with the source extent.
     let mask = CIImage(cvPixelBuffer: maskBuffer)
     let scaleX = extent.width / mask.extent.width
     let scaleY = extent.height / mask.extent.height

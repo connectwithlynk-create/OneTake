@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
@@ -17,7 +18,11 @@ import {
   TagPill,
   VerdictPill,
 } from '@/components/ui';
+import { persistClip } from '@/lib/filestore';
+import { id as newId } from '@/lib/id';
+import { rateClip } from '@/lib/rating';
 import {
+  addClip,
   deleteClip,
   getProject,
   listClips,
@@ -27,6 +32,7 @@ import {
 } from '@/lib/repo';
 import { invalidate, useData } from '@/lib/store';
 import { fmtDuration } from '@/lib/time';
+import { maybeTranscribe } from '@/lib/transcribe';
 import type { Clip, Verdict } from '@/lib/types';
 import { font, palette, verdictColor } from '@/theme';
 
@@ -38,6 +44,9 @@ export default function ProjectScreen() {
   const [filter, setFilter] = useState<'all' | 'keeps' | 'duds'>('all');
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleInput, setTitleInput] = useState('');
+  // Guard against the user double-tapping the picker while the previous
+  // import is still copying files / writing rows.
+  const [importing, setImporting] = useState(false);
 
   const { data: project, loading: lp } = useData(() => getProject(id), [id]);
   const { data: clips, loading: lc } = useData(() => listClips(id), [id]);
@@ -76,6 +85,37 @@ export default function ProjectScreen() {
     setEditingTitle(false);
   }
 
+  /** Multi-select videos from the photo library and append them as
+   *  clips on this project. Same persistClip + addClip + rateClip
+   *  + maybeTranscribe pipeline the editor's tail "+" cell uses, so
+   *  imported clips show up in the grid with auto ratings and start
+   *  transcribing in the background. */
+  async function importFromCameraRoll() {
+    if (importing) return;
+    setImporting(true);
+    try {
+      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!perm.granted) return;
+      const res = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['videos'],
+        allowsMultipleSelection: true,
+        quality: 1,
+      });
+      if (res.canceled || !res.assets || res.assets.length === 0) return;
+      for (const a of res.assets) {
+        const clipId = newId();
+        const uri = persistClip(a.uri, clipId);
+        const durationMs = Math.round(a.duration ?? 0);
+        const r = rateClip({ clipId, durationMs, source: 'imported' });
+        await addClip(id, uri, durationMs, r.verdict, r.tag, clipId);
+        void maybeTranscribe(clipId);
+      }
+      invalidate();
+    } finally {
+      setImporting(false);
+    }
+  }
+
   const usableMs = keeps.reduce((sum, c) => sum + c.duration_ms, 0);
 
   return (
@@ -83,17 +123,25 @@ export default function ProjectScreen() {
       <View style={s.topRow}>
         <IconButton name="chevron-back" tone="surface" size={36} onPress={() => router.back()} />
         {!isPrompt ? (
-          <IconButton
-            name="videocam"
-            tone="accent"
-            size={36}
-            onPress={() =>
-              router.push({
-                pathname: '/capture/[projectId]',
-                params: { projectId: id },
-              })
-            }
-          />
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <IconButton
+              name="images"
+              tone="surface"
+              size={36}
+              onPress={importFromCameraRoll}
+            />
+            <IconButton
+              name="videocam"
+              tone="accent"
+              size={36}
+              onPress={() =>
+                router.push({
+                  pathname: '/capture/[projectId]',
+                  params: { projectId: id },
+                })
+              }
+            />
+          </View>
         ) : (
           <View style={{ width: 36 }} />
         )}
@@ -177,11 +225,23 @@ export default function ProjectScreen() {
           </View>
 
           {all.length === 0 ? (
-            <EmptyState
-              icon="film-outline"
-              title="No clips yet"
-              subtitle="Tap the camera to record your first take."
-            />
+            <>
+              <EmptyState
+                icon="film-outline"
+                title="No clips yet"
+                subtitle="Record a new take or import from your camera roll."
+              />
+              <View style={s.emptyAction}>
+                <Button
+                  label={importing ? 'Importing…' : 'Import from camera roll'}
+                  icon="images"
+                  tone="ghost"
+                  full
+                  disabled={importing}
+                  onPress={importFromCameraRoll}
+                />
+              </View>
+            </>
           ) : (
             <FlatList
               data={shown}
@@ -346,6 +406,10 @@ const s = StyleSheet.create({
     fontWeight: '500',
   },
   filters: { paddingHorizontal: 18, paddingBottom: 12, flexDirection: 'row', gap: 8 },
+  emptyAction: {
+    paddingHorizontal: 24,
+    paddingBottom: 24,
+  },
   tile: {
     flex: 1,
     maxWidth: '49%',

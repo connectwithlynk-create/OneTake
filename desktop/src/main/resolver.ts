@@ -5,6 +5,7 @@
 // covers TikTok / Instagram, so there's no per-platform branching here.
 import { execFile } from 'child_process';
 import { promisify } from 'util';
+import { YT_DLP, ytdlpCookieArgs, ytdlpErrorMessage } from './ytdlp';
 
 const execFileAsync = promisify(execFile);
 
@@ -19,9 +20,6 @@ export interface ResolvedReel {
 }
 
 export type ResolveResult = ResolvedReel | { error: string };
-
-// Override if yt-dlp isn't on PATH (e.g. a binary bundled with the app).
-const YT_DLP = process.env.YT_DLP_PATH || 'yt-dlp';
 
 // Prefer a progressive (audio+video) mp4 <=720p so the <video> preview
 // plays off a single URL; fall back through to whatever is playable.
@@ -76,6 +74,15 @@ export async function resolveReel(url: string): Promise<ResolveResult> {
     return { error: 'Invalid URL' };
   }
 
+  // Instagram: yt-dlp's extractor is currently broken (its media-info
+  // endpoint 302/403s for web sessions even with valid cookies), so use
+  // the logged-in stealth-browser resolver instead. Lazy-imported so the
+  // heavy Playwright dependency only loads when an IG URL is resolved.
+  if (detectPlatform(url) === 'instagram') {
+    const { resolveInstagramViaBrowser } = await import('./instagram');
+    return resolveInstagramViaBrowser(url);
+  }
+
   let info: any;
   try {
     const { stdout } = await execFileAsync(
@@ -84,6 +91,7 @@ export async function resolveReel(url: string): Promise<ResolveResult> {
         '--dump-single-json',
         '--no-warnings',
         '--no-playlist',
+        ...ytdlpCookieArgs(),
         '-f',
         FORMAT,
         url,
@@ -96,8 +104,12 @@ export async function resolveReel(url: string): Promise<ResolveResult> {
       return { error: 'yt-dlp not found - install it or set YT_DLP_PATH' };
     }
     const stderr = String(e?.stderr ?? '').trim();
-    const last = stderr.split('\n').filter(Boolean).pop();
-    return { error: last || (e instanceof Error ? e.message : String(e)) };
+    return {
+      error: ytdlpErrorMessage(
+        stderr,
+        e instanceof Error ? e.message : String(e),
+      ),
+    };
   }
 
   const playable_url: string | undefined = info?.url;

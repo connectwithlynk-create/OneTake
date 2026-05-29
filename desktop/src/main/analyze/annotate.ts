@@ -1,10 +1,11 @@
 import type { ShotAudio } from './audio';
 import type { ExtractedFrame, ShotFrames } from './frame-extractor';
 import { recognizeText } from './ocr';
+import { detectOverlays } from './overlays';
 import type { Shot } from './scene-detect';
 import type { ShotSpeakerInfo, SpeakerVerdict } from './speaker';
 import type { ShotSfx } from './sfx';
-import type { SfxClassifiedEvent } from './types';
+import type { SfxClassifiedEvent, MediaOverlay } from './types';
 import type {
   ClipType,
   FrameRegion,
@@ -97,13 +98,18 @@ async function ocrShotMoments(
     try {
       const ocr = await recognizeText(frame.jpegBase64);
       if (ocr.text.length > longest.length) longest = ocr.text;
-      if (ocr.textBox && frame.width > 0 && frame.height > 0) {
-        const bbox = normalizeBBox(ocr.textBox, frame.width, frame.height);
+      if (frame.width <= 0 || frame.height <= 0) continue;
+      // One TextMoment PER LINE — preserves per-region accuracy so the
+      // downstream text_region_distribution and overlay-exclusion both
+      // see where each text block actually sits, instead of an
+      // envelope union that spans the whole frame.
+      for (const line of ocr.lines) {
+        const bbox = normalizeBBox(line.bbox, frame.width, frame.height);
         const region = regionForXY(
           bbox.x + bbox.w / 2,
           bbox.y + bbox.h / 2,
         );
-        moments.push({ text: ocr.text, bbox, region });
+        moments.push({ text: line.text, bbox, region });
       }
     } catch {
       // skip a bad frame, keep going
@@ -161,6 +167,26 @@ export async function annotateShots(
         face_bbox.y + face_bbox.h / 2,
       );
     }
+    // Overlay detection runs after face/OCR for this shot so we can
+    // pass the face bbox and text moments in as exclusion zones. Pure
+    // best-effort: failures degrade to an empty list, never throw.
+    let overlays: MediaOverlay[] = [];
+    try {
+      overlays = detectOverlays({
+        shot: shots[i],
+        shotFrames: sf ?? { rep: null, samples: [] },
+        faceBbox: face_bbox,
+        textMoments: moments,
+      });
+    } catch (err) {
+      console.error(
+        '[overlays] shot',
+        i,
+        'failed:',
+        err instanceof Error ? err.message : String(err),
+      );
+    }
+
     out.push({
       start_ms: shots[i].start_ms,
       end_ms: shots[i].end_ms,
@@ -181,6 +207,12 @@ export async function annotateShots(
       sfx_count: sx.sfx_count,
       sfx_at_start: sx.sfx_at_start,
       sfx_classifications: sxClassifications,
+      overlays,
+      // Captions + spoken_window are filled in by analyze.ts after
+      // this pass (they need the rep frame batched + the full reel
+      // transcript respectively, neither of which annotate.ts owns).
+      visual_caption: null,
+      spoken_window: '',
     });
   }
   return out;

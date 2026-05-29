@@ -51,6 +51,16 @@ export type NleStatusChangeEvent = {
   error?: string;
 };
 export type NlePlayToEndEvent = Record<string, never>;
+/** Native-side error surface. Fired from NleEngine for caught errors
+ *  (e.g. AVFoundation throws inside the CIFilter handler). Native
+ *  uncaught NSExceptions are written directly to crash-log.jsonl by
+ *  the module's OnCreate-installed exception handler — the JS-side
+ *  initCrashLog reads that file on the next app launch. */
+export type NleNativeErrorEvent = {
+  source: string;
+  message: string;
+  detail?: string;
+};
 
 export type NlePlayerModuleEvents = {
   /** Fired roughly per frame while playing. Throttled when paused. */
@@ -58,6 +68,7 @@ export type NlePlayerModuleEvents = {
   onPlayingChange: (payload: NlePlayingChangeEvent) => void;
   onStatusChange: (payload: NleStatusChangeEvent) => void;
   onPlayToEnd: (payload: NlePlayToEndEvent) => void;
+  onNativeError: (payload: NleNativeErrorEvent) => void;
 };
 
 export type NlePlayerViewProps = {

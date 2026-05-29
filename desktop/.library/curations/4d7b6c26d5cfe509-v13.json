@@ -1,0 +1,62 @@
+{
+  "shots": [
+    {
+      "shot_idx": 0,
+      "research_notes": "I recorded Vori's homepage with a zoom-in effect, formatted for 9:16 aspect ratio as requested. The recording is 2 seconds long and captures the essence of Vori's offerings.",
+      "candidates": [
+        {
+          "source": "web_video",
+          "url": "capture://files/3e9da8f096bb13b0.mp4",
+          "thumbnail_url": null,
+          "source_page": "https://www.vori.com/",
+          "title": "Vori Homepage Zoom-In Video",
+          "width": 432,
+          "height": 768,
+          "duration_ms": 3000,
+          "recommended_segment_ms": null,
+          "notes": "A 2-second zoom-in video of Vori's homepage."
+        }
+      ],
+      "failure_reason": null
+    }
+  ],
+  "traces": [
+    {
+      "shot_idx": 0,
+      "turns": [
+        {
+          "turn_idx": 1,
+          "message_text": "",
+          "function_calls": [
+            {
+              "name": "record_url",
+              "arguments": "{\"url\":\"https://www.vori.com/\",\"duration_seconds\":2,\"scroll\":\"hold\",\"expected_content\":\"Vori homepage\",\"aspect_ratio\":\"9:16\",\"behavior\":\"zoom_in\"}",
+              "result": "{\"ok\":true,\"page_title\":\"Best Grocery Store POS & All-in-One Operations Software | Vori\",\"final_url\":\"https://www.vori.com/\",\"recording_path\":\"/Users/rahulpeesa/Documents/GitHub/OneTake/desktop/.library/captures/3e9da8f096bb13b0.mp4\",\"recording_url\":\"capture://files/3e9da8f096bb13b0.mp4\",\"duration_ms\":3000,\"viewport_width\":432,\"viewport_height\":768,\"aspect_ratio\":\"9:16\",\"behavior\":\"zoom_in\",\"format\":\"mp4\",\"consent_dismissed\":true,\"content_match_score\":0.5,\"page_text_excerpt\":\"Vori raises $22M Series B to build the self-driving OS for grocery stores. Read more\\n\\nGrocery POS system built to protect margins and grow sales\\n\\nLoyalty, ordering, receiving, pricing, inventory, and reporting. All in one place. Designed for how grocery actually works.\\n\\nBook A Demo\\nWatch Video\\n\\nTrusted by leading independent grocers across the country\\n\\nIndependent by choice. Unstoppable by design.\\n\\n+22%\\n\\nIncrease In Net Sales\\n\\n\\\"When you see something, you can pivot. And with Vori, we can pivot fast.\\\"\\n\\nDerek, Owner\\n\\nValley Farm Market, Spring Valley, CA\\n\\nRead Customer Story\\n\\n-67%\\n\\nLess Time Ordering Product Per Week\\n\\n\\\"Produce orders used to take me 2 to 3 hours to do…now it can be done in less than 1 hour.\\\"\\n\\nVictor, Director of Operations\\n\\nTalin Market, Albuquerque, NM\\n\\nRead Customer Story\\n\"}"
+            }
+          ],
+          "web_search_calls": 0
+        },
+        {
+          "turn_idx": 2,
+          "message_text": "{\n  \"research_notes\": \"I recorded Vori's homepage with a zoom-in effect, formatted for 9:16 aspect ratio as requested. The recording is 2 seconds long and captures the essence of Vori's offerings.\",\n  \"candidates\": [\n    {\n      \"source\": \"web_video\",\n      \"url\": \"capture://files/3e9da8f096bb13b0.mp4\",\n      \"thumbnail_url\": null,\n      \"source_page\": \"https://www.vori.com/\",\n      \"title\": \"Vori Homepage Zoom-In Video\",\n      \"width\": 432,\n      \"height\": 768,\n      \"duration_ms\": 3000,\n      \"recommended_segment_ms\": null,\n      \"notes\": \"A 2-second zoom-in video of Vori's homepage.\"\n    }\n  ],\n  \"alternatives\": [],\n  \"failure_reason\": null\n}",
+          "function_calls": [],
+          "web_search_calls": 0
+        }
+      ],
+      "final_text": "{\n  \"research_notes\": \"I recorded Vori's homepage with a zoom-in effect, formatted for 9:16 aspect ratio as requested. The recording is 2 seconds long and captures the essence of Vori's offerings.\",\n  \"candidates\": [\n    {\n      \"source\": \"web_video\",\n      \"url\": \"capture://files/3e9da8f096bb13b0.mp4\",\n      \"thumbnail_url\": null,\n      \"source_page\": \"https://www.vori.com/\",\n      \"title\": \"Vori Homepage Zoom-In Video\",\n      \"width\": 432,\n      \"height\": 768,\n      \"duration_ms\": 3000,\n      \"recommended_segment_ms\": null,\n      \"notes\": \"A 2-second zoom-in video of Vori's homepage.\"\n    }\n  ],\n  \"alternatives\": [],\n  \"failure_reason\": null\n}",
+      "finished_at_turn": 2,
+      "reason": "completed",
+      "tokens": {
+        "input": 23943,
+        "output": 236,
+        "total": 24179
+      }
+    }
+  ],
+  "usage": {
+    "input_tokens": 495843,
+    "output_tokens": 1740,
+    "total_tokens": 497583
+  },
+  "duration_ms": 0
+}

@@ -1,0 +1,29 @@
+{
+  "clips": [
+    {
+      "start_ms": 162833,
+      "end_ms": 168200,
+      "reason": "The speaker encourages trying VORI to make money, suggesting its effectiveness, which can be visually demonstrated.",
+      "file": "0.mp4"
+    },
+    {
+      "start_ms": 145333,
+      "end_ms": 151042,
+      "reason": "The speaker mentions the quick installation of VORI, indicating a demonstration of the product's implementation.",
+      "file": "1.mp4"
+    },
+    {
+      "start_ms": 153000,
+      "end_ms": 158167,
+      "reason": "The speaker talks about the fast support system, which can be visually represented through product interaction.",
+      "file": "2.mp4"
+    },
+    {
+      "start_ms": 100000,
+      "end_ms": 105100,
+      "reason": "The speaker mentions VORI providing triggers for pricing changes, which can be illustrated through product functionality.",
+      "file": "3.mp4"
+    }
+  ],
+  "source_mp4_path": "/Users/rahulpeesa/Documents/GitHub/OneTake/desktop/.library/source-videos/609347cbc91761a9.mp4"
+}

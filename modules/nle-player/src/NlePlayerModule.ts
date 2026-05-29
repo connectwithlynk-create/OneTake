@@ -2,6 +2,7 @@ import { NativeModule, requireNativeModule } from 'expo';
 
 import {
   NleClip,
+  NleNativeErrorEvent,
   NlePlayerModuleEvents,
   NleTimeUpdateEvent,
   NlePlayingChangeEvent,
@@ -25,6 +26,11 @@ declare class NlePlayerNative extends NativeModule<NlePlayerModuleEvents> {
   pause(handle: number): void;
   /** Seek by composed-timeline milliseconds. */
   seek(handle: number, ms: number): void;
+  /** Toggle scrub mode. When true, the native CIFilter handler skips
+   *  color / chroma / cutout processing and renders the raw oriented
+   *  frame — much cheaper, and avoids the Vision concurrency hazard
+   *  that's the prime suspect for crashes during fast scrub. */
+  setScrubbing(handle: number, on: boolean): void;
   /** Synchronous reads for hot paths. Falls back to 0 if the handle is
    *  unknown or the player isn't ready yet. */
   getCurrentTime(handle: number): number;
@@ -37,6 +43,16 @@ declare class NlePlayerNative extends NativeModule<NlePlayerModuleEvents> {
 const Native = requireNativeModule<NlePlayerNative>('NlePlayer');
 
 export default Native;
+
+/** Subscribe to native-side errors (caught throws inside NleEngine,
+ *  composition build failures, etc.). Returns an unsubscribe fn.
+ *  Independent of any player handle — install once at app boot. */
+export function attachNativeErrorListener(
+  handler: (payload: NleNativeErrorEvent) => void
+): () => void {
+  const sub = Native.addListener('onNativeError', handler as never);
+  return () => sub.remove();
+}
 
 /** Imperative wrapper around a single native player handle. Mirrors the
  *  shape of expo-video's `useVideoPlayer` returned object so the editor
@@ -70,6 +86,10 @@ export class NlePlayer {
   seek(ms: number) {
     if (this._handle < 0) return;
     Native.seek(this._handle, ms);
+  }
+  setScrubbing(on: boolean) {
+    if (this._handle < 0) return;
+    Native.setScrubbing(this._handle, on);
   }
   setClipVolume(clipId: string, volume: number) {
     if (this._handle < 0) return;
@@ -130,6 +150,7 @@ export class NlePlayer {
 
 export type {
   NleClip,
+  NleNativeErrorEvent,
   NleTimeUpdateEvent,
   NlePlayingChangeEvent,
   NleStatusChangeEvent,

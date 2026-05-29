@@ -1,0 +1,609 @@
+{
+  "total_duration_ms": 19718,
+  "shots": [
+    {
+      "shot_idx": 0,
+      "start_ms": 0,
+      "end_ms": 1452,
+      "duration_ms": 1452,
+      "spoken_during": "▎ What is this startup",
+      "structure_role": "hook",
+      "broll_description": "Close-up of a founder looking directly at the camera in an energetic startup setting, as they pose the question overlaid in text.",
+      "asset": {
+        "method": "manual",
+        "web_capture": null,
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": {
+          "instruction": "Record a 1.5s static close-up of yourself in a bustling startup environment, posing the question 'What is this startup that just went viral?'"
+        },
+        "camera_move": null
+      },
+      "placement": {
+        "aspect": "9:16",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "additional_elements": [],
+      "source_type": "lots of footage of energetic startup environments — creator builds reels around the startup context.",
+      "inspired_by": null,
+      "text_overlay": "< & WHAT iS ZI? ▎",
+      "text_position": "middle_center",
+      "animation_cue": null,
+      "sfx_cue": "vocal hit on cut in",
+      "clip_type": "broll_visual",
+      "rationale": "This choice captures the dynamic essence of a viral startup question."
+    },
+    {
+      "shot_idx": 1,
+      "start_ms": 1452,
+      "end_ms": 5080,
+      "duration_ms": 3628,
+      "spoken_during": "startup that just went viral? ▎ This is Vori.",
+      "structure_role": "intro",
+      "broll_description": "Dynamic shots of Vori branding materials, overlaid with the text introduction.",
+      "asset": {
+        "method": "manual",
+        "web_capture": null,
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": {
+          "instruction": "Record a 3-4s montage of Vori's branding materials, showcasing the logo and brand colors."
+        },
+        "camera_move": null
+      },
+      "placement": {
+        "aspect": "9:16",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "additional_elements": [],
+      "source_type": "lots of footage of energetic startup environments — creator builds reels around the startup context.",
+      "inspired_by": null,
+      "text_overlay": "▎ THIS IS VORI.",
+      "text_position": "middle_center",
+      "animation_cue": null,
+      "sfx_cue": null,
+      "clip_type": "broll_visual",
+      "rationale": "This shot establishes the startup in a visually dynamic context."
+    },
+    {
+      "shot_idx": 2,
+      "start_ms": 5080,
+      "end_ms": 6684,
+      "duration_ms": 1604,
+      "spoken_during": "Vori. ▎ It's the AI",
+      "structure_role": "body",
+      "broll_description": "Wide shot of Vori's tech in action at a grocery store, showcasing product use.",
+      "asset": {
+        "method": "manual",
+        "web_capture": null,
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": {
+          "instruction": "Record a 1.5s clip showing Vori's AI technology in action in a grocery store."
+        },
+        "camera_move": null
+      },
+      "placement": {
+        "aspect": "9:16",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "additional_elements": [],
+      "source_type": "lots of footage of energetic startup environments — creator builds reels around the startup context.",
+      "inspired_by": null,
+      "text_overlay": "It's the AI",
+      "text_position": "middle_center",
+      "animation_cue": null,
+      "sfx_cue": null,
+      "clip_type": "broll_visual",
+      "rationale": "Highlighting technology in use links directly to the startup's purpose."
+    },
+    {
+      "shot_idx": 3,
+      "start_ms": 6684,
+      "end_ms": 9741,
+      "duration_ms": 3057,
+      "spoken_during": "AI brain for indie grocery stores. ▎ Vori",
+      "structure_role": "body",
+      "broll_description": "Footage of busy grocery store aisles showing interaction facilitated by Vori's AI.",
+      "asset": {
+        "method": "manual",
+        "web_capture": null,
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": {
+          "instruction": "Record engaging interactions in a grocery store environment, focusing on how Vori aids customers."
+        },
+        "camera_move": null
+      },
+      "placement": {
+        "aspect": "9:16",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "additional_elements": [],
+      "source_type": "lots of footage of energetic startup environments — creator builds reels around the startup context.",
+      "inspired_by": null,
+      "text_overlay": "brain for indie grocery stores.",
+      "text_position": "middle_center",
+      "animation_cue": null,
+      "sfx_cue": "vocal hit on cut in",
+      "clip_type": "broll_visual",
+      "rationale": "This shot demonstrates the product’s real-world application."
+    },
+    {
+      "shot_idx": 4,
+      "start_ms": 9741,
+      "end_ms": 11039,
+      "duration_ms": 1298,
+      "spoken_during": "Vori just dropped a",
+      "structure_role": "body",
+      "broll_description": "Shot of a Vori announcement video clip detailing funding information.",
+      "asset": {
+        "method": "manual",
+        "web_capture": null,
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": {
+          "instruction": "Record a 1.5s clip of Vori detailing recent funding news."
+        },
+        "camera_move": null
+      },
+      "placement": {
+        "aspect": "9:16",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "additional_elements": [],
+      "source_type": "lots of footage of energetic startup environments — creator builds reels around the startup context.",
+      "inspired_by": null,
+      "text_overlay": "Vori just dropped a",
+      "text_position": "middle_center",
+      "animation_cue": null,
+      "sfx_cue": null,
+      "clip_type": "broll_visual",
+      "rationale": "Showcasing funding establishes credibility and interest."
+    },
+    {
+      "shot_idx": 5,
+      "start_ms": 11039,
+      "end_ms": 12070,
+      "duration_ms": 1031,
+      "spoken_during": "a twenty-two million",
+      "structure_role": "body",
+      "broll_description": "Close-up of a document displaying the amount of funding raised by Vori.",
+      "asset": {
+        "method": "manual",
+        "web_capture": null,
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": {
+          "instruction": "Record a close-up of a financial document featuring the exact funding amount."
+        },
+        "camera_move": null
+      },
+      "placement": {
+        "aspect": "9:16",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "additional_elements": [],
+      "source_type": "lots of footage of energetic startup environments — creator builds reels around the startup context.",
+      "inspired_by": null,
+      "text_overlay": "twenty-two million",
+      "text_position": "middle_center",
+      "animation_cue": null,
+      "sfx_cue": null,
+      "clip_type": "broll_visual",
+      "rationale": "Emphasizing the amount enhances the impact of the news."
+    },
+    {
+      "shot_idx": 6,
+      "start_ms": 12070,
+      "end_ms": 12872,
+      "duration_ms": 802,
+      "spoken_during": "million round.",
+      "structure_role": "body",
+      "broll_description": "Static close-up shot of the funding round announcement on a webpage.",
+      "asset": {
+        "method": "manual",
+        "web_capture": null,
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": {
+          "instruction": "Record a tight shot of a webpage detailing Vori's funding announcement."
+        },
+        "camera_move": null
+      },
+      "placement": {
+        "aspect": "9:16",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "additional_elements": [],
+      "source_type": "lots of footage of energetic startup environments — creator builds reels around the startup context.",
+      "inspired_by": null,
+      "text_overlay": "million round.",
+      "text_position": "middle_center",
+      "animation_cue": null,
+      "sfx_cue": null,
+      "clip_type": "broll_visual",
+      "rationale": "This choice establishes the announcement's importance."
+    },
+    {
+      "shot_idx": 7,
+      "start_ms": 12872,
+      "end_ms": 15164,
+      "duration_ms": 2292,
+      "spoken_during": "▎ After it went viral, founders",
+      "structure_role": "body",
+      "broll_description": "Dynamic shot of founders speaking into the camera about their recent success.",
+      "asset": {
+        "method": "manual",
+        "web_capture": null,
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": {
+          "instruction": "Record a brief clip of the Vori founders sharing their insights after the viral success."
+        },
+        "camera_move": null
+      },
+      "placement": {
+        "aspect": "9:16",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "additional_elements": [],
+      "source_type": "footage of founders discussing or showcasing their product.",
+      "inspired_by": null,
+      "text_overlay": "After it went viral, founders",
+      "text_position": "middle_center",
+      "animation_cue": null,
+      "sfx_cue": "vocal hit on cut in",
+      "clip_type": "broll_visual",
+      "rationale": "Showcasing founder reactions emphasizes the viral impact."
+    },
+    {
+      "shot_idx": 8,
+      "start_ms": 15164,
+      "end_ms": 19718,
+      "duration_ms": 4554,
+      "spoken_during": "founders started yapping. ▎ Would you let Vori run your bodega?",
+      "structure_role": "cta",
+      "broll_description": "Founders discussing the implications of Vori during a meeting.",
+      "asset": {
+        "method": "manual",
+        "web_capture": null,
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": {
+          "instruction": "Record a group clip of founders in discussion about their product's future."
+        },
+        "camera_move": null
+      },
+      "placement": {
+        "aspect": "9:16",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "additional_elements": [],
+      "source_type": "footage of founders discussing or showcasing their product.",
+      "inspired_by": null,
+      "text_overlay": "Would you let Vori run your bodega?",
+      "text_position": "middle_center",
+      "animation_cue": null,
+      "sfx_cue": "vocal hit on cut in",
+      "clip_type": "broll_visual",
+      "rationale": "Ending with a direct question prompts viewer engagement."
+    }
+  ],
+  "structure_sections": [
+    {
+      "role": "hook",
+      "script_template": "What is this startup that <bold claim>?",
+      "target_fill": "What is this startup that just went viral?",
+      "target_start_ms": 0,
+      "target_end_ms": 1450,
+      "shot_count": 1,
+      "visual_signature": {
+        "dominant_clip_type": "broll_visual",
+        "placement_pattern": "fullbleed 9:16",
+        "text_overlay_pattern": "large center caption big font",
+        "sfx_pattern": "vocal hit on cut in",
+        "motion_pattern": "static cut",
+        "scene_elements": []
+      }
+    },
+    {
+      "role": "intro",
+      "script_template": "This is <subject>, and they <one-line action>.",
+      "target_fill": "This is Vori.",
+      "target_start_ms": 1450,
+      "target_end_ms": 5080,
+      "shot_count": 2,
+      "visual_signature": {
+        "dominant_clip_type": "broll_visual",
+        "placement_pattern": "fullbleed 9:16",
+        "text_overlay_pattern": "large center caption big font",
+        "sfx_pattern": "silent open",
+        "motion_pattern": "static cut",
+        "scene_elements": []
+      }
+    },
+    {
+      "role": "body",
+      "script_template": "<claim 1>. <claim 2>.",
+      "target_fill": "Vori. It's the AI",
+      "target_start_ms": 5080,
+      "target_end_ms": 6680,
+      "shot_count": 1,
+      "visual_signature": {
+        "dominant_clip_type": "broll_visual",
+        "placement_pattern": "fullbleed 9:16",
+        "text_overlay_pattern": "large center caption big font",
+        "sfx_pattern": "silent open",
+        "motion_pattern": "static cut",
+        "scene_elements": []
+      }
+    },
+    {
+      "role": "body",
+      "script_template": "<claim 1>. <claim 2>.",
+      "target_fill": "brain for indie grocery stores. ▎ Vori",
+      "target_start_ms": 6680,
+      "target_end_ms": 9740,
+      "shot_count": 2,
+      "visual_signature": {
+        "dominant_clip_type": "broll_visual",
+        "placement_pattern": "fullbleed 9:16",
+        "text_overlay_pattern": "large center caption big font",
+        "sfx_pattern": "vocal hit on cut in",
+        "motion_pattern": "static cut",
+        "scene_elements": []
+      }
+    },
+    {
+      "role": "body",
+      "script_template": "<claim 1>. <claim 2>.",
+      "target_fill": "Vori just dropped a",
+      "target_start_ms": 9740,
+      "target_end_ms": 11040,
+      "shot_count": 1,
+      "visual_signature": {
+        "dominant_clip_type": "broll_visual",
+        "placement_pattern": "fullbleed 9:16",
+        "text_overlay_pattern": "large center caption big font",
+        "sfx_pattern": "silent open",
+        "motion_pattern": "static cut",
+        "scene_elements": []
+      }
+    },
+    {
+      "role": "body",
+      "script_template": "<claim 1>.",
+      "target_fill": "twenty-two million",
+      "target_start_ms": 11040,
+      "target_end_ms": 12070,
+      "shot_count": 1,
+      "visual_signature": {
+        "dominant_clip_type": "broll_visual",
+        "placement_pattern": "fullbleed 9:16",
+        "text_overlay_pattern": "large center caption big font",
+        "sfx_pattern": "silent open",
+        "motion_pattern": "static cut",
+        "scene_elements": []
+      }
+    },
+    {
+      "role": "body",
+      "script_template": "<claim 1>.",
+      "target_fill": "million round.",
+      "target_start_ms": 12070,
+      "target_end_ms": 12870,
+      "shot_count": 1,
+      "visual_signature": {
+        "dominant_clip_type": "broll_visual",
+        "placement_pattern": "fullbleed 9:16",
+        "text_overlay_pattern": "large center caption big font",
+        "sfx_pattern": "silent open",
+        "motion_pattern": "static cut",
+        "scene_elements": []
+      }
+    },
+    {
+      "role": "body",
+      "script_template": "<claim 1>.",
+      "target_fill": "After it went viral, founders",
+      "target_start_ms": 12870,
+      "target_end_ms": 15160,
+      "shot_count": 2,
+      "visual_signature": {
+        "dominant_clip_type": "broll_visual",
+        "placement_pattern": "fullbleed 9:16",
+        "text_overlay_pattern": "large center caption big font",
+        "sfx_pattern": "vocal hit on cut in",
+        "motion_pattern": "static cut",
+        "scene_elements": []
+      }
+    },
+    {
+      "role": "cta",
+      "script_template": "Would you <ask>?",
+      "target_fill": "Would you let Vori run your bodega?",
+      "target_start_ms": 15160,
+      "target_end_ms": 19160,
+      "shot_count": 3,
+      "visual_signature": {
+        "dominant_clip_type": "broll_visual",
+        "placement_pattern": "fullbleed 9:16",
+        "text_overlay_pattern": "large center caption big font",
+        "sfx_pattern": "silent open",
+        "motion_pattern": "static cut",
+        "scene_elements": []
+      }
+    }
+  ],
+  "structure_confidence": "high",
+  "structure_rationale": "The chosen template is consistent with the narrative structure observed in the inspiration reels.",
+  "structure_alternatives": null,
+  "content_source_patterns": [
+    "lots of footage of energetic startup environments — creator builds reels around the startup context.",
+    "footage of founders discussing or showcasing their product.",
+    "dynamic visuals highlighting innovative technology in use."
+  ],
+  "style_summary": "- reel 1: 15.7s, 21 shots, cuts/sec=1.27, text=95%, SFX=61/min\n- reel 2: 14.7s, 7 shots, cuts/sec=0.41, text=100%, SFX=33/min\n- reel 3: 17.2s, 9 shots, cuts/sec=0.46, text=100%, SFX=63/min\n- reel 4: 12.5s, 8 shots, cuts/sec=0.56, text=100%, SFX=29/min\n- reel 5: 13.5s, 11 shots, cuts/sec=0.74, text=100%, SFX=58/min\n- reel 6: 17.2s, 9 shots, cuts/sec=0.46, text=100%, SFX=63/min",
+  "content_sources": [
+    "https://www.instagram.com/p/DYlQlfYuTc7/",
+    "https://www.instagram.com/p/DYg26zgRiGS/",
+    "https://www.instagram.com/reel/DYxLMnNRzQ5/?igsh=bXhtY2JlNjhsYzNm",
+    "https://www.instagram.com/reel/DYg26zgRiGS/?igsh=enl3MzA3dnFnNHNv"
+  ],
+  "target_metrics": {
+    "fingerprint_version": 2,
+    "computed_at": 1779771377651,
+    "n_reels": 3,
+    "n_shots": 41,
+    "median_shot_ms": 800,
+    "cuts_per_sec": 0.824773034674918,
+    "clip_type_distribution": {
+      "talking_head": 0.18879615960103024,
+      "broll_talking_head": 0.15212545748307824,
+      "talking_head_unknown": 0.23018327944028208,
+      "broll_visual": 0.42889510347560944
+    },
+    "real_speaker_pct": 0.14381914381914382,
+    "broll_talking_head_pct": 0.10678210678210677,
+    "face_size_median": 0.38286084681749344,
+    "face_region_distribution": {
+      "top_left": 0,
+      "top_center": 0.2111111111111111,
+      "top_right": 0.027777777777777776,
+      "middle_left": 0.027777777777777776,
+      "middle_center": 0.4444444444444444,
+      "middle_right": 0,
+      "bottom_left": 0.027777777777777776,
+      "bottom_center": 0.2611111111111111,
+      "bottom_right": 0
+    },
+    "face_region_dominant": "mixed",
+    "text_overlay_pct": 0.9841269841269842,
+    "text_region_distribution": {
+      "top_left": 0.07886671593988669,
+      "top_center": 0.11313993594481399,
+      "top_right": 0.06004804138950479,
+      "middle_left": 0.09960704607046071,
+      "middle_center": 0.24571199802907118,
+      "middle_right": 0.09450726779995072,
+      "bottom_left": 0.0722690317812269,
+      "bottom_center": 0.1902648435575265,
+      "bottom_right": 0.04558511948755851
+    },
+    "text_region_dominant": "mixed",
+    "media_overlay_pct": 0.046176046176046176,
+    "overlays_per_min": 4.0186759877647065,
+    "overlay_kind_distribution": {
+      "image": 0.75,
+      "sticker": 0,
+      "gif": 0,
+      "pip_video": 0.25,
+      "emoji_graphic": 0
+    },
+    "overlay_motion_distribution": {
+      "static": 0.75,
+      "animated": 0.25
+    },
+    "overlay_region_distribution": {
+      "top_left": 0,
+      "top_center": 0,
+      "top_right": 0,
+      "middle_left": 0,
+      "middle_center": 0.25,
+      "middle_right": 0.25,
+      "bottom_left": 0.5,
+      "bottom_center": 0,
+      "bottom_right": 0
+    },
+    "overlay_region_dominant": "mixed",
+    "voiceover_pct": 0.9435582225394666,
+    "music_pct": 0.032620378021250764,
+    "audio_silence_pct": 0.023821399439282593,
+    "audio_energy_mean": 0.10428770224085625,
+    "sfx_per_min": 60.46126471431764,
+    "cuts_with_sfx_pct": 0.481962481962482,
+    "sfx_at_cuts_pct": 0.46901709401709396,
+    "sfx_type_distribution": {
+      "impulse_tonal": 0.3404255319148936,
+      "impulse_noisy": 0.0425531914893617,
+      "sweep": 0,
+      "vocal": 0.48936170212765956,
+      "sustained": 0,
+      "other": 0.1276595744680851
+    },
+    "sfx_classified_total": 47,
+    "hook_speeches": [
+      "Who's the Stanford student that thinks he's Steve Jobs This is Tony and he's building",
+      "'re building autonomous ornithopters with\n\nr-class flight times, low acoustic signatur\n\ni natural bird-like flight. This makes\n\nadyne's drones harder for humans and\n\nnter-UAS systems to detect, classify, and\n\nget.\n\ne Found\n\nSTARTUR\n\nourg’s Master's thesis is built on 2+ years c\n\nearch and development in flapping-wing\n\nnes. His work has received multiple awarc\n\nTU",
+      "my official ley\n\no stanford university,\n\n~\n\n» -"
+    ],
+    "hook_texts": [
+      "<\n\n&\n\nWHO\n\niS\n\nZZ. —",
+      "'re building autonomous ornithopters with\n\nr-class flight times, low acoustic signatur\n\ni natural bird-like flight. This makes\n\nadyne's drones harder for humans and\n\nnter-UAS systems to detect, classify, and\n\nget.\n\ne Found\n\nSTARTUR\n\nourg’s Master's thesis is built on 2+ years c\n\nearch and development in flapping-wing\n\nnes. His work has received multiple awarc\n\nTU",
+      "my official ley\n\no stanford university,\n\n~\n\n» -"
+    ],
+    "hook_archetypes": null,
+    "beat_template": [
+      {
+        "clip_type": "broll_visual",
+        "n_shots": 17,
+        "duration_p50_ms": 734,
+        "has_text_p": 0.9411764705882353,
+        "has_face_p": 0,
+        "is_speaker_p": 0
+      },
+      {
+        "clip_type": "talking_head_unknown",
+        "n_shots": 15,
+        "duration_p50_ms": 566,
+        "has_text_p": 1,
+        "has_face_p": 1,
+        "is_speaker_p": 0
+      },
+      {
+        "clip_type": "talking_head",
+        "n_shots": 5,
+        "duration_p50_ms": 800,
+        "has_text_p": 1,
+        "has_face_p": 1,
+        "is_speaker_p": 1
+      },
+      {
+        "clip_type": "broll_talking_head",
+        "n_shots": 4,
+        "duration_p50_ms": 1434,
+        "has_text_p": 1,
+        "has_face_p": 1,
+        "is_speaker_p": 0
+      }
+    ]
+  }
+}

@@ -1,0 +1,1407 @@
+{
+  "shots": [
+    {
+      "start_ms": 0,
+      "end_ms": 500,
+      "has_face": false,
+      "ocr_text": "<\n\n&\n\nWHO\n\niS\n\nZZ. —",
+      "speaker_verdict": "no_face",
+      "speaker_confidence": 1,
+      "sync_conf": 0,
+      "clip_type": "broll_visual",
+      "face_bbox": null,
+      "face_region": null,
+      "text_moments": [
+        {
+          "text": "WHO",
+          "bbox": {
+            "x": 0.2765432098765432,
+            "y": 0.46805555555555556,
+            "w": 0.30617283950617286,
+            "h": 0.0625
+          },
+          "region": "middle_center"
+        },
+        {
+          "text": "iS",
+          "bbox": {
+            "x": 0.5925925925925926,
+            "y": 0.4625,
+            "w": 0.1382716049382716,
+            "h": 0.07222222222222222
+          },
+          "region": "middle_center"
+        }
+      ],
+      "audio_rms_mean": 0.14571721104820837,
+      "audio_peak_rms": 0.25372667620016526,
+      "audio_silence_pct": 0.125,
+      "audio_speech_pct": 0.625,
+      "audio_music_pct": 0.25,
+      "sfx_count": 1,
+      "sfx_at_start": true,
+      "sfx_classifications": [
+        {
+          "ms": 64,
+          "type": "impulse_tonal",
+          "confidence": 0.45,
+          "features": {
+            "peak_rms": 0.18689972162246704,
+            "baseline_rms": 0.000823236425110901,
+            "spike_ratio": 227.03043247544488,
+            "delta_centroid_hz": 3299.4563539701317,
+            "delta_flatness": 0.04585939766204305,
+            "delta_voice_band_ratio": 0.004786471447970078,
+            "delta_high_band_ratio": 0.17049809940131896
+          }
+        }
+      ],
+      "overlays": [],
+      "visual_caption": "Young man on stage with hands clasped, transitioning from saying \"WHO'S\" to \"THIS,\" maintaining a similar close-up framing.",
+      "spoken_window": "Who's the"
+    },
+    {
+      "start_ms": 500,
+      "end_ms": 967,
+      "has_face": true,
+      "ocr_text": "STA\n\nNEORD",
+      "speaker_verdict": "unknown",
+      "speaker_confidence": 0,
+      "sync_conf": 0,
+      "clip_type": "talking_head_unknown",
+      "face_bbox": {
+        "x": 0.2101785024007161,
+        "y": 0.09501853883266449,
+        "w": 0.47477188110351576,
+        "h": 0.2670589953660965
+      },
+      "face_region": "top_center",
+      "text_moments": [
+        {
+          "text": "STA",
+          "bbox": {
+            "x": 0.10617283950617284,
+            "y": 0.46805555555555556,
+            "w": 0.30864197530864196,
+            "h": 0.09027777777777778
+          },
+          "region": "middle_left"
+        },
+        {
+          "text": "NEORD",
+          "bbox": {
+            "x": 0.41728395061728396,
+            "y": 0.4652777777777778,
+            "w": 0.4444444444444444,
+            "h": 0.06388888888888888
+          },
+          "region": "middle_center"
+        }
+      ],
+      "audio_rms_mean": 0.14760354750407007,
+      "audio_peak_rms": 0.229844507531988,
+      "audio_silence_pct": 0,
+      "audio_speech_pct": 1,
+      "audio_music_pct": 0,
+      "sfx_count": 0,
+      "sfx_at_start": false,
+      "sfx_classifications": [],
+      "overlays": [],
+      "visual_caption": "Young man speaking on stage, transitioning from the word \"STANFORD\" in the first frame to \"STUDENT\" in the last frame, with slight lip movement throughout.",
+      "spoken_window": "the Stanford student"
+    },
+    {
+      "start_ms": 967,
+      "end_ms": 1400,
+      "has_face": false,
+      "ocr_text": "E)]\n\nwp\n\nNA\n\n=\n\nSN\n\n2 —",
+      "speaker_verdict": "no_face",
+      "speaker_confidence": 1,
+      "sync_conf": 0,
+      "clip_type": "broll_visual",
+      "face_bbox": null,
+      "face_region": null,
+      "text_moments": [
+        {
+          "text": "NA",
+          "bbox": {
+            "x": 0.5876543209876544,
+            "y": 0.2125,
+            "w": 0.10617283950617284,
+            "h": 0.025
+          },
+          "region": "top_center"
+        },
+        {
+          "text": "=",
+          "bbox": {
+            "x": 0.5975308641975309,
+            "y": 0.6125,
+            "w": 0.056790123456790124,
+            "h": 0.02638888888888889
+          },
+          "region": "middle_center"
+        }
+      ],
+      "audio_rms_mean": 0.11510415810236062,
+      "audio_peak_rms": 0.1877851655454215,
+      "audio_silence_pct": 0,
+      "audio_speech_pct": 1,
+      "audio_music_pct": 0,
+      "sfx_count": 0,
+      "sfx_at_start": false,
+      "sfx_classifications": [],
+      "overlays": [],
+      "visual_caption": "Text changes from \"STUDENT\" to \"THINKS\" while the young man in a black shirt and jeans remains in a static position, speaking on stage.",
+      "spoken_window": "student that thinks"
+    },
+    {
+      "start_ms": 1400,
+      "end_ms": 1833,
+      "has_face": false,
+      "ocr_text": "STEVERJOBS",
+      "speaker_verdict": "no_face",
+      "speaker_confidence": 1,
+      "sync_conf": 0,
+      "clip_type": "broll_visual",
+      "face_bbox": null,
+      "face_region": null,
+      "text_moments": [],
+      "audio_rms_mean": 0.09333485663763448,
+      "audio_peak_rms": 0.18094032206947022,
+      "audio_silence_pct": 0,
+      "audio_speech_pct": 1,
+      "audio_music_pct": 0,
+      "sfx_count": 1,
+      "sfx_at_start": false,
+      "sfx_classifications": [
+        {
+          "ms": 1664,
+          "type": "impulse_tonal",
+          "confidence": 0.45,
+          "features": {
+            "peak_rms": 0.19369466602802277,
+            "baseline_rms": 0.040084760300815106,
+            "spike_ratio": 4.832127336535029,
+            "delta_centroid_hz": 2446.9997104253457,
+            "delta_flatness": 0.3336977349871718,
+            "delta_voice_band_ratio": 0.14851323937349858,
+            "delta_high_band_ratio": 0.10479964720939307
+          }
+        }
+      ],
+      "overlays": [],
+      "visual_caption": "Young man speaking on stage with hands raised, transitioning from \"HE'S\" to \"STEVE JOBS,\" slight facial expression change and lighting shift.",
+      "spoken_window": "thinks he's Steve"
+    },
+    {
+      "start_ms": 1833,
+      "end_ms": 2033,
+      "has_face": false,
+      "ocr_text": "\"3\n\nCk\n\nLY\n\nIN\n\nof, §\n\n——\n\na",
+      "speaker_verdict": "no_face",
+      "speaker_confidence": 1,
+      "sync_conf": 0,
+      "clip_type": "broll_visual",
+      "face_bbox": null,
+      "face_region": null,
+      "text_moments": [
+        {
+          "text": "a",
+          "bbox": {
+            "x": 0.5432098765432098,
+            "y": 0.7791666666666667,
+            "w": 0.04938271604938271,
+            "h": 0.018055555555555554
+          },
+          "region": "bottom_center"
+        }
+      ],
+      "audio_rms_mean": 0.13873689052337182,
+      "audio_peak_rms": 0.1486487344550602,
+      "audio_silence_pct": 0,
+      "audio_speech_pct": 1,
+      "audio_music_pct": 0,
+      "sfx_count": 0,
+      "sfx_at_start": true,
+      "sfx_classifications": [],
+      "overlays": [],
+      "visual_caption": "Static close-up of a young man on stage speaking passionately, hands gesturing, the text \"STEVE JOBS\" prominently displayed.",
+      "spoken_window": "Steve Jobs"
+    },
+    {
+      "start_ms": 2033,
+      "end_ms": 2767,
+      "has_face": false,
+      "ocr_text": "hs\n\n\\\\\n\nSTEV E' JOBS\n\n2",
+      "speaker_verdict": "no_face",
+      "speaker_confidence": 1,
+      "sync_conf": 0,
+      "clip_type": "broll_visual",
+      "face_bbox": null,
+      "face_region": null,
+      "text_moments": [
+        {
+          "text": "STEV E' JOBS",
+          "bbox": {
+            "x": 0.08148148148148149,
+            "y": 0.42916666666666664,
+            "w": 0.8419753086419753,
+            "h": 0.15416666666666667
+          },
+          "region": "middle_center"
+        }
+      ],
+      "audio_rms_mean": 0.08253857366184131,
+      "audio_peak_rms": 0.12542109163266235,
+      "audio_silence_pct": 0,
+      "audio_speech_pct": 1,
+      "audio_music_pct": 0,
+      "sfx_count": 0,
+      "sfx_at_start": false,
+      "sfx_classifications": [],
+      "overlays": [],
+      "visual_caption": "Young man on stage in a black Stanford sweatshirt shifting his expression from neutral to a smile, no motion otherwise.",
+      "spoken_window": "Jobs"
+    },
+    {
+      "start_ms": 2767,
+      "end_ms": 3333,
+      "has_face": true,
+      "ocr_text": "~\n\n<x /\n\nCW)",
+      "speaker_verdict": "unknown",
+      "speaker_confidence": 0.6707926483784045,
+      "sync_conf": 2.0123779451352135,
+      "clip_type": "talking_head_unknown",
+      "face_bbox": {
+        "x": 0.2658874617682563,
+        "y": 0.1543000817298889,
+        "w": 0.4794057952033149,
+        "h": 0.26966421604156493
+      },
+      "face_region": "top_center",
+      "text_moments": [
+        {
+          "text": "/",
+          "bbox": {
+            "x": 0.1925925925925926,
+            "y": 0.7055555555555556,
+            "w": 0.019753086419753086,
+            "h": 0.041666666666666664
+          },
+          "region": "bottom_left"
+        }
+      ],
+      "audio_rms_mean": 0.031930663079156776,
+      "audio_peak_rms": 0.16386326548098118,
+      "audio_silence_pct": 0.4444444444444444,
+      "audio_speech_pct": 0.5,
+      "audio_music_pct": 0.05555555555555555,
+      "sfx_count": 1,
+      "sfx_at_start": false,
+      "sfx_classifications": [
+        {
+          "ms": 3264,
+          "type": "impulse_tonal",
+          "confidence": 0.45,
+          "features": {
+            "peak_rms": 0.18715552985668182,
+            "baseline_rms": 0.00388526925817132,
+            "spike_ratio": 48.170542997262004,
+            "delta_centroid_hz": 3334.1245994087526,
+            "delta_flatness": 0.06738910029910203,
+            "delta_voice_band_ratio": 0.0005617447420747942,
+            "delta_high_band_ratio": 0.17358774991629045
+          }
+        }
+      ],
+      "overlays": [],
+      "visual_caption": "Close-up of a young man in a black jacket speaking passionately, with his mouth open; the posture shifts slightly with hands moving together in front of him.",
+      "spoken_window": "This"
+    },
+    {
+      "start_ms": 3333,
+      "end_ms": 4200,
+      "has_face": true,
+      "ocr_text": "e\n\nis Walnut",
+      "speaker_verdict": "unknown",
+      "speaker_confidence": 0.5866350350939898,
+      "sync_conf": 1.7599051052819696,
+      "clip_type": "talking_head_unknown",
+      "face_bbox": {
+        "x": 0.13105653127034497,
+        "y": 0.3065156817436218,
+        "w": 0.8080499437120227,
+        "h": 0.4545280933380127
+      },
+      "face_region": "middle_center",
+      "text_moments": [
+        {
+          "text": "is Walnut",
+          "bbox": {
+            "x": 0.25679012345679014,
+            "y": 0.8472222222222222,
+            "w": 0.4888888888888889,
+            "h": 0.04583333333333333
+          },
+          "region": "bottom_center"
+        }
+      ],
+      "audio_rms_mean": 0.12726830584688517,
+      "audio_peak_rms": 0.19771894977795107,
+      "audio_silence_pct": 0,
+      "audio_speech_pct": 0.9285714285714286,
+      "audio_music_pct": 0.07142857142857142,
+      "sfx_count": 1,
+      "sfx_at_start": true,
+      "sfx_classifications": [
+        {
+          "ms": 4032,
+          "type": "impulse_tonal",
+          "confidence": 0.45,
+          "features": {
+            "peak_rms": 0.19329142570495605,
+            "baseline_rms": 0.11256808876991271,
+            "spike_ratio": 1.717106755716893,
+            "delta_centroid_hz": 3152.1560683086345,
+            "delta_flatness": 0.3132839802136541,
+            "delta_voice_band_ratio": 0.011954281648486371,
+            "delta_high_band_ratio": 0.2032288637310706
+          }
+        }
+      ],
+      "overlays": [],
+      "visual_caption": "Close-up of a young man speaking, with the text changing from \"THIS\" to \"TONY\" across his face, no zoom or pan.",
+      "spoken_window": "This is Tony"
+    },
+    {
+      "start_ms": 4200,
+      "end_ms": 4667,
+      "has_face": true,
+      "ocr_text": ":\n\nhi\n\nPart 1 RY. intentic\n\n4",
+      "speaker_verdict": "unknown",
+      "speaker_confidence": 0,
+      "sync_conf": 0,
+      "clip_type": "talking_head_unknown",
+      "face_bbox": {
+        "x": 0.26520512898763016,
+        "y": 0.147383388876915,
+        "w": 0.7091273413764104,
+        "h": 0.3988840252161026
+      },
+      "face_region": "middle_center",
+      "text_moments": [
+        {
+          "text": "Part 1 intentic",
+          "bbox": {
+            "x": 0.09876543209876543,
+            "y": 0.5875,
+            "w": 0.9012345679012346,
+            "h": 0.043055555555555555
+          },
+          "region": "middle_center"
+        },
+        {
+          "text": "4",
+          "bbox": {
+            "x": 0.582716049382716,
+            "y": 0.6375,
+            "w": 0.41728395061728396,
+            "h": 0.3527777777777778
+          },
+          "region": "bottom_right"
+        }
+      ],
+      "audio_rms_mean": 0.0907160864086059,
+      "audio_peak_rms": 0.1344653628866416,
+      "audio_silence_pct": 0,
+      "audio_speech_pct": 1,
+      "audio_music_pct": 0,
+      "sfx_count": 0,
+      "sfx_at_start": true,
+      "sfx_classifications": [],
+      "overlays": [],
+      "visual_caption": "Close-up of a young man speaking, transitioning from saying \"TONY\" to \"HE'S,\" with a slight lean forward between frames.",
+      "spoken_window": "and he's"
+    },
+    {
+      "start_ms": 4667,
+      "end_ms": 5333,
+      "has_face": true,
+      "ocr_text": "fe=1\n\nWALNUT,\n\nboxingwithout:\n\nMet",
+      "speaker_verdict": "unknown",
+      "speaker_confidence": 0.7248025424568173,
+      "sync_conf": 2.174407627370452,
+      "clip_type": "talking_head_unknown",
+      "face_bbox": {
+        "x": 0.2633099661933051,
+        "y": 0.03496265411376953,
+        "w": 0.7256208207872179,
+        "h": 0.4081604599952698
+      },
+      "face_region": "top_center",
+      "text_moments": [
+        {
+          "text": "WALNUT,",
+          "bbox": {
+            "x": 0.21481481481481482,
+            "y": 0.4666666666666667,
+            "w": 0.5703703703703704,
+            "h": 0.06527777777777778
+          },
+          "region": "middle_center"
+        },
+        {
+          "text": "boxingwithout:",
+          "bbox": {
+            "x": 0.1259259259259259,
+            "y": 0.6694444444444444,
+            "w": 0.674074074074074,
+            "h": 0.04722222222222222
+          },
+          "region": "bottom_center"
+        },
+        {
+          "text": "Met",
+          "bbox": {
+            "x": 0.8271604938271605,
+            "y": 0.6638888888888889,
+            "w": 0.1728395061728395,
+            "h": 0.05138888888888889
+          },
+          "region": "bottom_right"
+        }
+      ],
+      "audio_rms_mean": 0.09971002751154437,
+      "audio_peak_rms": 0.2297841614745382,
+      "audio_silence_pct": 0.047619047619047616,
+      "audio_speech_pct": 0.9523809523809523,
+      "audio_music_pct": 0,
+      "sfx_count": 2,
+      "sfx_at_start": true,
+      "sfx_classifications": [
+        {
+          "ms": 4832,
+          "type": "vocal",
+          "confidence": 0.4220774139167961,
+          "features": {
+            "peak_rms": 0.15298418700695038,
+            "baseline_rms": 0.023760843137279154,
+            "spike_ratio": 6.438499935506436,
+            "delta_centroid_hz": 2018.0639195356791,
+            "delta_flatness": 0.48906020878494605,
+            "delta_voice_band_ratio": 0.4220774139167961,
+            "delta_high_band_ratio": 0.26424588731559245
+          }
+        },
+        {
+          "ms": 5184,
+          "type": "vocal",
+          "confidence": 0.46547270872963215,
+          "features": {
+            "peak_rms": 0.24644266068935394,
+            "baseline_rms": 0.05726366408169269,
+            "spike_ratio": 4.303648127332148,
+            "delta_centroid_hz": 2213.404364431502,
+            "delta_flatness": 0.2396719963082097,
+            "delta_voice_band_ratio": 0.46547270872963215,
+            "delta_high_band_ratio": 0.2252452630274767
+          }
+        }
+      ],
+      "overlays": [],
+      "visual_caption": "Close-up of a young man with a headband showing a playful expression while boxing, slightly shifting position and striking forward between frames.",
+      "spoken_window": "he's building Walnut"
+    },
+    {
+      "start_ms": 5333,
+      "end_ms": 6067,
+      "has_face": true,
+      "ocr_text": "“gs >\n\nboxing withoutiMet",
+      "speaker_verdict": "unknown",
+      "speaker_confidence": 0.9389061333855052,
+      "sync_conf": 2.8167184001565158,
+      "clip_type": "talking_head_unknown",
+      "face_bbox": {
+        "x": 0.2512197918362088,
+        "y": 0.016742652654647826,
+        "w": 0.860416963365343,
+        "h": 0.48388169407844545
+      },
+      "face_region": "top_right",
+      "text_moments": [
+        {
+          "text": ">",
+          "bbox": {
+            "x": 0.8419753086419753,
+            "y": 0.10138888888888889,
+            "w": 0.15308641975308643,
+            "h": 0.03611111111111111
+          },
+          "region": "top_right"
+        },
+        {
+          "text": "boxing withoutiMet",
+          "bbox": {
+            "x": 0.1259259259259259,
+            "y": 0.6638888888888889,
+            "w": 0.8740740740740741,
+            "h": 0.05277777777777778
+          },
+          "region": "bottom_center"
+        }
+      ],
+      "audio_rms_mean": 0.08026166579084056,
+      "audio_peak_rms": 0.14454769267856102,
+      "audio_silence_pct": 0,
+      "audio_speech_pct": 1,
+      "audio_music_pct": 0,
+      "sfx_count": 0,
+      "sfx_at_start": true,
+      "sfx_classifications": [],
+      "overlays": [],
+      "visual_caption": "Static close-up of a young man in a black shirt pretending to box while a playful text overlay \"WALNUT\" appears dynamically in the first frame, no motion.",
+      "spoken_window": "Walnut"
+    },
+    {
+      "start_ms": 6067,
+      "end_ms": 6567,
+      "has_face": true,
+      "ocr_text": "-_\n\nCC -—\n\na —\n\nsteo\n\nR—\n\nPreorder by May 21st\n\n(0]0]\n\n13 55 51\n\noav\n\nHour\n\nwins\n\nGet a free Cool-Fit Sleeve and WalnutCare+",
+      "speaker_verdict": "broll",
+      "speaker_confidence": 0.49702728034396176,
+      "sync_conf": 1.4910818410318853,
+      "clip_type": "broll_talking_head",
+      "face_bbox": {
+        "x": 0.2049729241265191,
+        "y": 0.04756378531455994,
+        "w": 0.38059794108072925,
+        "h": 0.21408575773239136
+      },
+      "face_region": "top_center",
+      "text_moments": [
+        {
+          "text": "Preorder by May 21st",
+          "bbox": {
+            "x": 0.23703703703703705,
+            "y": 0.7625,
+            "w": 0.4839506172839506,
+            "h": 0.027777777777777776
+          },
+          "region": "bottom_center"
+        },
+        {
+          "text": "(0]0]",
+          "bbox": {
+            "x": 0.15555555555555556,
+            "y": 0.8138888888888889,
+            "w": 0.09135802469135802,
+            "h": 0.03333333333333333
+          },
+          "region": "bottom_left"
+        },
+        {
+          "text": "13 55 51",
+          "bbox": {
+            "x": 0.3506172839506173,
+            "y": 0.8138888888888889,
+            "w": 0.4469135802469136,
+            "h": 0.059722222222222225
+          },
+          "region": "bottom_center"
+        },
+        {
+          "text": "Hour",
+          "bbox": {
+            "x": 0.34814814814814815,
+            "y": 0.8638888888888889,
+            "w": 0.06666666666666667,
+            "h": 0.008333333333333333
+          },
+          "region": "bottom_center"
+        },
+        {
+          "text": "Get a free Cool-Fit Sleeve and WalnutCare+",
+          "bbox": {
+            "x": 0.009876543209876543,
+            "y": 0.9152777777777777,
+            "w": 0.9382716049382716,
+            "h": 0.020833333333333332
+          },
+          "region": "bottom_center"
+        }
+      ],
+      "audio_rms_mean": 0.10400016886372443,
+      "audio_peak_rms": 0.20158104343329675,
+      "audio_silence_pct": 0,
+      "audio_speech_pct": 0.6875,
+      "audio_music_pct": 0.3125,
+      "sfx_count": 1,
+      "sfx_at_start": true,
+      "sfx_classifications": [
+        {
+          "ms": 6240,
+          "type": "impulse_tonal",
+          "confidence": 0.45,
+          "features": {
+            "peak_rms": 0.18853455781936646,
+            "baseline_rms": 0.014066446684300899,
+            "spike_ratio": 13.403140256436169,
+            "delta_centroid_hz": 3122.0568043659873,
+            "delta_flatness": 0.19125013515268005,
+            "delta_voice_band_ratio": 0.08676940653041353,
+            "delta_high_band_ratio": 0.16141593480132005
+          }
+        }
+      ],
+      "overlays": [],
+      "visual_caption": "Text overlay changes from \"rhythm.\" to \"WALNUT'S\" in a static close-up of a young man playing table tennis.",
+      "spoken_window": ""
+    },
+    {
+      "start_ms": 6567,
+      "end_ms": 7500,
+      "has_face": false,
+      "ocr_text": "3and\n\nwith rhythm.\n\nFe)\n\nPreorder by May 21st\n\n)0\n\nL Ee]\n\nSa\n\nAYS\n\nee Cool-Fit Sleeve and WalnutCare+\n\nroducing MetroBand\n\norld's first haptic headband for\n\nrhvthm",
+      "speaker_verdict": "no_face",
+      "speaker_confidence": 1,
+      "sync_conf": 0,
+      "clip_type": "broll_visual",
+      "face_bbox": null,
+      "face_region": null,
+      "text_moments": [
+        {
+          "text": "3and",
+          "bbox": {
+            "x": 0,
+            "y": 0.03194444444444444,
+            "w": 0.1654320987654321,
+            "h": 0.03194444444444444
+          },
+          "region": "top_left"
+        },
+        {
+          "text": "with rhythm.",
+          "bbox": {
+            "x": 0,
+            "y": 0.0875,
+            "w": 0.7308641975308642,
+            "h": 0.10694444444444444
+          },
+          "region": "top_center"
+        },
+        {
+          "text": "Preorder by May 21st",
+          "bbox": {
+            "x": 0.08641975308641975,
+            "y": 0.38472222222222224,
+            "w": 0.5925925925925926,
+            "h": 0.034722222222222224
+          },
+          "region": "middle_center"
+        },
+        {
+          "text": ")0",
+          "bbox": {
+            "x": 0,
+            "y": 0.4486111111111111,
+            "w": 0.08888888888888889,
+            "h": 0.04027777777777778
+          },
+          "region": "middle_left"
+        },
+        {
+          "text": "AYS",
+          "bbox": {
+            "x": 0,
+            "y": 0.5097222222222222,
+            "w": 0.0691358024691358,
+            "h": 0.011111111111111112
+          },
+          "region": "middle_left"
+        },
+        {
+          "text": "ee Cool-Fit Sleeve and WalnutCare+",
+          "bbox": {
+            "x": 0.0024691358024691358,
+            "y": 0.5722222222222222,
+            "w": 0.9555555555555556,
+            "h": 0.025
+          },
+          "region": "middle_center"
+        },
+        {
+          "text": "roducing MetroBand",
+          "bbox": {
+            "x": 0.007407407407407408,
+            "y": 0.7986111111111112,
+            "w": 0.854320987654321,
+            "h": 0.05
+          },
+          "region": "bottom_center"
+        },
+        {
+          "text": "orld's first haptic headband for",
+          "bbox": {
+            "x": 0.01728395061728395,
+            "y": 0.9138888888888889,
+            "w": 0.908641975308642,
+            "h": 0.03333333333333333
+          },
+          "region": "bottom_center"
+        },
+        {
+          "text": "rhvthm",
+          "bbox": {
+            "x": 0.2691358024691358,
+            "y": 0.9694444444444444,
+            "w": 0.20493827160493827,
+            "h": 0.027777777777777776
+          },
+          "region": "bottom_center"
+        }
+      ],
+      "audio_rms_mean": 0.13547603785818868,
+      "audio_peak_rms": 0.22940555324187725,
+      "audio_silence_pct": 0,
+      "audio_speech_pct": 1,
+      "audio_music_pct": 0,
+      "sfx_count": 1,
+      "sfx_at_start": false,
+      "sfx_classifications": [
+        {
+          "ms": 7168,
+          "type": "impulse_tonal",
+          "confidence": 0.45,
+          "features": {
+            "peak_rms": 0.19100338220596313,
+            "baseline_rms": 0.0863483601808548,
+            "spike_ratio": 2.2120093746529825,
+            "delta_centroid_hz": 3615.790915159403,
+            "delta_flatness": 0.29046939447474107,
+            "delta_voice_band_ratio": 0.0007442403164989623,
+            "delta_high_band_ratio": 0.2839190867777643
+          }
+        }
+      ],
+      "overlays": [],
+      "visual_caption": "Zoom in on a promotional screen for the \"MetroBand,\" with the text transitioning from \"WALNUT'S\" to \"METRO,\" both frames showing a countdown timer and preorder details.",
+      "spoken_window": "Walnut's building Metroband"
+    },
+    {
+      "start_ms": 7500,
+      "end_ms": 9933,
+      "has_face": false,
+      "ocr_text": "Hi\n\nDBA]\n\nA)\n\nA\n\nV of\n\n_",
+      "speaker_verdict": "no_face",
+      "speaker_confidence": 1,
+      "sync_conf": 0,
+      "clip_type": "broll_visual",
+      "face_bbox": null,
+      "face_region": null,
+      "text_moments": [
+        {
+          "text": "Hi",
+          "bbox": {
+            "x": 0.14074074074074075,
+            "y": 0.48194444444444445,
+            "w": 0.08888888888888889,
+            "h": 0.04583333333333333
+          },
+          "region": "middle_left"
+        },
+        {
+          "text": "DBA]",
+          "bbox": {
+            "x": 0.40987654320987654,
+            "y": 0.4708333333333333,
+            "w": 0.28641975308641976,
+            "h": 0.058333333333333334
+          },
+          "region": "middle_center"
+        },
+        {
+          "text": "A)",
+          "bbox": {
+            "x": 0.14074074074074075,
+            "y": 0.7208333333333333,
+            "w": 0.08395061728395062,
+            "h": 0.06111111111111111
+          },
+          "region": "bottom_left"
+        },
+        {
+          "text": "A",
+          "bbox": {
+            "x": 0.34074074074074073,
+            "y": 0.6680555555555555,
+            "w": 0.2,
+            "h": 0.07916666666666666
+          },
+          "region": "bottom_center"
+        },
+        {
+          "text": "of",
+          "bbox": {
+            "x": 0.4839506172839506,
+            "y": 0.7777777777777778,
+            "w": 0.16296296296296298,
+            "h": 0.14305555555555555
+          },
+          "region": "bottom_center"
+        },
+        {
+          "text": "AY",
+          "bbox": {
+            "x": 0.32098765432098764,
+            "y": 0.6888888888888889,
+            "w": 0.18765432098765433,
+            "h": 0.0875
+          },
+          "region": "bottom_center"
+        },
+        {
+          "text": "[1",
+          "bbox": {
+            "x": 0.03950617283950617,
+            "y": 0.8847222222222222,
+            "w": 0.08888888888888889,
+            "h": 0.07916666666666666
+          },
+          "region": "bottom_left"
+        },
+        {
+          "text": "/ |",
+          "bbox": {
+            "x": 0.7185185185185186,
+            "y": 0.9111111111111111,
+            "w": 0.10617283950617284,
+            "h": 0.06111111111111111
+          },
+          "region": "bottom_right"
+        },
+        {
+          "text": "D",
+          "bbox": {
+            "x": 0.8246913580246914,
+            "y": 0.8722222222222222,
+            "w": 0.08888888888888889,
+            "h": 0.08194444444444444
+          },
+          "region": "bottom_right"
+        },
+        {
+          "text": "a",
+          "bbox": {
+            "x": 0.04691358024691358,
+            "y": 0.8569444444444444,
+            "w": 0.14814814814814814,
+            "h": 0.12083333333333333
+          },
+          "region": "bottom_left"
+        },
+        {
+          "text": "NY",
+          "bbox": {
+            "x": 0.16049382716049382,
+            "y": 0.8430555555555556,
+            "w": 0.2271604938271605,
+            "h": 0.11527777777777778
+          },
+          "region": "bottom_left"
+        },
+        {
+          "text": "D",
+          "bbox": {
+            "x": 0.4,
+            "y": 0.49027777777777776,
+            "w": 0.01728395061728395,
+            "h": 0.02638888888888889
+          },
+          "region": "middle_center"
+        },
+        {
+          "text": "LL",
+          "bbox": {
+            "x": 0.7037037037037037,
+            "y": 0.5041666666666667,
+            "w": 0.04691358024691358,
+            "h": 0.02361111111111111
+          },
+          "region": "middle_right"
+        },
+        {
+          "text": "A)",
+          "bbox": {
+            "x": 0.06666666666666667,
+            "y": 0.7694444444444445,
+            "w": 0.10123456790123457,
+            "h": 0.075
+          },
+          "region": "bottom_left"
+        }
+      ],
+      "audio_rms_mean": 0.09474597129373616,
+      "audio_peak_rms": 0.2072457287329348,
+      "audio_silence_pct": 0,
+      "audio_speech_pct": 0.974025974025974,
+      "audio_music_pct": 0.025974025974025976,
+      "sfx_count": 3,
+      "sfx_at_start": false,
+      "sfx_classifications": [
+        {
+          "ms": 7936,
+          "type": "impulse_tonal",
+          "confidence": 0.45,
+          "features": {
+            "peak_rms": 0.17111697793006897,
+            "baseline_rms": 0.04968766529113054,
+            "spike_ratio": 3.4438522504017524,
+            "delta_centroid_hz": 1621.3655808998553,
+            "delta_flatness": 0.2843574652259324,
+            "delta_voice_band_ratio": 0.3891901564486978,
+            "delta_high_band_ratio": 0.1280036382324192
+          }
+        },
+        {
+          "ms": 8096,
+          "type": "impulse_noisy",
+          "confidence": 0.646020015246856,
+          "features": {
+            "peak_rms": 0.23810677230358124,
+            "baseline_rms": 0.10398241817951202,
+            "spike_ratio": 2.2898753123102127,
+            "delta_centroid_hz": 2841.0141257265673,
+            "delta_flatness": 0.48068001016457074,
+            "delta_voice_band_ratio": 0.360130318768131,
+            "delta_high_band_ratio": 0.35955079931898154
+          }
+        },
+        {
+          "ms": 9056,
+          "type": "other",
+          "confidence": 0.3,
+          "features": {
+            "peak_rms": 0.2064887285232544,
+            "baseline_rms": 0.08219725206494331,
+            "spike_ratio": 2.512112307113497,
+            "delta_centroid_hz": 2925.97450211199,
+            "delta_flatness": 0.3660938664169211,
+            "delta_voice_band_ratio": 0.15777365408960115,
+            "delta_high_band_ratio": 0.18899148408002617
+          }
+        }
+      ],
+      "overlays": [],
+      "visual_caption": "Transition from a close-up of a cellist wearing a headband with \"HEADBAND\" text overlay to the same cellist in a static pose, playing the cello against a yellow background.",
+      "spoken_window": "Metroband a headband that lets you feel the rhythm"
+    },
+    {
+      "start_ms": 9933,
+      "end_ms": 11300,
+      "has_face": true,
+      "ocr_text": "ee —\n\nBOXING,\n\nboxing with MetroBand",
+      "speaker_verdict": "broll",
+      "speaker_confidence": 0.4909321027591525,
+      "sync_conf": 1.4727963082774576,
+      "clip_type": "broll_talking_head",
+      "face_bbox": {
+        "x": 0.13433163960774733,
+        "y": 0.5996981263160706,
+        "w": 0.39555511474609373,
+        "h": 0.22249891757965087
+      },
+      "face_region": "bottom_left",
+      "text_moments": [
+        {
+          "text": "BOXING,",
+          "bbox": {
+            "x": 0.2518518518518518,
+            "y": 0.4666666666666667,
+            "w": 0.4962962962962963,
+            "h": 0.0625
+          },
+          "region": "middle_center"
+        },
+        {
+          "text": "boxing with MetroBand",
+          "bbox": {
+            "x": 0.012345679012345678,
+            "y": 0.6888888888888889,
+            "w": 0.8691358024691358,
+            "h": 0.03888888888888889
+          },
+          "region": "bottom_center"
+        }
+      ],
+      "audio_rms_mean": 0.10026848963467089,
+      "audio_peak_rms": 0.18622629173791613,
+      "audio_silence_pct": 0,
+      "audio_speech_pct": 1,
+      "audio_music_pct": 0,
+      "sfx_count": 3,
+      "sfx_at_start": true,
+      "sfx_classifications": [
+        {
+          "ms": 9984,
+          "type": "vocal",
+          "confidence": 0.7529725079157294,
+          "features": {
+            "peak_rms": 0.1908048540353775,
+            "baseline_rms": 0.016763737201690675,
+            "spike_ratio": 11.381999833314866,
+            "delta_centroid_hz": 1416.02278728305,
+            "delta_flatness": 0.3658129646081056,
+            "delta_voice_band_ratio": 0.7529725079157294,
+            "delta_high_band_ratio": 0.11924149751144551
+          }
+        },
+        {
+          "ms": 10432,
+          "type": "other",
+          "confidence": 0.3,
+          "features": {
+            "peak_rms": 0.15523003041744232,
+            "baseline_rms": 0.05875683292746544,
+            "spike_ratio": 2.6419060164299837,
+            "delta_centroid_hz": 1887.6935284428193,
+            "delta_flatness": 0.39805381842603643,
+            "delta_voice_band_ratio": 0.18621664378091146,
+            "delta_high_band_ratio": 0.16865987296634502
+          }
+        },
+        {
+          "ms": 10784,
+          "type": "impulse_noisy",
+          "confidence": 0.9508988387592979,
+          "features": {
+            "peak_rms": 0.21255643665790558,
+            "baseline_rms": 0.07059547137469054,
+            "spike_ratio": 3.0109075344188443,
+            "delta_centroid_hz": 2386.5809060664083,
+            "delta_flatness": 0.6839325591728653,
+            "delta_voice_band_ratio": 0.379595685262247,
+            "delta_high_band_ratio": 0.2696061451870672
+          }
+        }
+      ],
+      "overlays": [],
+      "visual_caption": "Close-up of a person throwing a punch while boxing, with the focus shifting from \"PEOPLE\" to \"BOXING\" in the second frame.",
+      "spoken_window": "Some people think it's for boxing"
+    },
+    {
+      "start_ms": 11300,
+      "end_ms": 13067,
+      "has_face": true,
+      "ocr_text": "Em — >\n\nbi)\n\niJ\n\n|\n\nTHINK\n\nFr ———\n\nll\n\n—",
+      "speaker_verdict": "no_face",
+      "speaker_confidence": 0.8863636363636364,
+      "sync_conf": 0,
+      "clip_type": "talking_head_unknown",
+      "face_bbox": {
+        "x": -0.11671430799696181,
+        "y": 0.19823975563049318,
+        "w": 1.108239131503635,
+        "h": 0.623340368270874
+      },
+      "face_region": "middle_center",
+      "text_moments": [
+        {
+          "text": "—",
+          "bbox": {
+            "x": 0,
+            "y": 0.8361111111111111,
+            "w": 1,
+            "h": 0.1638888888888889
+          },
+          "region": "bottom_center"
+        }
+      ],
+      "audio_rms_mean": 0.07897097011241208,
+      "audio_peak_rms": 0.18935150580138765,
+      "audio_silence_pct": 0,
+      "audio_speech_pct": 1,
+      "audio_music_pct": 0,
+      "sfx_count": 1,
+      "sfx_at_start": false,
+      "sfx_classifications": [
+        {
+          "ms": 12096,
+          "type": "other",
+          "confidence": 0.3,
+          "features": {
+            "peak_rms": 0.20953521132469177,
+            "baseline_rms": 0.04654864523559809,
+            "spike_ratio": 4.501424483229636,
+            "delta_centroid_hz": 2229.3485230109072,
+            "delta_flatness": 0.37163500940999644,
+            "delta_voice_band_ratio": 0.06765432882867355,
+            "delta_high_band_ratio": 0.08824475341711384
+          }
+        }
+      ],
+      "overlays": [],
+      "visual_caption": "Close-up of a young man dancing in a subway car, transitioning from the word \"OTHER\" to \"CREATORS\" with slight lateral movement.",
+      "spoken_window": "while other people think it's for Creator"
+    },
+    {
+      "start_ms": 13067,
+      "end_ms": 15741,
+      "has_face": true,
+      "ocr_text": "& Rhythm is e\n\n~ wn\n\n¥\n\nsani\n\n70\n\nSo\n\n3 A\n\n=\n\nA",
+      "speaker_verdict": "speaker",
+      "speaker_confidence": 1,
+      "sync_conf": 4.668087139147797,
+      "clip_type": "talking_head",
+      "face_bbox": {
+        "x": 0.24182824028862848,
+        "y": 0.6561514377593994,
+        "w": 0.6194982316758897,
+        "h": 0.3484672546386719
+      },
+      "face_region": "bottom_center",
+      "text_moments": [
+        {
+          "text": "& Rhythm is",
+          "bbox": {
+            "x": 0.11358024691358025,
+            "y": 0.15833333333333333,
+            "w": 0.4345679012345679,
+            "h": 0.04722222222222222
+          },
+          "region": "top_left"
+        },
+        {
+          "text": "70",
+          "bbox": {
+            "x": 0.3432098765432099,
+            "y": 0.46805555555555556,
+            "w": 0.2,
+            "h": 0.0625
+          },
+          "region": "middle_center"
+        },
+        {
+          "text": "3 A",
+          "bbox": {
+            "x": 0.5679012345679012,
+            "y": 0.7277777777777777,
+            "w": 0.362962962962963,
+            "h": 0.08472222222222223
+          },
+          "region": "bottom_right"
+        },
+        {
+          "text": "=",
+          "bbox": {
+            "x": 0.40987654320987654,
+            "y": 0.8375,
+            "w": 0.11358024691358025,
+            "h": 0.07083333333333333
+          },
+          "region": "bottom_center"
+        },
+        {
+          "text": "Rhythm i",
+          "bbox": {
+            "x": 0.21481481481481482,
+            "y": 0.15138888888888888,
+            "w": 0.30864197530864196,
+            "h": 0.06388888888888888
+          },
+          "region": "top_center"
+        },
+        {
+          "text": "TONY",
+          "bbox": {
+            "x": 0.32098765432098764,
+            "y": 0.4666666666666667,
+            "w": 0.35802469135802467,
+            "h": 0.0625
+          },
+          "region": "middle_center"
+        },
+        {
+          "text": "& Rhythn",
+          "bbox": {
+            "x": 0.11358024691358025,
+            "y": 0.15833333333333333,
+            "w": 0.3308641975308642,
+            "h": 0.04861111111111111
+          },
+          "region": "top_left"
+        },
+        {
+          "text": "NEXT",
+          "bbox": {
+            "x": 0.32839506172839505,
+            "y": 0.4666666666666667,
+            "w": 0.345679012345679,
+            "h": 0.0625
+          },
+          "region": "middle_center"
+        },
+        {
+          "text": "& Rhythn",
+          "bbox": {
+            "x": 0.11358024691358025,
+            "y": 0.15833333333333333,
+            "w": 0.3308641975308642,
+            "h": 0.041666666666666664
+          },
+          "region": "top_left"
+        },
+        {
+          "text": "Che",
+          "bbox": {
+            "x": 0.06419753086419754,
+            "y": 0.225,
+            "w": 0.1728395061728395,
+            "h": 0.059722222222222225
+          },
+          "region": "top_left"
+        },
+        {
+          "text": "STEVE JOBS,",
+          "bbox": {
+            "x": 0.08148148148148149,
+            "y": 0.4666666666666667,
+            "w": 0.837037037037037,
+            "h": 0.06527777777777778
+          },
+          "region": "middle_center"
+        },
+        {
+          "text": "LO J",
+          "bbox": {
+            "x": 0.5802469135802469,
+            "y": 0.7194444444444444,
+            "w": 0.10617283950617284,
+            "h": 0.04583333333333333
+          },
+          "region": "bottom_center"
+        },
+        {
+          "text": "& Rhytl",
+          "bbox": {
+            "x": 0.10864197530864197,
+            "y": 0.15833333333333333,
+            "w": 0.26666666666666666,
+            "h": 0.04583333333333333
+          },
+          "region": "top_left"
+        },
+        {
+          "text": "1",
+          "bbox": {
+            "x": 0.19012345679012346,
+            "y": 0.3472222222222222,
+            "w": 0.007407407407407408,
+            "h": 0.019444444444444445
+          },
+          "region": "middle_left"
+        },
+        {
+          "text": "STEVE JOBS,",
+          "bbox": {
+            "x": 0.08148148148148149,
+            "y": 0.4666666666666667,
+            "w": 0.837037037037037,
+            "h": 0.0625
+          },
+          "region": "middle_center"
+        },
+        {
+          "text": "a =",
+          "bbox": {
+            "x": 0.4444444444444444,
+            "y": 0.8444444444444444,
+            "w": 0.13580246913580246,
+            "h": 0.0125
+          },
+          "region": "bottom_center"
+        }
+      ],
+      "audio_rms_mean": 0.09500925225719092,
+      "audio_peak_rms": 0.21814672258444695,
+      "audio_silence_pct": 0.023809523809523808,
+      "audio_speech_pct": 0.9642857142857143,
+      "audio_music_pct": 0.011904761904761904,
+      "sfx_count": 1,
+      "sfx_at_start": true,
+      "sfx_classifications": [
+        {
+          "ms": 13152,
+          "type": "impulse_tonal",
+          "confidence": 0.45,
+          "features": {
+            "peak_rms": 0.18857897818088531,
+            "baseline_rms": 0.02346267841756344,
+            "spike_ratio": 8.037401989012512,
+            "delta_centroid_hz": 3219.3435307116,
+            "delta_flatness": 0.17500512574437121,
+            "delta_voice_band_ratio": 0.03887146027898437,
+            "delta_high_band_ratio": 0.16173306894865544
+          }
+        }
+      ],
+      "overlays": [],
+      "visual_caption": "Static split-screen showing a speaker on stage with \"Rhythm is everywhere\" text and a surprised young man, with the only change being the text from \"YOU\" to \"STEVE JOBS.\"",
+      "spoken_window": "Do you think Tony will be the next Steve Jobs"
+    }
+  ],
+  "hook_text": "<\n\n&\n\nWHO\n\niS\n\nZZ. —",
+  "hook_duration_ms": 500,
+  "median_shot_ms": 666,
+  "cuts_per_sec": 1.016453846642526,
+  "talking_pct": 0.6400482815577155,
+  "broll_pct": 0.35995171844228446,
+  "text_overlay_pct": 0.9411764705882353,
+  "real_speaker_pct": 0.058823529411764705,
+  "broll_talking_head_pct": 0.11764705882352941,
+  "clip_type_distribution": {
+    "talking_head": 0.16987484912013215,
+    "broll_talking_head": 0.11860745823009974,
+    "talking_head_unknown": 0.3515659742074837,
+    "broll_visual": 0.35995171844228446
+  },
+  "face_region_dominant": "mixed",
+  "face_region_distribution": {
+    "top_left": 0,
+    "top_center": 0.4,
+    "top_right": 0.1,
+    "middle_left": 0,
+    "middle_center": 0.3,
+    "middle_right": 0,
+    "bottom_left": 0.1,
+    "bottom_center": 0.1,
+    "bottom_right": 0
+  },
+  "face_size_median": 0.3736756399273873,
+  "text_region_dominant": "mixed",
+  "text_region_distribution": {
+    "top_left": 0.09375,
+    "top_center": 0.046875,
+    "top_right": 0.015625,
+    "middle_left": 0.078125,
+    "middle_center": 0.265625,
+    "middle_right": 0.015625,
+    "bottom_left": 0.109375,
+    "bottom_center": 0.296875,
+    "bottom_right": 0.078125
+  },
+  "audio_energy_mean": 0.09885341608332339,
+  "audio_energy_std": 0.028527268001531377,
+  "audio_silence_pct": 0.026010832090496663,
+  "voiceover_pct": 0.944152997755056,
+  "music_pct": 0.029836170154447266,
+  "hook_speech": "Who's the Stanford student that thinks he's Steve Jobs This is Tony and he's building",
+  "sfx_per_min": 60.98723079855155,
+  "cuts_with_sfx_pct": 0.5294117647058824,
+  "sfx_at_cuts_pct": 0.5625,
+  "media_overlay_pct": 0,
+  "overlays_per_min": 0,
+  "overlay_kind_distribution": null,
+  "overlay_motion_distribution": null,
+  "overlay_region_distribution": null
+}

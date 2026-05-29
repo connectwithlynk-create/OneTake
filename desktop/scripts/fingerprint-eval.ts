@@ -145,6 +145,38 @@ async function main(): Promise<void> {
     console.log('  (no text shots)');
   }
 
+  console.log(`\nMedia overlays (stickers/GIFs/PiP/images/emoji):`);
+  console.log(
+    `  shot_pct=${(fp.media_overlay_pct * 100).toFixed(0)}% | ` +
+      `overlays/min=${fp.overlays_per_min.toFixed(1)}`,
+  );
+  if (fp.overlay_kind_distribution) {
+    const sortedKinds = Object.entries(fp.overlay_kind_distribution).sort(
+      ([, a], [, b]) => (b as number) - (a as number),
+    );
+    for (const [k, v] of sortedKinds) {
+      if ((v as number) > 0)
+        console.log(`  ${k.padEnd(15)} ${((v as number) * 100).toFixed(0)}%`);
+    }
+  } else {
+    console.log('  (no overlays detected in any reel)');
+  }
+  if (fp.overlay_motion_distribution) {
+    const m = fp.overlay_motion_distribution;
+    console.log(
+      `  motion: static=${(m.static * 100).toFixed(0)}% | animated=${(m.animated * 100).toFixed(0)}%`,
+    );
+  }
+  if (fp.overlay_region_distribution) {
+    console.log(`  dominant=${fp.overlay_region_dominant}`);
+    for (const [k, v] of Object.entries(fp.overlay_region_distribution).sort(
+      ([, a], [, b]) => (b as number) - (a as number),
+    )) {
+      if ((v as number) > 0)
+        console.log(`  ${k.padEnd(18)} ${((v as number) * 100).toFixed(0)}%`);
+    }
+  }
+
   console.log(`\nAudio:`);
   console.log(
     `  voiceover=${(fp.voiceover_pct * 100).toFixed(0)}% | ` +

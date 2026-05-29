@@ -1,0 +1,1280 @@
+{
+  "total_duration_ms": 19718,
+  "shots": [
+    {
+      "shot_idx": 0,
+      "start_ms": 0,
+      "end_ms": 1452,
+      "duration_ms": 1452,
+      "spoken_during": "▎ What is this startup",
+      "structure_role": "hook",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.95,
+          "likelihood": 0.95,
+          "broll_description": "Zoom in on a vibrant, bustling grocery aisle with the Vori logo subtly overlaid.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://vori.com",
+              "focus": "header and hero section showing vibrant grocery aisle visuals"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "zoom in 1.1x over the shot"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of Vori's website featuring product",
+          "rationale": "This establishes Vori's connection to the grocery industry visually, setting context for the narrative."
+        },
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.4,
+          "broll_description": "Close-up of Vori's co-founder speaking passionately at a tech conference.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://twitter.com/vori_ai",
+              "focus": "featured tweet with video"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "interview clips featuring Vori founders",
+          "rationale": "Humanizes the company by showing the people behind it, drawing viewer attention."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.65,
+          "likelihood": 0.95,
+          "broll_description": "Static display of Vori's official homepage hero section with clean graphics.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://vori.com",
+              "focus": "homepage hero with logo"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of Vori's website featuring product",
+          "rationale": "Relies on readily available and authoritative company assets for guaranteed sourcing."
+        }
+      ],
+      "broll_description": "Zoom in on a vibrant, bustling grocery aisle with the Vori logo subtly overlaid.",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://vori.com",
+          "focus": "header and hero section showing vibrant grocery aisle visuals"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "zoom in 1.1x over the shot"
+      },
+      "placement": {
+        "aspect": "16:9",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "screen recording of Vori's website featuring product",
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DYlQlfYuTc7/",
+        "shot_idx": 0,
+        "pattern": "Reels often begin with impactful b-roll visuals introducing the topic."
+      },
+      "text_overlay": "▎ What is this startup",
+      "text_position": "middle_center",
+      "animation_cue": "zoom in 1.1x over the shot",
+      "sfx_cue": "vocal",
+      "clip_type": "broll_visual",
+      "rationale": "As the hook, this shot needs to immediately grab attention and align with Vori's brand identity."
+    },
+    {
+      "shot_idx": 1,
+      "start_ms": 1452,
+      "end_ms": 5080,
+      "duration_ms": 3628,
+      "spoken_during": "startup that just went viral? ▎ This is Vori.",
+      "structure_role": "hook",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.95,
+          "likelihood": 0.95,
+          "broll_description": "Dynamic sequence of Vori software demo illustrating inventory management capabilities.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://vori.com",
+              "focus": "product demo video on homepage"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "zoom in 1.15x over the shot"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "Vori footage from public product demos",
+          "rationale": "Highlights Vori's key industry advantage directly within the context of the script."
+        },
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.4,
+          "broll_description": "Close-up interview clip of a Vori founder explaining the product's viral features.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.youtube.com/watch?v=VoriXpl",
+              "focus": "clip of founder explaining product functionality"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "interview clips featuring Vori founders",
+          "rationale": "Personalizes the message with a credible source, drawing viewer connection."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.65,
+          "likelihood": 0.4,
+          "broll_description": "Screen capture of Vori's social media announcement with high engagement metrics displayed.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://twitter.com/vori_ai",
+              "focus": "recent status highlighting product going viral"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "Vori's social media announcements",
+          "rationale": "Leverages social proof to establish credibility through virality and user engagement."
+        }
+      ],
+      "broll_description": "Dynamic sequence of Vori software demo illustrating inventory management capabilities.",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://vori.com",
+          "focus": "product demo video on homepage"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "zoom in 1.15x over the shot"
+      },
+      "placement": {
+        "aspect": "16:9",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "Vori footage from public product demos",
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DYlQlfYuTc7/",
+        "shot_idx": 1,
+        "pattern": "Inspiration transitions from impactful b-roll to familiar faces to create trust."
+      },
+      "text_overlay": "startup that just went viral? ▎ This is Vori.",
+      "text_position": "middle_center",
+      "animation_cue": "zoom in 1.15x over the shot",
+      "sfx_cue": "vocal",
+      "clip_type": "broll_visual",
+      "rationale": "Captures viewer attention by emphasizing the product's recent viral success."
+    },
+    {
+      "shot_idx": 2,
+      "start_ms": 5080,
+      "end_ms": 6684,
+      "duration_ms": 1604,
+      "spoken_during": "Vori. ▎ It's the AI",
+      "structure_role": "body",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.95,
+          "likelihood": 0.95,
+          "broll_description": "Detailed screen recording of AI-powered analytics dashboard on Vori's website.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://vori.com",
+              "focus": "AI dashboard with analytics features"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "pan left to right"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of Vori's website featuring product",
+          "rationale": "Visualizes the technological capabilities of Vori, reinforcing the strategic message."
+        },
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.4,
+          "broll_description": "Footage of a Vori-led indie grocery store thriving with well-stocked shelves.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.instagram.com/vori/",
+              "focus": "Instagram video post of a client success story in a grocery environment"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "zoom in 1.2x over the shot"
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "Vori footage from public product demos",
+          "rationale": "Ties narrative to Vori's real-world impact and practical advantages in retail."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.65,
+          "likelihood": 0.95,
+          "broll_description": "Captured details from Vori's homepage highlighting AI-driven solutions.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://vori.com",
+              "focus": "section detailing AI features"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of Vori's website featuring product",
+          "rationale": "Easy access visual asset that showcases core elements of the platform directly from an official source."
+        }
+      ],
+      "broll_description": "Detailed screen recording of AI-powered analytics dashboard on Vori's website.",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://vori.com",
+          "focus": "AI dashboard with analytics features"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "pan left to right"
+      },
+      "placement": {
+        "aspect": "16:9",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "screen recording of Vori's website featuring product",
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DXz_iMJNjlV/",
+        "shot_idx": 4,
+        "pattern": "Establishes credibility using core product features and client impact."
+      },
+      "text_overlay": "Vori. ▎ It's the AI",
+      "text_position": "middle_center",
+      "animation_cue": "pan left to right",
+      "sfx_cue": null,
+      "clip_type": "talking_head_unknown",
+      "rationale": "Explores Vori's technological prowess and value proposition, aligning with AI innovations."
+    },
+    {
+      "shot_idx": 3,
+      "start_ms": 6684,
+      "end_ms": 9741,
+      "duration_ms": 3057,
+      "spoken_during": "AI brain for indie grocery stores. ▎ Vori",
+      "structure_role": "body",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.95,
+          "likelihood": 0.95,
+          "broll_description": "Impressive animation of Vori's flagship AI feature interacting with store inventory.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://vori.com",
+              "focus": "homepage video demonstrating AI feature"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "zoom in 1.15x over the shot"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "Vori footage from public product demos",
+          "rationale": "Visually compelling animation to captivate and convey complex tech processes simply."
+        },
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.4,
+          "broll_description": "Clip of an indie store owner praising Vori's AI brain in an interview.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.linkedin.com/company/vori/",
+              "focus": "featured testimonial video"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "interview clips featuring Vori founders",
+          "rationale": "Adds authenticity and relatability through real client testimonials."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.65,
+          "likelihood": 0.4,
+          "broll_description": "Screen recording of Vori's latest innovation spotlight from a tech conference.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://news.ycombinator.com/item?id=30303030",
+              "focus": "Vori innovation spotlight mention"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "Y Combinator batch announcement or alumni profile",
+          "rationale": "Engages by connecting to community and maintaining Vori's innovation narrative."
+        }
+      ],
+      "broll_description": "Impressive animation of Vori's flagship AI feature interacting with store inventory.",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://vori.com",
+          "focus": "homepage video demonstrating AI feature"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "zoom in 1.15x over the shot"
+      },
+      "placement": {
+        "aspect": "16:9",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "Vori footage from public product demos",
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DYxLMnNRzQ5/",
+        "shot_idx": 2,
+        "pattern": "Showcases significant tech features to engage audience with product depth."
+      },
+      "text_overlay": "AI brain for indie grocery stores. ▎ Vori",
+      "text_position": "middle_center",
+      "animation_cue": "zoom in 1.15x over the shot",
+      "sfx_cue": "impulse_tonal",
+      "clip_type": "talking_head_unknown",
+      "rationale": "Emphasizes transformative impact in client operations, expanding the narrative of service reach."
+    },
+    {
+      "shot_idx": 4,
+      "start_ms": 9741,
+      "end_ms": 11039,
+      "duration_ms": 1298,
+      "spoken_during": "Vori just dropped a",
+      "structure_role": "body",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.95,
+          "likelihood": 0.4,
+          "broll_description": "Fast-paced edit of Vori's team celebrating fundraising success with key headlines overlaid.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://techcrunch.com/2024/05/01/vori-raises-22m/",
+              "focus": "article headline with celebratory team photo"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "Vori's social media announcements",
+          "rationale": "Creates excitement and supports the message of Vori's growth and financial milestone."
+        },
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.4,
+          "broll_description": "GIF of confetti and dollar signs animating over Vori website section with news text.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://vori.com/blog",
+              "focus": "blog post announcing funding round"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "Vori's social media announcements",
+          "rationale": "Visually fun and engaging, making the funding news memorable."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.7,
+          "likelihood": 0.4,
+          "broll_description": "Landing page with bold text announcing Vori's latest financial round.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://vori.com",
+              "focus": "latest announcement banner on homepage"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of Vori's website featuring product",
+          "rationale": "Easy fallback that conveys Vori's achievement simply and clearly."
+        }
+      ],
+      "broll_description": "Fast-paced edit of Vori's team celebrating fundraising success with key headlines overlaid.",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://techcrunch.com/2024/05/01/vori-raises-22m/",
+          "focus": "article headline with celebratory team photo"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "static"
+      },
+      "placement": {
+        "aspect": "16:9",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "Vori's social media announcements",
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DXz_iMJNjlV/",
+        "shot_idx": 0,
+        "pattern": "Immediate hook appealing to financial success to hold viewer interest."
+      },
+      "text_overlay": "Vori just dropped a",
+      "text_position": "middle_center",
+      "animation_cue": "zoom in 1.15x over the shot",
+      "sfx_cue": null,
+      "clip_type": "talking_head_unknown",
+      "rationale": "Continues the momentum with powerful, concise storytelling about financial success."
+    },
+    {
+      "shot_idx": 5,
+      "start_ms": 11039,
+      "end_ms": 12070,
+      "duration_ms": 1031,
+      "spoken_during": "a twenty-two million",
+      "structure_role": "body",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.95,
+          "likelihood": 0.4,
+          "broll_description": "Scene from Vori pitch presentation featuring animated fundraising graphics.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.youtube.com/watch?v=VoriPitch",
+              "focus": "dynamic fundraising slide in presentation"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "interview clips featuring Vori founders",
+          "rationale": "Communicates the scope of the fundraising visually with engaged, authentic energy."
+        },
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.4,
+          "broll_description": "Clip of Vori founders enthusiastically discussing the importance of the new round.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.linkedin.com/in/vori-founder",
+              "focus": "recent update or video post"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "zoom in 1.1x over the shot"
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "Vori footage from public product demos",
+          "rationale": "Connects the viewer to the narrative with personal excitement from the founders."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.7,
+          "likelihood": 0.4,
+          "broll_description": "Static shot announcing Vori's funding achievement with numeric and graphic detail.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://techcrunch.com/2024/05/01/vori-raises-22m/",
+              "focus": "headline with financial numbers outlined"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "Vori's social media announcements",
+          "rationale": "Simplifies news delivery while retaining clarity and authority regarding financial news."
+        }
+      ],
+      "broll_description": "Scene from Vori pitch presentation featuring animated fundraising graphics.",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://www.youtube.com/watch?v=VoriPitch",
+          "focus": "dynamic fundraising slide in presentation"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "static"
+      },
+      "placement": {
+        "aspect": "9:16",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "interview clips featuring Vori founders",
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DYlQlfYuTc7/",
+        "shot_idx": 4,
+        "pattern": "Features financial milestones through dynamic visuals and personal engagement."
+      },
+      "text_overlay": "a twenty-two million",
+      "text_position": "middle_center",
+      "animation_cue": "zoom in 1.1x over the shot",
+      "sfx_cue": null,
+      "clip_type": "broll_visual",
+      "rationale": "Keeps attention with eye-catching and informative visuals aligning to the narrative's pivotal moment."
+    },
+    {
+      "shot_idx": 6,
+      "start_ms": 12070,
+      "end_ms": 12872,
+      "duration_ms": 802,
+      "spoken_during": "million round.",
+      "structure_role": "body",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.95,
+          "likelihood": 0.4,
+          "broll_description": "Compilation of clips showing cheering investors and Vori team members at an event.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.instagram.com/vori/",
+              "focus": "behind-the-scenes event video"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "zoom in 1.2x over the shot"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "Vori's social media announcements",
+          "rationale": "Radiates vibrant team culture and investor confidence while relating to the funding theme."
+        },
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.4,
+          "broll_description": "Close-up of Vori founder speaking energetically about the fundraising process.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://twitter.com/vori_ai",
+              "focus": "video clip of interview with founder"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "interview clips featuring Vori founders",
+          "rationale": "Adds a human touch to the narrative by directly linking to the company's voices."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.7,
+          "likelihood": 0.4,
+          "broll_description": "Backdrop of Vori's company logo with overlaid funding announcement text.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://vori.com",
+              "focus": "highlight box with funding text"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of Vori's website featuring product",
+          "rationale": "Features trustworthy company-owned visual aids to reinforce the funding news."
+        }
+      ],
+      "broll_description": "Compilation of clips showing cheering investors and Vori team members at an event.",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://www.instagram.com/vori/",
+          "focus": "behind-the-scenes event video"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "zoom in 1.2x over the shot"
+      },
+      "placement": {
+        "aspect": "16:9",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "Vori's social media announcements",
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DXz_iMJNjlV/",
+        "shot_idx": 3,
+        "pattern": "Integrates lively scenes with personal motivation to deepen emotional resonance."
+      },
+      "text_overlay": "million round.",
+      "text_position": "middle_center",
+      "animation_cue": "zoom in 1.2x over the shot",
+      "sfx_cue": null,
+      "clip_type": "broll_visual",
+      "rationale": "Completes the financial achievement arc by emphasizing achievement and adding excitement."
+    },
+    {
+      "shot_idx": 7,
+      "start_ms": 12872,
+      "end_ms": 15164,
+      "duration_ms": 2292,
+      "spoken_during": "▎ After it went viral, founders",
+      "structure_role": "cta",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.95,
+          "likelihood": 0.4,
+          "broll_description": "Mixed media showing founder interactions and animated speech bubbles from interviews.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.instagram.com/vori/",
+              "focus": "video showcasing startup culture"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "pan right"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "Vori footage from public product demos",
+          "rationale": "Engages viewers with visual storytelling and founder charisma, inviting them into the culture."
+        },
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.4,
+          "broll_description": "Video testimonial of a founder discussing the unique Vori culture post-virality.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.youtube.com/watch?v=VoriCulture",
+              "focus": "clip discussing post-viral changes"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "zoom in 1.1x over the shot"
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "interview clips featuring Vori founders",
+          "rationale": "Personalizes the CTA with direct engagement from Vori’s key spokespeople."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.75,
+          "likelihood": 0.4,
+          "broll_description": "Static overlay of Vori's ethical mission statement tied with virality buzz.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://vori.com",
+              "focus": "mission section describing company values"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of Vori's website featuring product",
+          "rationale": "Easy fallback ensuring CTA clarity by rooting it in Vori's values and vision."
+        }
+      ],
+      "broll_description": "Mixed media showing founder interactions and animated speech bubbles from interviews.",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://www.instagram.com/vori/",
+          "focus": "video showcasing startup culture"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "pan right"
+      },
+      "placement": {
+        "aspect": "16:9",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "Vori footage from public product demos",
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DYlQlfYuTc7/",
+        "shot_idx": 18,
+        "pattern": "Features direct engagement with founders in closing to elicit viewer action."
+      },
+      "text_overlay": "▎ After it went viral, founders",
+      "text_position": "middle_center",
+      "animation_cue": "pan right",
+      "sfx_cue": "vocal",
+      "clip_type": "talking_head",
+      "rationale": "Prompts direct connection with the audience, drawing them into considering the final call."
+    },
+    {
+      "shot_idx": 8,
+      "start_ms": 15164,
+      "end_ms": 19718,
+      "duration_ms": 4554,
+      "spoken_during": "founders started yapping. ▎ Would you let Vori run your bodega?",
+      "structure_role": "cta",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.95,
+          "likelihood": 0.4,
+          "broll_description": "Illustrative video of Vori application running in a friendly neighborhood bodega.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.youtube.com/watch?v=VoriInBodega",
+              "focus": "promo video featuring app in use"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "zoom in 1.2x over the shot"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "Vori footage from public product demos",
+          "rationale": "Depicts a practical, user-friendly application scenario in a familiar setting."
+        },
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.4,
+          "broll_description": "Detailed animation of Vori's app simplifying day-to-day operations in a bodega.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://vori.com",
+              "focus": "animated app feature showing store management"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of Vori's website featuring product",
+          "rationale": "Reinforces brand promise by showing the value Vori brings to local stores."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.8,
+          "likelihood": 0.4,
+          "broll_description": "Simple overlay of Vori's app screenshots used for bodega inventory management.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.instagram.com/vori/",
+              "focus": "recent post showcasing app in use"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "Vori's social media announcements",
+          "rationale": "Anticipates engaging with store owners by presenting relatable, effective solutions."
+        }
+      ],
+      "broll_description": "Illustrative video of Vori application running in a friendly neighborhood bodega.",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://www.youtube.com/watch?v=VoriInBodega",
+          "focus": "promo video featuring app in use"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "zoom in 1.2x over the shot"
+      },
+      "placement": {
+        "aspect": "16:9",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "Vori footage from public product demos",
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DU_3YEUEoGG/",
+        "shot_idx": 7,
+        "pattern": "Closes with relevant call-to-action based on a strong exhibit of product application."
+      },
+      "text_overlay": "founders started yapping. ▎ Would you let Vori run your bodega?",
+      "text_position": "middle_center",
+      "animation_cue": "zoom in 1.2x over the shot",
+      "sfx_cue": "vocal",
+      "clip_type": "talking_head",
+      "rationale": "Engages the audience by showcasing real-life applications and inviting response to the CTA."
+    }
+  ],
+  "structure_sections": [
+    {
+      "role": "hook",
+      "script_template": "What's the <descriptor> that <impactful action>? This is <subject>.",
+      "target_fill": "▎ What is this startup that just went viral? ▎ This is Vori.",
+      "target_start_ms": 0,
+      "target_end_ms": 5080,
+      "shot_count": 2,
+      "visual_signature": {
+        "dominant_clip_type": "broll_visual",
+        "placement_pattern": "fullbleed 9:16",
+        "text_overlay_pattern": "large center caption big font",
+        "sfx_pattern": "vocal hit on cut in",
+        "motion_pattern": "zoom-in over the shot",
+        "scene_elements": []
+      }
+    },
+    {
+      "role": "body",
+      "script_template": "<impactful claim> <descriptive action> <contextual details>",
+      "target_fill": "Vori. ▎ It's the AI brain for indie grocery stores. ▎ Vori just dropped a twenty-two million round.",
+      "target_start_ms": 5080,
+      "target_end_ms": 12870,
+      "shot_count": 5,
+      "visual_signature": {
+        "dominant_clip_type": "talking_head_unknown",
+        "placement_pattern": "fullbleed 9:16",
+        "text_overlay_pattern": "bottom strip text",
+        "sfx_pattern": "impulse_tonal",
+        "motion_pattern": "static cut",
+        "scene_elements": []
+      }
+    },
+    {
+      "role": "cta",
+      "script_template": "<outcome after action>, <call to action>?",
+      "target_fill": "▎ After it went viral, founders started yapping. ▎ Would you let Vori run your bodega?",
+      "target_start_ms": 12870,
+      "target_end_ms": 19720,
+      "shot_count": 2,
+      "visual_signature": {
+        "dominant_clip_type": "talking_head",
+        "placement_pattern": "split-screen top",
+        "text_overlay_pattern": "small bottom strip",
+        "sfx_pattern": "vocal hit on cut in",
+        "motion_pattern": "type-on text",
+        "scene_elements": []
+      }
+    }
+  ],
+  "structure_confidence": "high",
+  "structure_rationale": "Each inspiration reel clearly follows an identifiable opening, body, and closing CTA sequence with similar rhetorical alarm hooks and impactful closing questions.",
+  "structure_alternatives": null,
+  "content_source_patterns": [
+    "Vori footage from public product demos",
+    "screen recording of Vori's website featuring product",
+    "interview clips featuring Vori founders",
+    "Vori's social media announcements",
+    "Y Combinator batch announcement or alumni profile"
+  ],
+  "style_summary": "- reel 1: 15.7s, 21 shots, cuts/sec=1.27, text=95%, SFX=61/min\n- reel 2: 14.7s, 7 shots, cuts/sec=0.41, text=100%, SFX=33/min\n- reel 3: 17.2s, 9 shots, cuts/sec=0.46, text=100%, SFX=63/min\n- reel 4: 12.5s, 8 shots, cuts/sec=0.56, text=100%, SFX=29/min\n- reel 5: 13.5s, 11 shots, cuts/sec=0.74, text=100%, SFX=58/min\n- reel 6: 17.2s, 9 shots, cuts/sec=0.46, text=100%, SFX=63/min",
+  "content_sources": [
+    "https://www.instagram.com/p/DYlQlfYuTc7/",
+    "https://www.instagram.com/p/DYg26zgRiGS/",
+    "https://www.instagram.com/reel/DYxLMnNRzQ5/?igsh=bXhtY2JlNjhsYzNm",
+    "https://www.instagram.com/reel/DYg26zgRiGS/?igsh=enl3MzA3dnFnNHNv"
+  ],
+  "target_metrics": {
+    "fingerprint_version": 2,
+    "computed_at": 1779839895161,
+    "n_reels": 3,
+    "n_shots": 41,
+    "median_shot_ms": 800,
+    "cuts_per_sec": 0.824773034674918,
+    "clip_type_distribution": {
+      "talking_head": 0.18879615960103024,
+      "broll_talking_head": 0.15212545748307824,
+      "talking_head_unknown": 0.23018327944028208,
+      "broll_visual": 0.42889510347560944
+    },
+    "real_speaker_pct": 0.14381914381914382,
+    "broll_talking_head_pct": 0.10678210678210677,
+    "face_size_median": 0.38286084681749344,
+    "face_region_distribution": {
+      "top_left": 0,
+      "top_center": 0.2111111111111111,
+      "top_right": 0.027777777777777776,
+      "middle_left": 0.027777777777777776,
+      "middle_center": 0.4444444444444444,
+      "middle_right": 0,
+      "bottom_left": 0.027777777777777776,
+      "bottom_center": 0.2611111111111111,
+      "bottom_right": 0
+    },
+    "face_region_dominant": "mixed",
+    "text_overlay_pct": 0.9841269841269842,
+    "text_region_distribution": {
+      "top_left": 0.07886671593988669,
+      "top_center": 0.11313993594481399,
+      "top_right": 0.06004804138950479,
+      "middle_left": 0.09960704607046071,
+      "middle_center": 0.24571199802907118,
+      "middle_right": 0.09450726779995072,
+      "bottom_left": 0.0722690317812269,
+      "bottom_center": 0.1902648435575265,
+      "bottom_right": 0.04558511948755851
+    },
+    "text_region_dominant": "mixed",
+    "media_overlay_pct": 0.046176046176046176,
+    "overlays_per_min": 4.0186759877647065,
+    "overlay_kind_distribution": {
+      "image": 0.75,
+      "sticker": 0,
+      "gif": 0,
+      "pip_video": 0.25,
+      "emoji_graphic": 0
+    },
+    "overlay_motion_distribution": {
+      "static": 0.75,
+      "animated": 0.25
+    },
+    "overlay_region_distribution": {
+      "top_left": 0,
+      "top_center": 0,
+      "top_right": 0,
+      "middle_left": 0,
+      "middle_center": 0.25,
+      "middle_right": 0.25,
+      "bottom_left": 0.5,
+      "bottom_center": 0,
+      "bottom_right": 0
+    },
+    "overlay_region_dominant": "mixed",
+    "voiceover_pct": 0.9435582225394666,
+    "music_pct": 0.032620378021250764,
+    "audio_silence_pct": 0.023821399439282593,
+    "audio_energy_mean": 0.10428770224085625,
+    "sfx_per_min": 60.46126471431764,
+    "cuts_with_sfx_pct": 0.481962481962482,
+    "sfx_at_cuts_pct": 0.46901709401709396,
+    "sfx_type_distribution": {
+      "impulse_tonal": 0.3404255319148936,
+      "impulse_noisy": 0.0425531914893617,
+      "sweep": 0,
+      "vocal": 0.48936170212765956,
+      "sustained": 0,
+      "other": 0.1276595744680851
+    },
+    "sfx_classified_total": 47,
+    "hook_speeches": [
+      "Who's the Stanford student that thinks he's Steve Jobs This is Tony and he's building",
+      "'re building autonomous ornithopters with\n\nr-class flight times, low acoustic signatur\n\ni natural bird-like flight. This makes\n\nadyne's drones harder for humans and\n\nnter-UAS systems to detect, classify, and\n\nget.\n\ne Found\n\nSTARTUR\n\nourg’s Master's thesis is built on 2+ years c\n\nearch and development in flapping-wing\n\nnes. His work has received multiple awarc\n\nTU",
+      "my official ley\n\no stanford university,\n\n~\n\n» -"
+    ],
+    "hook_texts": [
+      "<\n\n&\n\nWHO\n\niS\n\nZZ. —",
+      "'re building autonomous ornithopters with\n\nr-class flight times, low acoustic signatur\n\ni natural bird-like flight. This makes\n\nadyne's drones harder for humans and\n\nnter-UAS systems to detect, classify, and\n\nget.\n\ne Found\n\nSTARTUR\n\nourg’s Master's thesis is built on 2+ years c\n\nearch and development in flapping-wing\n\nnes. His work has received multiple awarc\n\nTU",
+      "my official ley\n\no stanford university,\n\n~\n\n» -"
+    ],
+    "hook_archetypes": null,
+    "beat_template": [
+      {
+        "clip_type": "broll_visual",
+        "n_shots": 17,
+        "duration_p50_ms": 734,
+        "has_text_p": 0.9411764705882353,
+        "has_face_p": 0,
+        "is_speaker_p": 0
+      },
+      {
+        "clip_type": "talking_head_unknown",
+        "n_shots": 15,
+        "duration_p50_ms": 566,
+        "has_text_p": 1,
+        "has_face_p": 1,
+        "is_speaker_p": 0
+      },
+      {
+        "clip_type": "talking_head",
+        "n_shots": 5,
+        "duration_p50_ms": 800,
+        "has_text_p": 1,
+        "has_face_p": 1,
+        "is_speaker_p": 1
+      },
+      {
+        "clip_type": "broll_talking_head",
+        "n_shots": 4,
+        "duration_p50_ms": 1434,
+        "has_text_p": 1,
+        "has_face_p": 1,
+        "is_speaker_p": 0
+      }
+    ]
+  }
+}

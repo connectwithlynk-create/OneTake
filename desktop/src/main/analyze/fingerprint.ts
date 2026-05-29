@@ -11,15 +11,19 @@ import { SFX_TYPES, type SfxType } from './sfx-classify';
 import {
   CLIP_TYPES,
   FRAME_REGIONS,
+  OVERLAY_KINDS,
+  OVERLAY_MOTIONS,
   type ClipType,
   type FrameRegion,
+  type OverlayKind,
+  type OverlayMotion,
   type ReelShot,
 } from './types';
 
 export type { HookArchetype } from './hook-cluster';
 
 /** Bump when the fingerprint shape or aggregation semantics change. */
-export const FINGERPRINT_VERSION = 1;
+export const FINGERPRINT_VERSION = 2;
 
 /** One canonical "beat" the creator uses — derived by grouping shots
  *  across the collection by clip_type and computing per-bucket stats.
@@ -78,6 +82,25 @@ export interface CollectionFingerprint {
   text_overlay_pct: number;
   text_region_distribution: Record<FrameRegion, number> | null;
   text_region_dominant: FrameRegion | 'mixed' | null;
+
+  // ---- Media overlays (stickers / GIFs / images / PiP / emoji) ----
+  /** Fraction of shots across the collection that contain at least one
+   *  media overlay (creator-equal-weighted: mean of per-reel rates). */
+  media_overlay_pct: number;
+  /** Overlays per minute across the collection (mean of per-reel rates). */
+  overlays_per_min: number;
+  /** Distribution across overlay kinds, averaged across reels that
+   *  had any overlays. Null when no reel in the collection had any. */
+  overlay_kind_distribution: Record<OverlayKind, number> | null;
+  /** Distribution across overlay motion (static / animated), averaged
+   *  across reels that had any overlays. Null when none. */
+  overlay_motion_distribution: Record<OverlayMotion, number> | null;
+  /** Distribution across the 3x3 grid for overlay centroids, averaged
+   *  across reels that had any overlays. Null when none. */
+  overlay_region_distribution: Record<FrameRegion, number> | null;
+  /** Dominant grid cell when one wins >50% of overlays collection-wide,
+   *  else 'mixed'. Null when no overlays. */
+  overlay_region_dominant: FrameRegion | 'mixed' | null;
 
   // ---- Audio pillar ----
   voiceover_pct: number;
@@ -272,6 +295,31 @@ export function assembleFingerprint(
     FRAME_REGIONS,
   );
 
+  // Overlay aggregates — average per-reel distributions across only the
+  // reels that actually had any overlays, so a few overlay-free reels
+  // don't dilute the kind/motion/region shape.
+  const overlayReels = reels.filter(
+    (r) => r.overlay_kind_distribution !== null,
+  );
+  const overlayKindDist = meanDistribution(
+    overlayReels.map(
+      (r) => r.overlay_kind_distribution as Record<OverlayKind, number>,
+    ),
+    OVERLAY_KINDS,
+  );
+  const overlayMotionDist = meanDistribution(
+    overlayReels.map(
+      (r) => r.overlay_motion_distribution as Record<OverlayMotion, number>,
+    ),
+    OVERLAY_MOTIONS,
+  );
+  const overlayRegionDist = meanDistribution(
+    overlayReels.map(
+      (r) => r.overlay_region_distribution as Record<FrameRegion, number>,
+    ),
+    FRAME_REGIONS,
+  );
+
   return {
     fingerprint_version: FINGERPRINT_VERSION,
     computed_at: Date.now(),
@@ -292,6 +340,13 @@ export function assembleFingerprint(
     text_overlay_pct: mean(reels.map((r) => r.text_overlay_pct)),
     text_region_distribution: textDist,
     text_region_dominant: pickDominant(textDist),
+
+    media_overlay_pct: mean(reels.map((r) => r.media_overlay_pct)),
+    overlays_per_min: mean(reels.map((r) => r.overlays_per_min)),
+    overlay_kind_distribution: overlayKindDist,
+    overlay_motion_distribution: overlayMotionDist,
+    overlay_region_distribution: overlayRegionDist,
+    overlay_region_dominant: pickDominant(overlayRegionDist),
 
     voiceover_pct: mean(reels.map((r) => r.voiceover_pct)),
     music_pct: mean(reels.map((r) => r.music_pct)),

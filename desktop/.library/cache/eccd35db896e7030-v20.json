@@ -1,0 +1,423 @@
+{
+  "shots": [
+    {
+      "start_ms": 0,
+      "end_ms": 968,
+      "has_face": true,
+      "ocr_text": "§ a\n\n2)\n\n=\n\nF\n\nL\n\na |\n\n - i\n\n|",
+      "speaker_verdict": "no_face",
+      "speaker_confidence": 0.9583333333333334,
+      "sync_conf": 0,
+      "clip_type": "talking_head_unknown",
+      "face_bbox": {
+        "x": 0.5405425389607748,
+        "y": 0.20878981351852416,
+        "w": 0.3702746073404949,
+        "h": 0.20827829837799072
+      },
+      "face_region": "top_right",
+      "text_moments": [
+        {
+          "text": "2)",
+          "bbox": {
+            "x": 0.5234567901234568,
+            "y": 0.10416666666666667,
+            "w": 0.02962962962962963,
+            "h": 0.016666666666666666
+          },
+          "region": "top_center"
+        },
+        {
+          "text": "=",
+          "bbox": {
+            "x": 0.8,
+            "y": 0.0875,
+            "w": 0.02962962962962963,
+            "h": 0.001388888888888889
+          },
+          "region": "top_right"
+        },
+        {
+          "text": "a |",
+          "bbox": {
+            "x": 0,
+            "y": 0.22916666666666666,
+            "w": 0.3111111111111111,
+            "h": 0.13194444444444445
+          },
+          "region": "top_left"
+        }
+      ],
+      "audio_rms_mean": 0.13317204691718373,
+      "audio_peak_rms": 0.1917010423510125,
+      "audio_silence_pct": 0,
+      "audio_speech_pct": 0.7741935483870968,
+      "audio_music_pct": 0.22580645161290322,
+      "sfx_count": 1,
+      "sfx_at_start": false,
+      "sfx_classifications": [
+        {
+          "ms": 576,
+          "type": "impulse_noisy",
+          "confidence": 0.9606645843454544,
+          "features": {
+            "peak_rms": 0.19578880071640015,
+            "baseline_rms": 0.051334991306066516,
+            "spike_ratio": 3.8139443629994885,
+            "delta_centroid_hz": 2048.553042209676,
+            "delta_flatness": 0.690443056230303,
+            "delta_voice_band_ratio": 0.3629662871104275,
+            "delta_high_band_ratio": 0.2958586021797417
+          }
+        }
+      ],
+      "overlays": [],
+      "visual_caption": null,
+      "spoken_window": "Who is this player that"
+    },
+    {
+      "start_ms": 968,
+      "end_ms": 12412,
+      "has_face": true,
+      "ocr_text": "dio dts Le\n\nw=\n\n=\n\n-\n\nis\n\nHS\n\n(>\n\n’\n\n* TOUCHDOWN",
+      "speaker_verdict": "no_face",
+      "speaker_confidence": 1,
+      "sync_conf": 0,
+      "clip_type": "talking_head_unknown",
+      "face_bbox": {
+        "x": 0.3202460712856717,
+        "y": 0.1617799758911133,
+        "w": 0.33983428743150507,
+        "h": 0.19115649461746215
+      },
+      "face_region": "top_center",
+      "text_moments": [
+        {
+          "text": "-",
+          "bbox": {
+            "x": 0,
+            "y": 0.35833333333333334,
+            "w": 0.07160493827160494,
+            "h": 0.04583333333333333
+          },
+          "region": "middle_left"
+        },
+        {
+          "text": "\\*",
+          "bbox": {
+            "x": 0.5037037037037037,
+            "y": 0.5458333333333333,
+            "w": 0.05925925925925926,
+            "h": 0.05416666666666667
+          },
+          "region": "middle_center"
+        },
+        {
+          "text": ">",
+          "bbox": {
+            "x": 0.5135802469135803,
+            "y": 0.7055555555555556,
+            "w": 0.02962962962962963,
+            "h": 0.03333333333333333
+          },
+          "region": "bottom_center"
+        },
+        {
+          "text": "FOOTBALL?",
+          "bbox": {
+            "x": 0.20987654320987653,
+            "y": 0.7611111111111111,
+            "w": 0.582716049382716,
+            "h": 0.09166666666666666
+          },
+          "region": "bottom_center"
+        },
+        {
+          "text": "=",
+          "bbox": {
+            "x": 0.4469135802469136,
+            "y": 0.3736111111111111,
+            "w": 0.08888888888888889,
+            "h": 0.027777777777777776
+          },
+          "region": "middle_center"
+        },
+        {
+          "text": "is",
+          "bbox": {
+            "x": 0.41728395061728396,
+            "y": 0.6930555555555555,
+            "w": 0.07654320987654321,
+            "h": 0.018055555555555554
+          },
+          "region": "bottom_center"
+        },
+        {
+          "text": "TOUCHDOWN",
+          "bbox": {
+            "x": 0.1728395061728395,
+            "y": 0.7680555555555556,
+            "w": 0.6592592592592592,
+            "h": 0.08472222222222223
+          },
+          "region": "bottom_center"
+        }
+      ],
+      "audio_rms_mean": 0.1170971408909083,
+      "audio_peak_rms": 0.2747751746245841,
+      "audio_silence_pct": 0,
+      "audio_speech_pct": 1,
+      "audio_music_pct": 0,
+      "sfx_count": 5,
+      "sfx_at_start": false,
+      "sfx_classifications": [
+        {
+          "ms": 1920,
+          "type": "vocal",
+          "confidence": 0.6575631813765662,
+          "features": {
+            "peak_rms": 0.20971377193927765,
+            "baseline_rms": 0.04365228667855263,
+            "spike_ratio": 4.8041875442533195,
+            "delta_centroid_hz": 1450.4454187261047,
+            "delta_flatness": 0.4782798520748613,
+            "delta_voice_band_ratio": 0.6575631813765662,
+            "delta_high_band_ratio": 0.10166871521612984
+          }
+        },
+        {
+          "ms": 4448,
+          "type": "vocal",
+          "confidence": 0.5354939769133067,
+          "features": {
+            "peak_rms": 0.3557884395122528,
+            "baseline_rms": 0.038279715180397036,
+            "spike_ratio": 9.29443800288387,
+            "delta_centroid_hz": 1731.520696366243,
+            "delta_flatness": 0.3358303893619712,
+            "delta_voice_band_ratio": 0.5354939769133067,
+            "delta_high_band_ratio": 0.2039574117284084
+          }
+        },
+        {
+          "ms": 6848,
+          "type": "vocal",
+          "confidence": 0.6755484561707892,
+          "features": {
+            "peak_rms": 0.28158238530158997,
+            "baseline_rms": 0.0318097672611475,
+            "spike_ratio": 8.852073106662278,
+            "delta_centroid_hz": 1488.4730363301874,
+            "delta_flatness": 0.35688324387761516,
+            "delta_voice_band_ratio": 0.6755484561707892,
+            "delta_high_band_ratio": 0.13801718444827837
+          }
+        },
+        {
+          "ms": 9632,
+          "type": "vocal",
+          "confidence": 0.4865242863125313,
+          "features": {
+            "peak_rms": 0.21321484446525574,
+            "baseline_rms": 0.06948289141058922,
+            "spike_ratio": 3.068594874748717,
+            "delta_centroid_hz": 1452.2288486795333,
+            "delta_flatness": 1.0602245987736076,
+            "delta_voice_band_ratio": 0.4865242863125313,
+            "delta_high_band_ratio": 0.09310074475692466
+          }
+        },
+        {
+          "ms": 10912,
+          "type": "other",
+          "confidence": 0.3,
+          "features": {
+            "peak_rms": 0.1443835347890854,
+            "baseline_rms": 0.039847960360348225,
+            "spike_ratio": 3.6233607312247296,
+            "delta_centroid_hz": 1980.3096520273257,
+            "delta_flatness": 0.5925840163628407,
+            "delta_voice_band_ratio": 0.30098560815900033,
+            "delta_high_band_ratio": 0.230252042194028
+          }
+        }
+      ],
+      "overlays": [],
+      "visual_caption": null,
+      "spoken_window": "that is dominating 37U football This is Los Polos He recently got mobile and scored the game winning touchdown in the championship game"
+    },
+    {
+      "start_ms": 12412,
+      "end_ms": 14714,
+      "has_face": true,
+      "ocr_text": "-\n\n(x 1\n\n- -\n\nSUARE\n\n\\ L 4",
+      "speaker_verdict": "unknown",
+      "speaker_confidence": 0.9502109326206968,
+      "sync_conf": 2.8506327978620902,
+      "clip_type": "talking_head_unknown",
+      "face_bbox": {
+        "x": 0.3032190534803603,
+        "y": 0.6586169481277466,
+        "w": 0.38609725104437936,
+        "h": 0.21717870235443115
+      },
+      "face_region": "bottom_center",
+      "text_moments": [
+        {
+          "text": "- -",
+          "bbox": {
+            "x": 0.01728395061728395,
+            "y": 0.12777777777777777,
+            "w": 0.2518518518518518,
+            "h": 0.03333333333333333
+          },
+          "region": "top_left"
+        },
+        {
+          "text": "4",
+          "bbox": {
+            "x": 0.5950617283950618,
+            "y": 0.7305555555555555,
+            "w": 0.022222222222222223,
+            "h": 0.03194444444444444
+          },
+          "region": "bottom_center"
+        },
+        {
+          "text": "- -",
+          "bbox": {
+            "x": 0.019753086419753086,
+            "y": 0.12777777777777777,
+            "w": 0.24938271604938272,
+            "h": 0.03333333333333333
+          },
+          "region": "top_left"
+        },
+        {
+          "text": "\\",
+          "bbox": {
+            "x": 0.6617283950617284,
+            "y": 0.24444444444444444,
+            "w": 0.1308641975308642,
+            "h": 0.12222222222222222
+          },
+          "region": "top_right"
+        },
+        {
+          "text": "2",
+          "bbox": {
+            "x": 0.45925925925925926,
+            "y": 0.5680555555555555,
+            "w": 0.06419753086419754,
+            "h": 0.013888888888888888
+          },
+          "region": "middle_center"
+        },
+        {
+          "text": "- -",
+          "bbox": {
+            "x": 0.019753086419753086,
+            "y": 0.12777777777777777,
+            "w": 0.24938271604938272,
+            "h": 0.03333333333333333
+          },
+          "region": "top_left"
+        }
+      ],
+      "audio_rms_mean": 0.11840553327464698,
+      "audio_peak_rms": 0.26261254325149413,
+      "audio_silence_pct": 0.027777777777777776,
+      "audio_speech_pct": 0.9722222222222222,
+      "audio_music_pct": 0,
+      "sfx_count": 2,
+      "sfx_at_start": true,
+      "sfx_classifications": [
+        {
+          "ms": 12608,
+          "type": "vocal",
+          "confidence": 0.7785906953390931,
+          "features": {
+            "peak_rms": 0.33022594451904297,
+            "baseline_rms": 0.048170431330800054,
+            "spike_ratio": 6.855366152968145,
+            "delta_centroid_hz": 1264.8084886212755,
+            "delta_flatness": 0.26161103040064737,
+            "delta_voice_band_ratio": 0.7785906953390931,
+            "delta_high_band_ratio": 0.09590447895330262
+          }
+        },
+        {
+          "ms": 12832,
+          "type": "impulse_noisy",
+          "confidence": 0.7394421912683559,
+          "features": {
+            "peak_rms": 0.1601613610982895,
+            "baseline_rms": 0.05957008570432663,
+            "spike_ratio": 2.6886206256818737,
+            "delta_centroid_hz": 2353.561122048497,
+            "delta_flatness": 0.5429614608455706,
+            "delta_voice_band_ratio": 0.24689726540476922,
+            "delta_high_band_ratio": 0.32257587224622625
+          }
+        }
+      ],
+      "overlays": [],
+      "visual_caption": null,
+      "spoken_window": "game Could you guard Los Polos"
+    }
+  ],
+  "hook_text": "§ a\n\n2)\n\n=\n\nF\n\nL\n\na |\n\n - i\n\n|",
+  "hook_duration_ms": 968,
+  "median_shot_ms": 2302,
+  "cuts_per_sec": 0.13592496941688187,
+  "talking_pct": 1,
+  "broll_pct": 0,
+  "text_overlay_pct": 1,
+  "real_speaker_pct": 0,
+  "broll_talking_head_pct": 0,
+  "clip_type_distribution": {
+    "talking_head": 0,
+    "broll_talking_head": 0,
+    "talking_head_unknown": 1,
+    "broll_visual": 0
+  },
+  "face_region_dominant": "mixed",
+  "face_region_distribution": {
+    "top_left": 0,
+    "top_center": 0.3333333333333333,
+    "top_right": 0.3333333333333333,
+    "middle_left": 0,
+    "middle_center": 0,
+    "middle_right": 0,
+    "bottom_left": 0,
+    "bottom_center": 0.3333333333333333,
+    "bottom_right": 0
+  },
+  "face_size_median": 0.20827829837799072,
+  "text_region_dominant": "mixed",
+  "text_region_distribution": {
+    "top_left": 0.25,
+    "top_center": 0.0625,
+    "top_right": 0.125,
+    "middle_left": 0.0625,
+    "middle_center": 0.1875,
+    "middle_right": 0,
+    "bottom_left": 0,
+    "bottom_center": 0.3125,
+    "bottom_right": 0
+  },
+  "audio_energy_mean": 0.11835936926530011,
+  "audio_energy_std": 0.00728899032436848,
+  "audio_silence_pct": 0.004345823327745307,
+  "voiceover_pct": 0.9807988929179193,
+  "music_pct": 0.014855283754335348,
+  "hook_speech": "Who is this player that is dominating 37U football This is",
+  "sfx_per_min": 32.62199266005165,
+  "cuts_with_sfx_pct": 0.3333333333333333,
+  "sfx_at_cuts_pct": 0.125,
+  "media_overlay_pct": 0,
+  "overlays_per_min": 0,
+  "overlay_kind_distribution": null,
+  "overlay_motion_distribution": null,
+  "overlay_region_distribution": null
+}

@@ -35,7 +35,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { NlePlayerView, useNlePlayer } from '../../../modules/nle-player';
 import type { NleClip as NleClipShape, NleTimeUpdateEvent, NlePlayingChangeEvent } from '../../../modules/nle-player';
 import { ClipVideo } from '@/components/clip-video';
+import { ErrorBoundary } from '@/components/error-boundary';
 import { Loading } from '@/components/ui';
+import { crumb } from '@/lib/crash-log';
 import {
   persistClip,
   persistOverlayMedia,
@@ -47,27 +49,25 @@ import {
   addClip,
   addOverlay,
   createSubjectOverlay,
-  deleteClip,
   deleteOverlay,
-  duplicateClip,
   findSubjectOverlayFor,
   getProject,
   listClips,
   listOverlays,
-  pruneMissingClips,
   removeSubjectOverlayFor,
-  reorderProjectClips,
-  replaceClipFile,
   setCaptionSettings,
-  setClipAudioDetached,
-  setClipExcluded,
-  setClipMirrored,
-  setClipTrim,
-  setClipVolume,
-  slipClip,
-  splitClipAt,
   updateOverlay,
 } from '@/lib/repo';
+import {
+  hydrate as hydrateTimeline,
+  loadTimeline,
+  patchRow,
+  rowFromClip,
+  saveTimeline,
+  splitRow,
+  type TimelineClip,
+  type TimelineRow,
+} from '@/lib/timeline';
 import { rateClip } from '@/lib/rating';
 import { invalidate, useData } from '@/lib/store';
 import { maybeTranscribe } from '@/lib/transcribe';
@@ -87,18 +87,17 @@ import type {
   WordTiming,
 } from '@/lib/types';
 import {
-  applyFilterPreset,
+  FILTER_PRESETS,
   getBeats,
   getEffects,
   getKeyframes,
   getTransitions,
   interpKeyframes,
-  patchClipEffects,
   setBeats,
   setOverlayKeyframes,
   setTransition,
 } from '@/lib/effects';
-import { cutSilencesInProject } from '@/lib/silences';
+import { proposeForClip } from '@/lib/silences';
 import {
   AdjustPanel,
   AudioPanel,
@@ -186,42 +185,102 @@ function effLen(c: Clip): number {
 // Editor screen
 // ============================================================
 export default function ManualEditScreen() {
+  // The editor is the screen most likely to throw under user input
+  // (timeline ScrollView + gestures + native composition rebuilds).
+  // Catch render-tree errors here and route them through crash-log so
+  // /debug-crash can surface a stack instead of a white screen.
+  return (
+    <ErrorBoundary source="editor">
+      <ManualEditScreenInner />
+    </ErrorBoundary>
+  );
+}
+
+function ManualEditScreenInner() {
   const { projectId } = useLocalSearchParams<{ projectId: string }>();
   const router = useRouter();
 
   const { data: project } = useData(() => getProject(projectId), [projectId]);
   const { data: clipsDb } = useData(() => listClips(projectId), [projectId]);
-
-  // Self-heal: prior versions of deleteClip orphaned files referenced
-  // by splits / duplicates, leaving clip rows pointing at gone files.
-  // On editor mount, scan for those and drop the dangling rows.
-  useEffect(() => {
-    let alive = true;
-    pruneMissingClips(projectId).then((n) => {
-      if (alive && n > 0) invalidate();
-    });
-    return () => {
-      alive = false;
-    };
-  }, [projectId]);
   const { data: overlaysDb } = useData(
     () => listOverlays(projectId),
     [projectId]
   );
 
-  const [clips, setClips] = useState<Clip[]>([]);
+  // Editor's timeline rows — owned here, not derived from `clipsDb`. The
+  // clips table is the recording library (read-only from the editor's
+  // perspective); the timeline is the edit. Persisted as JSON on
+  // projects.timeline_json via the debounced save below.
+  //
+  // invalidate() does NOT re-run loadTimeline — that would clobber
+  // in-flight edits. Timeline lifecycle is owned by the editor mount.
+  const [timeline, setTimeline] = useState<TimelineRow[] | null>(null);
   const [overlays, setOverlays] = useState<Overlay[]>([]);
   useEffect(() => {
-    if (clipsDb) setClips(clipsDb);
-  }, [clipsDb]);
+    let alive = true;
+    loadTimeline(projectId).then((rows) => {
+      if (alive) setTimeline(rows);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [projectId]);
   useEffect(() => {
     if (overlaysDb) setOverlays(overlaysDb);
   }, [overlaysDb]);
 
-  // Excluded clips are no longer removed from the playable timeline — the
-  // "hide" toggle now just dims them visually (in the timeline cell and in
-  // the live preview). They still occupy their slot, still play through.
-  const included = clips;
+  // Read-only join: timeline rows × clips table for source media
+  // metadata (file_uri, duration_ms, transcript_words, name). Rerunning
+  // on clipsDb change lets late-arriving transcription / naming flow
+  // into the editor without touching the timeline itself. Rows whose
+  // source recording is gone are dropped from the playable list.
+  //
+  // Excluded clips are no longer removed from the playable timeline —
+  // the "hide" toggle now just dims them visually. They still occupy
+  // their slot, still play through.
+  const included = useMemo<TimelineClip[]>(() => {
+    if (!timeline || !clipsDb) return [];
+    const byId = new Map(clipsDb.map((c) => [c.id, c]));
+    return timeline.flatMap((row) => {
+      const src = byId.get(row.source_clip_id);
+      if (!src) return [];
+      return [hydrateTimeline(row, src)];
+    });
+  }, [timeline, clipsDb]);
+  // Alias kept so downstream caption / subtitle helpers read as before.
+  const clips = included;
+
+  // Debounced save. A trim drag fires many state updates per second;
+  // 250ms means one write at most ~4Hz under continuous editing and a
+  // durable timeline within ¼s of the last edit.
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (!timeline) return;
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    const rows = timeline;
+    saveTimer.current = setTimeout(() => {
+      saveTimer.current = null;
+      saveTimeline(projectId, rows).catch((e) => {
+        crumb('editor.saveTimeline', 'threw', { err: (e as Error).message });
+      });
+    }, 250);
+    return () => {
+      if (saveTimer.current) {
+        clearTimeout(saveTimer.current);
+        saveTimer.current = null;
+      }
+    };
+  }, [timeline, projectId]);
+
+  // Helper: apply a partial patch to one timeline row.
+  const updateTimelineRow = useCallback(
+    (rowId: string, patch: Partial<TimelineRow>) => {
+      setTimeline((prev) =>
+        prev ? prev.map((r) => (r.id === rowId ? patchRow(r, patch) : r)) : prev
+      );
+    },
+    []
+  );
   const cumulative = useMemo(() => {
     const out: number[] = [0];
     for (let i = 0; i < included.length; i++) {
@@ -393,7 +452,47 @@ export default function ManualEditScreen() {
       .join('|');
     if (sig === lastPushRef.current) return;
     lastPushRef.current = sig;
-    player.setClips(composed);
+    // Per-clip effect summary — tells us exactly which expensive
+    // path each clip will hit on the native side. cutout in
+    // particular routes through Vision personSegmentation, which
+    // was the prime suspect for scrub crashes.
+    const effSummary = composed.map((c) => ({
+      id: c.id.slice(0, 6),
+      color:
+        (c.brightness ?? 0) !== 0 ||
+        (c.contrast ?? 1) !== 1 ||
+        (c.saturation ?? 1) !== 1 ||
+        (c.warmth ?? 0) !== 0 ||
+        (c.shadows ?? 0) !== 0 ||
+        (c.highlights ?? 0) !== 0
+          ? 1
+          : 0,
+      chroma: c.chromaEnabled ? 1 : 0,
+      cutout: c.cutoutEnabled ? 1 : 0,
+    }));
+    crumb('editor.setClips', 'push', {
+      n: composed.length,
+      needsColor: composed.some(
+        (c) =>
+          (c.brightness ?? 0) !== 0 ||
+          (c.contrast ?? 1) !== 1 ||
+          (c.saturation ?? 1) !== 1 ||
+          (c.warmth ?? 0) !== 0 ||
+          (c.shadows ?? 0) !== 0 ||
+          (c.highlights ?? 0) !== 0 ||
+          c.chromaEnabled ||
+          c.cutoutEnabled
+      ),
+      cutoutClips: effSummary.filter((e) => e.cutout).length,
+      chromaClips: effSummary.filter((e) => e.chroma).length,
+      colorClips: effSummary.filter((e) => e.color).length,
+      effects: effSummary,
+    });
+    try {
+      player.setClips(composed);
+    } catch (e) {
+      crumb('editor.setClips', 'threw', { err: (e as Error).message });
+    }
   }, [included, player]);
 
   // Tap a timeline cell → seek to the start of that clip on the composed
@@ -453,6 +552,10 @@ export default function ManualEditScreen() {
         const status =
           (ev?.status as 'idle' | 'loading' | 'readyToPlay' | 'error') ??
           'loading';
+        crumb('player.status', status, {
+          error: ev?.error,
+          warning: ev?.warning,
+        });
         setLoadStatus({
           state: status,
           message: ev?.error ?? ev?.warning,
@@ -472,8 +575,11 @@ export default function ManualEditScreen() {
       setGlobalMs(target);
       try {
         player.seek(target);
-      } catch {
-        /* */
+      } catch (e) {
+        crumb('editor.seek', 'player.seek threw', {
+          target,
+          err: (e as Error).message,
+        });
       }
     },
     [included.length, totalMs, player]
@@ -515,9 +621,10 @@ export default function ManualEditScreen() {
     dx: number;
   } | null>(null);
   /** Commit the drop. Maps the dragged cell's CENTER (in composed-
-   *  timeline px) to the slot whose midpoint it crossed, then writes
-   *  the new order via reorderProjectClips. */
-  async function commitReorder(fromIdx: number, dx: number) {
+   *  timeline px) to the slot whose midpoint it crossed, then splices
+   *  the timeline row into its new slot (pure local state — the
+   *  recording library is untouched). */
+  function commitReorder(fromIdx: number, dx: number) {
     if (fromIdx < 0 || fromIdx >= included.length) return;
     const c = included[fromIdx];
     const myCenter =
@@ -532,20 +639,15 @@ export default function ManualEditScreen() {
       }
       dropIdx = i;
     }
-    // Dropping just to the right of yourself = no-op (Array.splice
-    // would put it back in the same slot).
     if (dropIdx === fromIdx) return;
-    const ids = included.map((cl) => cl.id);
-    const [moved] = ids.splice(fromIdx, 1);
-    // splice after-removal indices: if dropping forward of fromIdx
-    // the index already accounts for the removal.
-    const insertAt = dropIdx > fromIdx ? dropIdx : dropIdx;
-    ids.splice(insertAt, 0, moved);
-    // Reorder invalidates history (splits + reorder don't undo cleanly
-    // together).
     clearHistory();
-    await reorderProjectClips(projectId, ids);
-    invalidate();
+    setTimeline((prev) => {
+      if (!prev) return prev;
+      const next = prev.slice();
+      const [moved] = next.splice(fromIdx, 1);
+      next.splice(dropIdx, 0, moved);
+      return next;
+    });
   }
   const [silencesApplying, setSilencesApplying] = useState(false);
   const [silencesResult, setSilencesResult] = useState<
@@ -573,18 +675,21 @@ export default function ManualEditScreen() {
     () => (selected ? getEffects(selected) : {}),
     [selected]
   );
-  async function patchSelectedEffects(patch: Partial<ClipEffects>) {
+  function patchSelectedEffects(patch: Partial<ClipEffects>) {
     if (!selected) return;
-    await patchClipEffects(selected.id, patch);
-    invalidate();
+    const merged: ClipEffects = { ...getEffects(selected), ...patch };
+    updateTimelineRow(selected.id, { effects_json: JSON.stringify(merged) });
   }
-  async function applyPreset(presetId: string) {
+  function applyPreset(presetId: string) {
     if (!selected) return;
-    await applyFilterPreset(
-      selected.id,
-      presetId as Parameters<typeof applyFilterPreset>[1]
-    );
-    invalidate();
+    const preset = FILTER_PRESETS[presetId as keyof typeof FILTER_PRESETS];
+    if (!preset) return;
+    const merged: ClipEffects = {
+      ...getEffects(selected),
+      ...preset.effects,
+      filterPreset: presetId,
+    };
+    updateTimelineRow(selected.id, { effects_json: JSON.stringify(merged) });
   }
 
   // Boundary index nearest the playhead — Transition panel acts on this.
@@ -619,27 +724,38 @@ export default function ManualEditScreen() {
     [selectedOverlay?.keyframes_json]
   );
 
-  async function doSplit() {
+  function doSplit() {
     if (!selected) return;
     const idx = included.findIndex((c) => c.id === selected.id);
     if (idx < 0) return;
-    const atLocal = Math.max(0, globalMs - cumulative[idx]); // ms within the effective selected clip
-    const res = await splitClipAt(selected.id, atLocal);
-    if (res) {
-      // Split has no inverse (no merge primitive) — wipe history so the user
-      // doesn't get a partial-undo into an inconsistent state.
-      clearHistory();
-      invalidate();
-    }
+    const atLocal = Math.max(0, globalMs - cumulative[idx]);
+    const parts = splitRow(selected, atLocal);
+    if (!parts) return;
+    // Split has no inverse — wipe history so undo can't land between
+    // the two halves.
+    clearHistory();
+    setTimeline((prev) => {
+      if (!prev) return prev;
+      const next = prev.slice();
+      next.splice(idx, 1, parts[0], parts[1]);
+      return next;
+    });
   }
 
-  async function doDuplicate() {
+  function doDuplicate() {
     if (!selected) return;
-    // No inverse primitive yet; wipe history so undo can't get stuck
-    // in a half-state.
+    const idx = included.findIndex((c) => c.id === selected.id);
+    if (idx < 0) return;
     clearHistory();
-    await duplicateClip(selected.id);
-    invalidate();
+    setTimeline((prev) => {
+      if (!prev) return prev;
+      const src = prev[idx];
+      if (!src) return prev;
+      const dupe: TimelineRow = { ...src, id: newId() };
+      const next = prev.slice();
+      next.splice(idx + 1, 0, dupe);
+      return next;
+    });
   }
 
   async function doReplace() {
@@ -651,19 +767,47 @@ export default function ManualEditScreen() {
     });
     if (res.canceled || !res.assets || res.assets.length === 0) return;
     const a = res.assets[0];
-    // Persist the picker file into the app's clip store so it survives
-    // app restarts / clipping the picker URI.
-    const persisted = persistClip(a.uri, selected.id + '-replace');
+    // The new file goes into the clips table as a new recording — the
+    // previous source stays in the library (other timeline rows may
+    // still reference it). The selected timeline row swaps its
+    // source_clip_id over and clears its trim so the new media plays
+    // through end-to-end.
+    const newClipId = newId();
+    const persisted = persistClip(a.uri, newClipId);
     const durationMs = Math.round(a.duration ?? selected.duration_ms);
+    const rating = rateClip({ clipId: newClipId, durationMs, source: 'imported' });
+    await addClip(
+      projectId,
+      persisted,
+      durationMs,
+      rating.verdict,
+      rating.tag,
+      newClipId
+    );
     clearHistory();
-    await replaceClipFile(selected.id, persisted, durationMs);
+    updateTimelineRow(selected.id, {
+      source_clip_id: newClipId,
+      in_ms: null,
+      out_ms: null,
+    });
+    // Refresh clipsDb so the new source clip shows up in the join.
     invalidate();
+    void maybeTranscribe(newClipId);
   }
 
-  async function doSlip(deltaMs: number) {
+  function doSlip(deltaMs: number) {
     if (!selected) return;
-    await slipClip(selected.id, deltaMs);
-    invalidate();
+    // Slip = shift in/out by the same delta, keeping the clip's length
+    // constant. Clamp to source duration so we don't push the window
+    // off the recording's end.
+    const dur = selected.duration_ms;
+    const oldIn = selected.in_ms ?? 0;
+    const oldOut = selected.out_ms ?? dur;
+    const len = oldOut - oldIn;
+    let newIn = oldIn + deltaMs;
+    newIn = Math.max(0, Math.min(dur - len, newIn));
+    const newOut = newIn + len;
+    updateTimelineRow(selected.id, { in_ms: newIn, out_ms: newOut });
   }
 
   // ---- Cut Silences ------------------------------------------------
@@ -671,10 +815,27 @@ export default function ManualEditScreen() {
     if (silencesApplying || included.length === 0) return;
     setSilencesApplying(true);
     try {
-      const r = await cutSilencesInProject(included, silencesOffset);
-      setSilencesResult(r);
+      let totalRemoved = 0;
+      let trimmed = 0;
+      const byRow = new Map<string, { newIn: number; newOut: number }>();
+      for (const c of included) {
+        const p = proposeForClip(c, silencesOffset);
+        if (!p) continue;
+        const removed = p.headRemovedMs + p.tailRemovedMs;
+        if (removed <= 0) continue;
+        byRow.set(c.id, { newIn: p.newIn, newOut: p.newOut });
+        totalRemoved += removed;
+        trimmed += 1;
+      }
+      setTimeline((prev) => {
+        if (!prev) return prev;
+        return prev.map((r) => {
+          const upd = byRow.get(r.id);
+          return upd ? patchRow(r, { in_ms: upd.newIn, out_ms: upd.newOut }) : r;
+        });
+      });
+      setSilencesResult({ removedMs: totalRemoved, trimmedClips: trimmed });
       clearHistory();
-      invalidate();
     } catch {
       setSilencesResult({ removedMs: 0, trimmedClips: 0 });
     } finally {
@@ -760,18 +921,30 @@ export default function ManualEditScreen() {
     invalidate();
   }
 
-  async function doDelete() {
+  function doDelete() {
     if (!selected) return;
-    // Delete removes the underlying file too — irreversible. Wipe history.
+    // Pure timeline mutation — no DB / file write. The recording stays
+    // in the clips table; it just no longer appears on the timeline.
+    // This eliminates the race where AVPlayer kept reading a file we
+    // had just deleted.
+    //
+    // Defensive pause: a rebuild is about to fire (the included memo
+    // changes → push effect → player.setClips). If the player is
+    // mid-decode for a frame whose timestamp lands past the new
+    // composition's total, the swap window is a known silent-kill
+    // hazard. Pausing first means the next thing AVPlayer renders is
+    // already the new composition.
+    const rowId = selected.id;
+    try { player.pause(); } catch { /* */ }
+    crumb('editor.delete', 'tap', { rowId: rowId.slice(0, 6) });
     clearHistory();
-    await deleteClip(selected.id, selected.file_uri);
+    setTimeline((prev) => (prev ? prev.filter((r) => r.id !== rowId) : prev));
     clearSelection();
-    invalidate();
   }
 
   // Unified delete for whatever's selected (clip, text overlay, or media
-  // overlay). Overlay deletes are undoable; clip deletes wipe history because
-  // we don't have an inverse for the file removal.
+  // overlay). Overlay deletes are still undoable (they're DB rows);
+  // timeline deletes wipe history because splits aren't reversible.
   async function doDeleteSelection() {
     if (selectedOverlay) {
       await removeOverlay(selectedOverlay);
@@ -779,83 +952,66 @@ export default function ManualEditScreen() {
       return;
     }
     if (selected) {
-      await doDelete();
+      doDelete();
     }
   }
 
   async function toggleExclude() {
     if (!selected) return;
-    const clipId = selected.id;
+    const rowId = selected.id;
     const prev = selected.excluded === 1 ? 1 : 0;
     const next: 0 | 1 = prev === 1 ? 0 : 1;
     await runCmd({
-      do: async () => {
-        await setClipExcluded(clipId, next);
-        invalidate();
-      },
-      undo: async () => {
-        await setClipExcluded(clipId, prev);
-        invalidate();
-      },
+      do: async () => updateTimelineRow(rowId, { excluded: next }),
+      undo: async () => updateTimelineRow(rowId, { excluded: prev }),
     });
   }
 
   async function toggleMirror() {
     if (!selected) return;
-    const clipId = selected.id;
+    const rowId = selected.id;
     const prev: 0 | 1 = selected.mirrored === 1 ? 1 : 0;
     const next: 0 | 1 = prev === 1 ? 0 : 1;
     await runCmd({
-      do: async () => {
-        await setClipMirrored(clipId, next);
-        invalidate();
-      },
-      undo: async () => {
-        await setClipMirrored(clipId, prev);
-        invalidate();
-      },
+      do: async () => updateTimelineRow(rowId, { mirrored: next }),
+      undo: async () => updateTimelineRow(rowId, { mirrored: prev }),
     });
   }
 
   async function toggleAudioDetached() {
     if (!selected) return;
-    const clipId = selected.id;
-    const prev = (selected.audio_detached ?? 0) === 1 ? 1 : 0;
+    const rowId = selected.id;
+    const prev: 0 | 1 = selected.audio_detached === 1 ? 1 : 0;
     const next: 0 | 1 = prev === 1 ? 0 : 1;
     await runCmd({
-      do: async () => {
-        await setClipAudioDetached(clipId, next);
-        invalidate();
-      },
-      undo: async () => {
-        await setClipAudioDetached(clipId, prev as 0 | 1);
-        invalidate();
-      },
+      do: async () => updateTimelineRow(rowId, { audio_detached: next }),
+      undo: async () => updateTimelineRow(rowId, { audio_detached: prev }),
     });
   }
 
   async function toggleMute() {
     if (!selected) return;
-    const clipId = selected.id;
+    const rowId = selected.id;
     const prev = selected.audio_volume ?? 1;
     const next = prev > 0 ? 0 : 1;
+    // Push the volume into the native audio mix immediately so the
+    // change is audible before the composition rebuild settles. The
+    // rebuild then writes the same value via setClips's audio mix.
     const applyTo = (val: number) => {
       try {
-        player.setClipVolume(clipId, val);
+        player.setClipVolume(rowId, val);
       } catch {
         /* ignore */
       }
     };
     await runCmd({
       do: async () => {
-        await setClipVolume(clipId, next);
+        updateTimelineRow(rowId, { audio_volume: next });
         applyTo(next);
-        invalidate();
       },
       undo: async () => {
-        await setClipVolume(clipId, prev);
+        updateTimelineRow(rowId, { audio_volume: prev });
         applyTo(prev);
-        invalidate();
       },
     });
   }
@@ -868,25 +1024,23 @@ export default function ManualEditScreen() {
 
   async function changeVolume(v: number) {
     if (!selected) return;
-    const clipId = selected.id;
+    const rowId = selected.id;
     const prev = selected.audio_volume ?? 1;
     const applyTo = (val: number) => {
       try {
-        player.setClipVolume(clipId, val);
+        player.setClipVolume(rowId, val);
       } catch {
         /* ignore */
       }
     };
     await runCmd({
       do: async () => {
-        await setClipVolume(clipId, v);
+        updateTimelineRow(rowId, { audio_volume: v });
         applyTo(v);
-        invalidate();
       },
       undo: async () => {
-        await setClipVolume(clipId, prev);
+        updateTimelineRow(rowId, { audio_volume: prev });
         applyTo(prev);
-        invalidate();
       },
     });
   }
@@ -903,32 +1057,14 @@ export default function ManualEditScreen() {
 
   async function persistTrim(inMs: number, outMs: number) {
     if (!selected) return;
-    const clipId = selected.id;
-    const prevIn = selected.in_ms ?? 0;
-    const prevOut = selected.out_ms ?? selected.duration_ms;
+    const rowId = selected.id;
+    const prevIn = selected.in_ms;
+    const prevOut = selected.out_ms;
     const newIn = Math.round(inMs);
     const newOut = Math.round(outMs);
     await runCmd({
-      do: async () => {
-        // Optimistic local update so the cell doesn't briefly snap back to
-        // its old size between trimDrag clearing and clipsDb refetching.
-        setClips((prev) =>
-          prev.map((c) =>
-            c.id === clipId ? { ...c, in_ms: newIn, out_ms: newOut } : c
-          )
-        );
-        await setClipTrim(clipId, newIn, newOut);
-        invalidate();
-      },
-      undo: async () => {
-        setClips((prev) =>
-          prev.map((c) =>
-            c.id === clipId ? { ...c, in_ms: prevIn, out_ms: prevOut } : c
-          )
-        );
-        await setClipTrim(clipId, prevIn, prevOut);
-        invalidate();
-      },
+      do: async () => updateTimelineRow(rowId, { in_ms: newIn, out_ms: newOut }),
+      undo: async () => updateTimelineRow(rowId, { in_ms: prevIn, out_ms: prevOut }),
     });
   }
 
@@ -1026,6 +1162,7 @@ export default function ManualEditScreen() {
       if (res.canceled || !res.assets || res.assets.length === 0) return;
       // Wipe history — multi-clip imports are hard to undo cleanly.
       clearHistory();
+      const newRows: TimelineRow[] = [];
       for (const a of res.assets) {
         const clipId = newId();
         const uri = persistClip(a.uri, clipId);
@@ -1035,7 +1172,10 @@ export default function ManualEditScreen() {
           durationMs,
           source: 'imported',
         });
-        await addClip(
+        // The recording lands in clips (it's a new source); a timeline
+        // row pointing at it gets appended below so it shows up on the
+        // main track.
+        const created = await addClip(
           projectId,
           uri,
           durationMs,
@@ -1043,10 +1183,11 @@ export default function ManualEditScreen() {
           rating.tag,
           clipId
         );
-        // Background — transcript drives captions later.
+        newRows.push(rowFromClip(created));
         void maybeTranscribe(clipId);
       }
-      invalidate();
+      setTimeline((prev) => (prev ? [...prev, ...newRows] : newRows));
+      invalidate(); // refresh clipsDb so the new sources show up in the join
     } catch {
       /* picker errors swallowed; nothing to roll back */
     }
@@ -1273,11 +1414,22 @@ export default function ManualEditScreen() {
   // While the user drags the timeline, drive the player from scroll offset.
   // `deferSwap` means cross-clip transitions don't trigger an expensive
   // `player.replace()` mid-scroll; the swap happens once scrolling stops.
+  // Breadcrumb counter lets us trace the last few scroll ticks before a
+  // crash without spamming the buffer (one crumb per 8 ticks ≈ 8/s at
+  // 60Hz scrollEventThrottle=16).
+  const scrollCrumbCount = useRef(0);
   const onTimelineScroll = useCallback(
     (e: NativeSyntheticEvent<NativeScrollEvent>) => {
       if (!userScrolling.current) return;
       const x = e.nativeEvent.contentOffset.x;
       const ms = x / pxPerMsRef.current;
+      scrollCrumbCount.current = (scrollCrumbCount.current + 1) % 8;
+      if (scrollCrumbCount.current === 0) {
+        crumb('editor.scroll', 'tick', {
+          x: Math.round(x),
+          ms: Math.round(ms),
+        });
+      }
       seekToGlobalMs(ms);
     },
     [seekToGlobalMs]
@@ -1294,8 +1446,15 @@ export default function ManualEditScreen() {
       scrubEndTimer.current = null;
     }
     userScrolling.current = false;
+    try {
+      player.setScrubbing(false);
+    } catch (e) {
+      crumb('editor.scroll', 'setScrubbing(false) threw', {
+        err: (e as Error).message,
+      });
+    }
     commitPendingSwap();
-  }, [commitPendingSwap]);
+  }, [commitPendingSwap, player]);
 
   // Pinch-to-zoom on the timeline. `runOnJS(true)` is required because
   // Reanimated is installed — without it, gesture callbacks default to
@@ -1319,7 +1478,7 @@ export default function ManualEditScreen() {
     []
   );
 
-  if (!project || !clipsDb) {
+  if (!project || !clipsDb || timeline === null) {
     return (
       <SafeAreaView style={styles.root}>
         <Loading />
@@ -1491,17 +1650,30 @@ export default function ManualEditScreen() {
             onScroll={onTimelineScroll}
             onScrollBeginDrag={() => {
               userScrolling.current = true;
+              crumb('editor.scroll', 'begin', {
+                clipCount: included.length,
+                totalMs: Math.round(totalMs),
+                pxPerMs: pxPerMs.toFixed(2),
+              });
               if (scrubEndTimer.current) {
                 clearTimeout(scrubEndTimer.current);
                 scrubEndTimer.current = null;
               }
               try {
                 player.pause();
-              } catch {
-                /* ignore */
+                // Tell the native CIFilter handler to skip color /
+                // Vision processing while the user is dragging. Cheap
+                // preview frames during scrub, full chain back on
+                // settle.
+                player.setScrubbing(true);
+              } catch (e) {
+                crumb('editor.scroll', 'pause threw', {
+                  err: (e as Error).message,
+                });
               }
             }}
             onScrollEndDrag={() => {
+              crumb('editor.scroll', 'endDrag');
               // Wait briefly for momentum to begin; if it doesn't, end the
               // scrub and commit the deferred clip swap.
               if (scrubEndTimer.current) clearTimeout(scrubEndTimer.current);
@@ -1854,19 +2026,24 @@ export default function ManualEditScreen() {
               );
               const compStart = cumulative[idx] ?? 0;
               const compEnd = cumulative[idx + 1] ?? compStart;
+              // Subject overlays key off the underlying recording, not
+              // the timeline-row id — multiple timeline rows can share
+              // a source, and the cutout's source frames come from
+              // the original file.
+              const srcId = selected.source_clip_id;
               if (patch.cutoutEnabled) {
-                const existing = await findSubjectOverlayFor(selected.id);
+                const existing = await findSubjectOverlayFor(srcId);
                 if (!existing) {
                   await createSubjectOverlay(
                     projectId,
-                    selected.id,
+                    srcId,
                     compStart,
                     compEnd,
                     selected.file_uri
                   );
                 }
               } else {
-                await removeSubjectOverlayFor(selected.id);
+                await removeSubjectOverlayFor(srcId);
               }
             }
             await patchSelectedEffects(patch);
@@ -2015,8 +2192,10 @@ export default function ManualEditScreen() {
               openCaptionsPanel={() => {
                 // Re-attempt transcription for any clip that still has no
                 // word timings — captions are empty until words exist.
+                // c.id here is a timeline row id; transcription targets
+                // the underlying recording.
                 for (const c of clips) {
-                  if (!c.transcript_words) void maybeTranscribe(c.id);
+                  if (!c.transcript_words) void maybeTranscribe(c.source_clip_id);
                 }
                 setBottomMode((m) =>
                   m === 'captions' ? 'none' : 'captions'

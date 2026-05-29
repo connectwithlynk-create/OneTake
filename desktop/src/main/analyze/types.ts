@@ -116,6 +116,77 @@ export interface ReelShot {
    *  rationale (impulse SFX in heavy voiceover can't be identified
    *  reliably with pure-JS DSP). */
   sfx_classifications: SfxClassifiedEvent[];
+  /** Media-object overlays (stickers/GIFs/PiP video/images/emoji
+   *  graphics) detected within the shot, distinct from text captions.
+   *  Empty when none detected. See overlays.ts. */
+  overlays: MediaOverlay[];
+  /** One-sentence visual caption of the shot's rep frame, produced by
+   *  Claude vision. Covers subject + framing + iconography. Empty
+   *  when no ANTHROPIC_API_KEY or the call failed. The content-
+   *  vocabulary aggregator searches this field to recommend
+   *  "use a shot like X" suggestions in the synthesis engine. */
+  visual_caption: string | null;
+  /** Transcript words spoken while this shot was on screen, joined.
+   *  Empty when no transcript or no spoken audio overlapped. Lets
+   *  the synthesis engine learn the mapping between what was said
+   *  and what was shown across the collection. */
+  spoken_window: string;
+}
+
+/** Heuristic media-overlay kind. The classifier looks at inner-bbox
+ *  motion and color-palette complexity across the shot's sample frames;
+ *  it can't perfectly disambiguate (e.g. a static photo vs a sticker)
+ *  but the categories below are what downstream reasoning needs. */
+export type OverlayKind =
+  | 'image'
+  | 'sticker'
+  | 'gif'
+  | 'pip_video'
+  | 'emoji_graphic';
+
+export const OVERLAY_KINDS: OverlayKind[] = [
+  'image',
+  'sticker',
+  'gif',
+  'pip_video',
+  'emoji_graphic',
+];
+
+/** Whether the overlay's own pixels change inside its bbox across the
+ *  shot. `static` covers still images/stickers; `animated` covers GIFs
+ *  and PiP video. Enter/exit transitions are not classified in v1 —
+ *  three sample frames per shot don't give enough temporal resolution. */
+export type OverlayMotion = 'static' | 'animated';
+
+export const OVERLAY_MOTIONS: OverlayMotion[] = ['static', 'animated'];
+
+/** One detected media overlay (image/sticker/GIF/PiP/emoji graphic) in
+ *  a shot. Text captions are tracked separately in `text_moments` —
+ *  they aren't overlays in this sense. */
+export interface MediaOverlay {
+  /** When this overlay first appears in the reel, ms from reel start. */
+  start_ms: number;
+  /** When it last appears, ms from reel start. */
+  end_ms: number;
+  /** Normalized bbox of the overlay region (0-1, origin top-left). */
+  bbox: NormBBox;
+  /** 3x3 grid cell of the bbox centroid. */
+  region: FrameRegion;
+  /** Heuristic media kind — see OverlayKind. */
+  kind: OverlayKind;
+  /** Whether the overlay's pixels move inside its bbox across the shot. */
+  motion: OverlayMotion;
+  /** Transcript words spoken while this overlay was on screen, joined.
+   *  Empty when no spoken audio overlaps the overlay's lifetime, when
+   *  transcription was unavailable, or when full-reel transcription
+   *  hadn't been wired in yet. The semantic relation (illustrate /
+   *  reinforce / label / cta / unrelated) is left for a downstream
+   *  reasoning layer to derive from this raw pairing. */
+  spoken_window: string;
+  /** Base64 JPEG crop of the overlay bbox from a shot sample frame.
+   *  Null when no sample frame was available. Lets downstream reasoning
+   *  see what the overlay depicts without re-decoding video. */
+  thumb_b64: string | null;
 }
 
 import type { SfxType, SfxFeatures } from './sfx-classify';

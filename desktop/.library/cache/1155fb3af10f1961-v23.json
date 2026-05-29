@@ -1,0 +1,1837 @@
+{
+  "shots": [
+    {
+      "start_ms": 0,
+      "end_ms": 667,
+      "has_face": true,
+      "ocr_text": "my official ley\n\no stanford university,\n\n~\n\n» -",
+      "speaker_verdict": "unknown",
+      "speaker_confidence": 0.5786587014240355,
+      "sync_conf": 1.7359761042721065,
+      "clip_type": "talking_head_unknown",
+      "face_bbox": {
+        "x": 0.18217904832628046,
+        "y": 0.20414167642593384,
+        "w": 0.6660265180799695,
+        "h": 0.3746394157409668
+      },
+      "face_region": "middle_center",
+      "text_moments": [
+        {
+          "text": "my official",
+          "bbox": {
+            "x": 0.0345679012345679,
+            "y": 0.07361111111111111,
+            "w": 0.4740740740740741,
+            "h": 0.05
+          },
+          "region": "top_left"
+        },
+        {
+          "text": "o stanford university,",
+          "bbox": {
+            "x": 0.014814814814814815,
+            "y": 0.12638888888888888,
+            "w": 0.9679012345679012,
+            "h": 0.05277777777777778
+          },
+          "region": "top_center"
+        },
+        {
+          "text": "~",
+          "bbox": {
+            "x": 0.10864197530864197,
+            "y": 0.4152777777777778,
+            "w": 0.014814814814814815,
+            "h": 0.008333333333333333
+          },
+          "region": "middle_left"
+        }
+      ],
+      "audio_rms_mean": 0.15766533076643607,
+      "audio_peak_rms": 0.44010583484432175,
+      "audio_silence_pct": 0.23809523809523808,
+      "audio_speech_pct": 0.7142857142857143,
+      "audio_music_pct": 0.047619047619047616,
+      "sfx_count": 1,
+      "sfx_at_start": true,
+      "sfx_classifications": [
+        {
+          "ms": 160,
+          "type": "impulse_tonal",
+          "confidence": 0.45,
+          "features": {
+            "peak_rms": 0.4787035584449768,
+            "baseline_rms": 0.0034086942835710944,
+            "spike_ratio": 140.4360492967021,
+            "delta_centroid_hz": 887.0614117125853,
+            "delta_flatness": 0.16538952234845608,
+            "delta_voice_band_ratio": 0.28804514581414836,
+            "delta_high_band_ratio": 0.06390065214189769
+          }
+        }
+      ],
+      "overlays": [],
+      "visual_caption": null,
+      "spoken_window": ""
+    },
+    {
+      "start_ms": 667,
+      "end_ms": 1433,
+      "has_face": true,
+      "ocr_text": "skipped every final\n\nuild my startup at!\n\n1)",
+      "speaker_verdict": "speaker",
+      "speaker_confidence": 1,
+      "sync_conf": 3.0534180115747613,
+      "clip_type": "talking_head",
+      "face_bbox": {
+        "x": 0.1866293059455024,
+        "y": 0.2722503364086151,
+        "w": 0.8264057265387641,
+        "h": 0.46475258469581604
+      },
+      "face_region": "middle_center",
+      "text_moments": [
+        {
+          "text": "every final",
+          "bbox": {
+            "x": 0.4345679012345679,
+            "y": 0.11805555555555555,
+            "w": 0.5604938271604938,
+            "h": 0.0875
+          },
+          "region": "top_right"
+        },
+        {
+          "text": "uild my startup at!",
+          "bbox": {
+            "x": 0,
+            "y": 0.19166666666666668,
+            "w": 0.9777777777777777,
+            "h": 0.05694444444444444
+          },
+          "region": "top_center"
+        },
+        {
+          "text": "1)",
+          "bbox": {
+            "x": 0.7012345679012346,
+            "y": 0.475,
+            "w": 0.05925925925925926,
+            "h": 0.03194444444444444
+          },
+          "region": "middle_right"
+        }
+      ],
+      "audio_rms_mean": 0.1343908831019922,
+      "audio_peak_rms": 0.30522280264640883,
+      "audio_silence_pct": 0,
+      "audio_speech_pct": 1,
+      "audio_music_pct": 0,
+      "sfx_count": 0,
+      "sfx_at_start": false,
+      "sfx_classifications": [],
+      "overlays": [],
+      "visual_caption": null,
+      "spoken_window": ""
+    },
+    {
+      "start_ms": 1433,
+      "end_ms": 2067,
+      "has_face": true,
+      "ocr_text": "kr\n\nned down Harv\n\nuild a startup a\n\n[1\n\nA\n\n3\n\n1(:",
+      "speaker_verdict": "unknown",
+      "speaker_confidence": 0.7655836106260002,
+      "sync_conf": 2.2967508318780006,
+      "clip_type": "talking_head_unknown",
+      "face_bbox": {
+        "x": 0.030065345764160156,
+        "y": 0.22793907523155213,
+        "w": 0.9060275607638888,
+        "h": 0.5095521748065949
+      },
+      "face_region": "middle_center",
+      "text_moments": [
+        {
+          "text": "ned down Harv",
+          "bbox": {
+            "x": 0.012345679012345678,
+            "y": 0.07222222222222222,
+            "w": 0.9777777777777777,
+            "h": 0.05416666666666667
+          },
+          "region": "top_center"
+        },
+        {
+          "text": "uild a startup a",
+          "bbox": {
+            "x": 0,
+            "y": 0.14722222222222223,
+            "w": 1,
+            "h": 0.06805555555555555
+          },
+          "region": "top_center"
+        }
+      ],
+      "audio_rms_mean": 0.13345154011289162,
+      "audio_peak_rms": 0.24879628447423607,
+      "audio_silence_pct": 0,
+      "audio_speech_pct": 1,
+      "audio_music_pct": 0,
+      "sfx_count": 2,
+      "sfx_at_start": true,
+      "sfx_classifications": [
+        {
+          "ms": 1536,
+          "type": "vocal",
+          "confidence": 0.7910223553167345,
+          "features": {
+            "peak_rms": 0.24049603939056396,
+            "baseline_rms": 0.04197558246552944,
+            "spike_ratio": 5.729427092240126,
+            "delta_centroid_hz": 1298.861941454701,
+            "delta_flatness": 0.18332085032950682,
+            "delta_voice_band_ratio": 0.7910223553167345,
+            "delta_high_band_ratio": 0.13229298586227592
+          }
+        },
+        {
+          "ms": 2048,
+          "type": "vocal",
+          "confidence": 0.7088843200659886,
+          "features": {
+            "peak_rms": 0.3833288550376892,
+            "baseline_rms": 0.05677779622375965,
+            "spike_ratio": 6.751386642887676,
+            "delta_centroid_hz": 1300.3924829952284,
+            "delta_flatness": 0.2994057018436416,
+            "delta_voice_band_ratio": 0.7088843200659886,
+            "delta_high_band_ratio": 0.10148624220399059
+          }
+        }
+      ],
+      "overlays": [],
+      "visual_caption": null,
+      "spoken_window": ""
+    },
+    {
+      "start_ms": 2067,
+      "end_ms": 2367,
+      "has_face": true,
+      "ocr_text": "=\n\nN\n\n| skipped prom to\n\napply to YC ati17\n\n2\n\n_ al\n\ndance withlme)\n\nEN",
+      "speaker_verdict": "unknown",
+      "speaker_confidence": 0,
+      "sync_conf": 0,
+      "clip_type": "talking_head_unknown",
+      "face_bbox": {
+        "x": 0.2761832767062717,
+        "y": 0.22227948307991027,
+        "w": 0.4767894321017795,
+        "h": 0.26819280385971067
+      },
+      "face_region": "middle_center",
+      "text_moments": [
+        {
+          "text": "=",
+          "bbox": {
+            "x": 0.23703703703703705,
+            "y": 0,
+            "w": 0.21975308641975308,
+            "h": 0.04722222222222222
+          },
+          "region": "top_center"
+        },
+        {
+          "text": "| skipped prom to",
+          "bbox": {
+            "x": 0.21975308641975308,
+            "y": 0.09166666666666666,
+            "w": 0.5506172839506173,
+            "h": 0.05555555555555555
+          },
+          "region": "top_center"
+        },
+        {
+          "text": "apply to YC",
+          "bbox": {
+            "x": 0.23950617283950618,
+            "y": 0.1527777777777778,
+            "w": 0.36049382716049383,
+            "h": 0.03194444444444444
+          },
+          "region": "top_center"
+        },
+        {
+          "text": "2",
+          "bbox": {
+            "x": 0.19753086419753085,
+            "y": 0.35833333333333334,
+            "w": 0.13333333333333333,
+            "h": 0.12222222222222222
+          },
+          "region": "middle_left"
+        },
+        {
+          "text": "dance",
+          "bbox": {
+            "x": 0.2765432098765432,
+            "y": 0.7486111111111111,
+            "w": 0.18518518518518517,
+            "h": 0.027777777777777776
+          },
+          "region": "bottom_center"
+        }
+      ],
+      "audio_rms_mean": 0.20090995629239816,
+      "audio_peak_rms": 0.27988276489959873,
+      "audio_silence_pct": 0,
+      "audio_speech_pct": 1,
+      "audio_music_pct": 0,
+      "sfx_count": 0,
+      "sfx_at_start": true,
+      "sfx_classifications": [],
+      "overlays": [],
+      "visual_caption": null,
+      "spoken_window": ""
+    },
+    {
+      "start_ms": 2367,
+      "end_ms": 3867,
+      "has_face": true,
+      "ocr_text": "=\n\n7\n\n*\n\n\\\\\n\n| skipped prom to\n\napply to YC ati7\n\n1c",
+      "speaker_verdict": "broll",
+      "speaker_confidence": 0.1485411331514029,
+      "sync_conf": 0.4456233994542087,
+      "clip_type": "broll_talking_head",
+      "face_bbox": {
+        "x": 0.005343818664550781,
+        "y": 0.393590521812439,
+        "w": 1.071321360270182,
+        "h": 0.602536654472351
+      },
+      "face_region": "bottom_center",
+      "text_moments": [
+        {
+          "text": "| skipped prom to",
+          "bbox": {
+            "x": 0.027160493827160494,
+            "y": 0.2611111111111111,
+            "w": 0.9382716049382716,
+            "h": 0.05694444444444444
+          },
+          "region": "top_center"
+        },
+        {
+          "text": "apply to YC",
+          "bbox": {
+            "x": 0.05925925925925926,
+            "y": 0.3277777777777778,
+            "w": 0.6222222222222222,
+            "h": 0.05555555555555555
+          },
+          "region": "middle_center"
+        }
+      ],
+      "audio_rms_mean": 0.08678645201566008,
+      "audio_peak_rms": 0.267684846251758,
+      "audio_silence_pct": 0,
+      "audio_speech_pct": 0.8936170212765957,
+      "audio_music_pct": 0.10638297872340426,
+      "sfx_count": 0,
+      "sfx_at_start": false,
+      "sfx_classifications": [],
+      "overlays": [],
+      "visual_caption": null,
+      "spoken_window": ""
+    },
+    {
+      "start_ms": 3867,
+      "end_ms": 4833,
+      "has_face": true,
+      "ocr_text": "Wa\n\nschool is\n\nM.S\n\nond\n\no _\n\nNUACKS\n\ni»\n\nARE",
+      "speaker_verdict": "broll",
+      "speaker_confidence": 0.38919813648704843,
+      "sync_conf": 1.1675944094611452,
+      "clip_type": "broll_talking_head",
+      "face_bbox": {
+        "x": 0.17719287872314454,
+        "y": 0.45548216700553895,
+        "w": 0.681882095336914,
+        "h": 0.3835581362247467
+      },
+      "face_region": "middle_center",
+      "text_moments": [
+        {
+          "text": "Wa",
+          "bbox": {
+            "x": 0.06419753086419754,
+            "y": 0.04583333333333333,
+            "w": 0.1925925925925926,
+            "h": 0.04861111111111111
+          },
+          "region": "top_left"
+        },
+        {
+          "text": "school is",
+          "bbox": {
+            "x": 0.3728395061728395,
+            "y": 0.03333333333333333,
+            "w": 0.528395061728395,
+            "h": 0.08055555555555556
+          },
+          "region": "top_center"
+        },
+        {
+          "text": "M.S",
+          "bbox": {
+            "x": 0.26666666666666666,
+            "y": 0.05694444444444444,
+            "w": 0.1654320987654321,
+            "h": 0.05
+          },
+          "region": "top_center"
+        },
+        {
+          "text": "o",
+          "bbox": {
+            "x": 0.3950617283950617,
+            "y": 0.5055555555555555,
+            "w": 0.03209876543209877,
+            "h": 0.030555555555555555
+          },
+          "region": "middle_center"
+        }
+      ],
+      "audio_rms_mean": 0.1479370134533273,
+      "audio_peak_rms": 0.3259813848383366,
+      "audio_silence_pct": 0.03225806451612903,
+      "audio_speech_pct": 0.8387096774193549,
+      "audio_music_pct": 0.12903225806451613,
+      "sfx_count": 1,
+      "sfx_at_start": true,
+      "sfx_classifications": [
+        {
+          "ms": 3936,
+          "type": "impulse_tonal",
+          "confidence": 0.45,
+          "features": {
+            "peak_rms": 0.0979878157377243,
+            "baseline_rms": 0.026354013211093843,
+            "spike_ratio": 3.7181363973998423,
+            "delta_centroid_hz": 2689.4991334059123,
+            "delta_flatness": 0.18624461009986246,
+            "delta_voice_band_ratio": 0.0021789782685586135,
+            "delta_high_band_ratio": 0.23240335376305526
+          }
+        }
+      ],
+      "overlays": [],
+      "visual_caption": null,
+      "spoken_window": ""
+    },
+    {
+      "start_ms": 4833,
+      "end_ms": 7800,
+      "has_face": false,
+      "ocr_text": "wy\n\nhe) @\n\nOENEY\n\nLS\n\n1:26 @\n\nwil =F\n\n< jackisegal\n\nJack Segal\n\n12\n\n80\n\n0\n\nposts\n\nfollowers\n\nfollowin,\n\no\n\n17 - building a founder competition platform -\n\nlaunching July 20th\n\nMessage\n\n11 R\n\nBJ\n\n|\n\nLA\n\n52",
+      "speaker_verdict": "no_face",
+      "speaker_confidence": 1,
+      "sync_conf": 0,
+      "clip_type": "broll_visual",
+      "face_bbox": null,
+      "face_region": null,
+      "text_moments": [
+        {
+          "text": "he) @",
+          "bbox": {
+            "x": 0.0049382716049382715,
+            "y": 0.11666666666666667,
+            "w": 0.3111111111111111,
+            "h": 0.06111111111111111
+          },
+          "region": "top_left"
+        },
+        {
+          "text": "wil",
+          "bbox": {
+            "x": 0.7703703703703704,
+            "y": 0.28055555555555556,
+            "w": 0.044444444444444446,
+            "h": 0.016666666666666666
+          },
+          "region": "top_right"
+        },
+        {
+          "text": "<",
+          "bbox": {
+            "x": 0.06419753086419754,
+            "y": 0.34305555555555556,
+            "w": 0.027160493827160494,
+            "h": 0.027777777777777776
+          },
+          "region": "middle_left"
+        },
+        {
+          "text": "Jack Segal",
+          "bbox": {
+            "x": 0.32098765432098764,
+            "y": 0.4263888888888889,
+            "w": 0.18024691358024691,
+            "h": 0.019444444444444445
+          },
+          "region": "middle_center"
+        },
+        {
+          "text": "12",
+          "bbox": {
+            "x": 0.32098765432098764,
+            "y": 0.46805555555555556,
+            "w": 0.03950617283950617,
+            "h": 0.016666666666666666
+          },
+          "region": "middle_center"
+        },
+        {
+          "text": "80",
+          "bbox": {
+            "x": 0.5037037037037037,
+            "y": 0.46805555555555556,
+            "w": 0.04938271604938271,
+            "h": 0.016666666666666666
+          },
+          "region": "middle_center"
+        },
+        {
+          "text": "0",
+          "bbox": {
+            "x": 0.7432098765432099,
+            "y": 0.46805555555555556,
+            "w": 0.024691358024691357,
+            "h": 0.016666666666666666
+          },
+          "region": "middle_right"
+        },
+        {
+          "text": "posts",
+          "bbox": {
+            "x": 0.32098765432098764,
+            "y": 0.49583333333333335,
+            "w": 0.08641975308641975,
+            "h": 0.016666666666666666
+          },
+          "region": "middle_center"
+        },
+        {
+          "text": "followers",
+          "bbox": {
+            "x": 0.5037037037037037,
+            "y": 0.49444444444444446,
+            "w": 0.14320987654320988,
+            "h": 0.015277777777777777
+          },
+          "region": "middle_center"
+        },
+        {
+          "text": "followin,",
+          "bbox": {
+            "x": 0.7432098765432099,
+            "y": 0.49444444444444446,
+            "w": 0.12098765432098765,
+            "h": 0.015277777777777777
+          },
+          "region": "middle_right"
+        },
+        {
+          "text": "17 - building a founder competition platform -",
+          "bbox": {
+            "x": 0.04938271604938271,
+            "y": 0.5555555555555556,
+            "w": 0.7382716049382716,
+            "h": 0.019444444444444445
+          },
+          "region": "middle_center"
+        },
+        {
+          "text": "launching July 20th",
+          "bbox": {
+            "x": 0.05185185185185185,
+            "y": 0.5819444444444445,
+            "w": 0.3135802469135803,
+            "h": 0.018055555555555554
+          },
+          "region": "middle_left"
+        },
+        {
+          "text": "Message",
+          "bbox": {
+            "x": 0.654320987654321,
+            "y": 0.6361111111111111,
+            "w": 0.1506172839506173,
+            "h": 0.018055555555555554
+          },
+          "region": "middle_right"
+        },
+        {
+          "text": "|",
+          "bbox": {
+            "x": 0.5777777777777777,
+            "y": 0.6888888888888889,
+            "w": 0.04938271604938271,
+            "h": 0.05694444444444444
+          },
+          "region": "bottom_center"
+        },
+        {
+          "text": "LA",
+          "bbox": {
+            "x": 0.6617283950617284,
+            "y": 0.7555555555555555,
+            "w": 0.06666666666666667,
+            "h": 0.008333333333333333
+          },
+          "region": "bottom_right"
+        },
+        {
+          "text": "52",
+          "bbox": {
+            "x": 0.7086419753086419,
+            "y": 0.6902777777777778,
+            "w": 0.14814814814814814,
+            "h": 0.05555555555555555
+          },
+          "region": "bottom_right"
+        },
+        {
+          "text": "lim",
+          "bbox": {
+            "x": 0.0049382716049382715,
+            "y": 0.11666666666666667,
+            "w": 0.11851851851851852,
+            "h": 0.04861111111111111
+          },
+          "region": "top_left"
+        },
+        {
+          "text": "1:26 @",
+          "bbox": {
+            "x": 0,
+            "y": 0.23333333333333334,
+            "w": 0.15555555555555556,
+            "h": 0.041666666666666664
+          },
+          "region": "top_left"
+        },
+        {
+          "text": "al",
+          "bbox": {
+            "x": 0.8296296296296296,
+            "y": 0.24305555555555555,
+            "w": 0.05185185185185185,
+            "h": 0.019444444444444445
+          },
+          "region": "top_right"
+        },
+        {
+          "text": "Jack Segal",
+          "bbox": {
+            "x": 0.2814814814814815,
+            "y": 0.41944444444444445,
+            "w": 0.21975308641975308,
+            "h": 0.02361111111111111
+          },
+          "region": "middle_center"
+        },
+        {
+          "text": "12",
+          "bbox": {
+            "x": 0.2814814814814815,
+            "y": 0.46944444444444444,
+            "w": 0.04938271604938271,
+            "h": 0.020833333333333332
+          },
+          "region": "middle_left"
+        },
+        {
+          "text": "80",
+          "bbox": {
+            "x": 0.5061728395061729,
+            "y": 0.46944444444444444,
+            "w": 0.05925925925925926,
+            "h": 0.020833333333333332
+          },
+          "region": "middle_center"
+        },
+        {
+          "text": "posts",
+          "bbox": {
+            "x": 0.2814814814814815,
+            "y": 0.5041666666666667,
+            "w": 0.10617283950617284,
+            "h": 0.020833333333333332
+          },
+          "region": "middle_center"
+        },
+        {
+          "text": "followers",
+          "bbox": {
+            "x": 0.5037037037037037,
+            "y": 0.5013888888888889,
+            "w": 0.17530864197530865,
+            "h": 0.019444444444444445
+          },
+          "region": "middle_center"
+        },
+        {
+          "text": "following",
+          "bbox": {
+            "x": 0.7950617283950617,
+            "y": 0.5013888888888889,
+            "w": 0.1728395061728395,
+            "h": 0.02361111111111111
+          },
+          "region": "middle_right"
+        },
+        {
+          "text": "- building a founder competition platform -",
+          "bbox": {
+            "x": 0.007407407407407408,
+            "y": 0.5763888888888888,
+            "w": 0.8419753086419753,
+            "h": 0.02361111111111111
+          },
+          "region": "middle_center"
+        },
+        {
+          "text": "inching July 20th",
+          "bbox": {
+            "x": 0,
+            "y": 0.6083333333333333,
+            "w": 0.3358024691358025,
+            "h": 0.022222222222222223
+          },
+          "region": "middle_left"
+        },
+        {
+          "text": "N",
+          "bbox": {
+            "x": 0.8296296296296296,
+            "y": 0.6833333333333333,
+            "w": 0.08395061728395062,
+            "h": 0.07222222222222222
+          },
+          "region": "bottom_right"
+        },
+        {
+          "text": "HH",
+          "bbox": {
+            "x": 0.07407407407407407,
+            "y": 0.7777777777777778,
+            "w": 0.05432098765432099,
+            "h": 0.011111111111111112
+          },
+          "region": "bottom_left"
+        },
+        {
+          "text": "[CJ]",
+          "bbox": {
+            "x": 0.4666666666666667,
+            "y": 0.7625,
+            "w": 0.06666666666666667,
+            "h": 0.02638888888888889
+          },
+          "region": "bottom_center"
+        },
+        {
+          "text": "school is",
+          "bbox": {
+            "x": 0.3728395061728395,
+            "y": 0.03333333333333333,
+            "w": 0.528395061728395,
+            "h": 0.08055555555555556
+          },
+          "region": "top_center"
+        },
+        {
+          "text": "m",
+          "bbox": {
+            "x": 0.06666666666666667,
+            "y": 0.12777777777777777,
+            "w": 0.056790123456790124,
+            "h": 0.0375
+          },
+          "region": "top_left"
+        },
+        {
+          "text": "PREM",
+          "bbox": {
+            "x": 0.5580246913580247,
+            "y": 0.12777777777777777,
+            "w": 0.2740740740740741,
+            "h": 0.0375
+          },
+          "region": "top_right"
+        },
+        {
+          "text": "all 7",
+          "bbox": {
+            "x": 0.8864197530864197,
+            "y": 0.20277777777777778,
+            "w": 0.11358024691358025,
+            "h": 0.025
+          },
+          "region": "top_right"
+        },
+        {
+          "text": "acklsegal",
+          "bbox": {
+            "x": 0.0049382716049382715,
+            "y": 0.29583333333333334,
+            "w": 0.3160493827160494,
+            "h": 0.03888888888888889
+          },
+          "region": "top_left"
+        },
+        {
+          "text": "Jack Segal",
+          "bbox": {
+            "x": 0.2419753086419753,
+            "y": 0.4125,
+            "w": 0.25925925925925924,
+            "h": 0.02638888888888889
+          },
+          "region": "middle_center"
+        },
+        {
+          "text": "12",
+          "bbox": {
+            "x": 0.24444444444444444,
+            "y": 0.4722222222222222,
+            "w": 0.056790123456790124,
+            "h": 0.02361111111111111
+          },
+          "region": "middle_left"
+        },
+        {
+          "text": "80",
+          "bbox": {
+            "x": 0.5061728395061729,
+            "y": 0.4722222222222222,
+            "w": 0.0691358024691358,
+            "h": 0.02361111111111111
+          },
+          "region": "middle_center"
+        },
+        {
+          "text": "0",
+          "bbox": {
+            "x": 0.8493827160493828,
+            "y": 0.4722222222222222,
+            "w": 0.03209876543209877,
+            "h": 0.02361111111111111
+          },
+          "region": "middle_right"
+        },
+        {
+          "text": ")",
+          "bbox": {
+            "x": 0,
+            "y": 0.37916666666666665,
+            "w": 0.18765432098765433,
+            "h": 0.1875
+          },
+          "region": "middle_left"
+        },
+        {
+          "text": "posts",
+          "bbox": {
+            "x": 0.24444444444444444,
+            "y": 0.5111111111111111,
+            "w": 0.12345679012345678,
+            "h": 0.025
+          },
+          "region": "middle_left"
+        },
+        {
+          "text": "followers",
+          "bbox": {
+            "x": 0.5037037037037037,
+            "y": 0.5097222222222222,
+            "w": 0.2074074074074074,
+            "h": 0.020833333333333332
+          },
+          "region": "middle_center"
+        },
+        {
+          "text": "followi",
+          "bbox": {
+            "x": 0.8493827160493828,
+            "y": 0.5097222222222222,
+            "w": 0.14320987654320988,
+            "h": 0.020833333333333332
+          },
+          "region": "middle_right"
+        },
+        {
+          "text": "a founder competition platform -",
+          "bbox": {
+            "x": 0.15555555555555556,
+            "y": 0.5972222222222222,
+            "w": 0.7555555555555555,
+            "h": 0.02638888888888889
+          },
+          "region": "middle_center"
+        },
+        {
+          "text": "ing July 20th",
+          "bbox": {
+            "x": 0,
+            "y": 0.6333333333333333,
+            "w": 0.30617283950617286,
+            "h": 0.027777777777777776
+          },
+          "region": "middle_left"
+        },
+        {
+          "text": "®",
+          "bbox": {
+            "x": 0.45925925925925926,
+            "y": 0.8027777777777778,
+            "w": 0.08148148148148149,
+            "h": 0.044444444444444446
+          },
+          "region": "bottom_center"
+        },
+        {
+          "text": "®",
+          "bbox": {
+            "x": 0.9308641975308642,
+            "y": 0.8013888888888889,
+            "w": 0.0691358024691358,
+            "h": 0.04583333333333333
+          },
+          "region": "bottom_right"
+        },
+        {
+          "text": "\\",
+          "bbox": {
+            "x": 0.782716049382716,
+            "y": 0.8708333333333333,
+            "w": 0.08148148148148149,
+            "h": 0.12916666666666668
+          },
+          "region": "bottom_right"
+        },
+        {
+          "text": "school is",
+          "bbox": {
+            "x": 0.39012345679012345,
+            "y": 0.034722222222222224,
+            "w": 0.5037037037037037,
+            "h": 0.08333333333333333
+          },
+          "region": "top_center"
+        },
+        {
+          "text": ")",
+          "bbox": {
+            "x": 0,
+            "y": 0.16111111111111112,
+            "w": 0.024691358024691357,
+            "h": 0.03611111111111111
+          },
+          "region": "top_left"
+        },
+        {
+          "text": "ul",
+          "bbox": {
+            "x": 0.945679012345679,
+            "y": 0.17222222222222222,
+            "w": 0.05185185185185185,
+            "h": 0.019444444444444445
+          },
+          "region": "top_right"
+        },
+        {
+          "text": "klsegal",
+          "bbox": {
+            "x": 0.022222222222222223,
+            "y": 0.2722222222222222,
+            "w": 0.2716049382716049,
+            "h": 0.043055555555555555
+          },
+          "region": "top_left"
+        },
+        {
+          "text": "Jack Segal",
+          "bbox": {
+            "x": 0.20493827160493827,
+            "y": 0.40555555555555556,
+            "w": 0.2962962962962963,
+            "h": 0.030555555555555555
+          },
+          "region": "middle_center"
+        },
+        {
+          "text": "12",
+          "bbox": {
+            "x": 0.20493827160493827,
+            "y": 0.4736111111111111,
+            "w": 0.06666666666666667,
+            "h": 0.027777777777777776
+          },
+          "region": "middle_left"
+        },
+        {
+          "text": "80",
+          "bbox": {
+            "x": 0.508641975308642,
+            "y": 0.4736111111111111,
+            "w": 0.07901234567901234,
+            "h": 0.027777777777777776
+          },
+          "region": "middle_center"
+        },
+        {
+          "text": "0",
+          "bbox": {
+            "x": 0.9037037037037037,
+            "y": 0.4736111111111111,
+            "w": 0.0345679012345679,
+            "h": 0.027777777777777776
+          },
+          "region": "middle_right"
+        },
+        {
+          "text": "posts",
+          "bbox": {
+            "x": 0.20493827160493827,
+            "y": 0.5194444444444445,
+            "w": 0.14320987654320988,
+            "h": 0.027777777777777776
+          },
+          "region": "middle_left"
+        },
+        {
+          "text": "followers",
+          "bbox": {
+            "x": 0.5061728395061729,
+            "y": 0.5166666666666667,
+            "w": 0.23703703703703705,
+            "h": 0.025
+          },
+          "region": "middle_center"
+        },
+        {
+          "text": "follc",
+          "bbox": {
+            "x": 0.9012345679012346,
+            "y": 0.5166666666666667,
+            "w": 0.09876543209876543,
+            "h": 0.025
+          },
+          "region": "middle_right"
+        },
+        {
+          "text": "ing a founder competition platform -",
+          "bbox": {
+            "x": 0.007407407407407408,
+            "y": 0.6180555555555556,
+            "w": 0.9654320987654321,
+            "h": 0.030555555555555555
+          },
+          "region": "middle_center"
+        },
+        {
+          "text": "20th",
+          "bbox": {
+            "x": 0.1580246913580247,
+            "y": 0.6597222222222222,
+            "w": 0.11851851851851852,
+            "h": 0.018055555555555554
+          },
+          "region": "bottom_left"
+        },
+        {
+          "text": "July",
+          "bbox": {
+            "x": 0.03209876543209877,
+            "y": 0.6597222222222222,
+            "w": 0.10617283950617284,
+            "h": 0.030555555555555555
+          },
+          "region": "bottom_left"
+        },
+        {
+          "text": "|",
+          "bbox": {
+            "x": 0.9851851851851852,
+            "y": 0.8569444444444444,
+            "w": 0.009876543209876543,
+            "h": 0.06388888888888888
+          },
+          "region": "bottom_right"
+        },
+        {
+          "text": "Isegal",
+          "bbox": {
+            "x": 0,
+            "y": 0.24722222222222223,
+            "w": 0.26666666666666666,
+            "h": 0.04861111111111111
+          },
+          "region": "top_left"
+        },
+        {
+          "text": "Jack Segal",
+          "bbox": {
+            "x": 0.1654320987654321,
+            "y": 0.39861111111111114,
+            "w": 0.3358024691358025,
+            "h": 0.034722222222222224
+          },
+          "region": "middle_center"
+        },
+        {
+          "text": "12",
+          "bbox": {
+            "x": 0.16790123456790124,
+            "y": 0.475,
+            "w": 0.07160493827160494,
+            "h": 0.030555555555555555
+          },
+          "region": "middle_left"
+        },
+        {
+          "text": "80",
+          "bbox": {
+            "x": 0.508641975308642,
+            "y": 0.475,
+            "w": 0.08888888888888889,
+            "h": 0.03194444444444444
+          },
+          "region": "middle_center"
+        },
+        {
+          "text": "0",
+          "bbox": {
+            "x": 0.9555555555555556,
+            "y": 0.475,
+            "w": 0.04197530864197531,
+            "h": 0.03194444444444444
+          },
+          "region": "middle_right"
+        },
+        {
+          "text": "posts",
+          "bbox": {
+            "x": 0.16790123456790124,
+            "y": 0.5277777777777778,
+            "w": 0.16049382716049382,
+            "h": 0.030555555555555555
+          },
+          "region": "middle_left"
+        },
+        {
+          "text": "followers",
+          "bbox": {
+            "x": 0.5061728395061729,
+            "y": 0.5236111111111111,
+            "w": 0.26666666666666666,
+            "h": 0.029166666666666667
+          },
+          "region": "middle_center"
+        },
+        {
+          "text": "fc",
+          "bbox": {
+            "x": 0.9530864197530864,
+            "y": 0.5236111111111111,
+            "w": 0.04691358024691358,
+            "h": 0.029166666666666667
+          },
+          "region": "middle_right"
+        },
+        {
+          "text": "g a founder competition platform",
+          "bbox": {
+            "x": 0,
+            "y": 0.6388888888888888,
+            "w": 0.9876543209876543,
+            "h": 0.034722222222222224
+          },
+          "region": "middle_center"
+        },
+        {
+          "text": "uly 2 R",
+          "bbox": {
+            "x": 0.007407407407407408,
+            "y": 0.6791666666666667,
+            "w": 0.32839506172839505,
+            "h": 0.0875
+          },
+          "region": "bottom_left"
+        },
+        {
+          "text": "Messa",
+          "bbox": {
+            "x": 0.7901234567901234,
+            "y": 0.7875,
+            "w": 0.20987654320987653,
+            "h": 0.03333333333333333
+          },
+          "region": "bottom_right"
+        },
+        {
+          "text": "©",
+          "bbox": {
+            "x": 0.44938271604938274,
+            "y": 0.9055555555555556,
+            "w": 0.10123456790123457,
+            "h": 0.058333333333333334
+          },
+          "region": "bottom_center"
+        }
+      ],
+      "audio_rms_mean": 0.10680265104082644,
+      "audio_peak_rms": 0.26057439593636605,
+      "audio_silence_pct": 0,
+      "audio_speech_pct": 0.956989247311828,
+      "audio_music_pct": 0.043010752688172046,
+      "sfx_count": 3,
+      "sfx_at_start": false,
+      "sfx_classifications": [
+        {
+          "ms": 5248,
+          "type": "other",
+          "confidence": 0.3,
+          "features": {
+            "peak_rms": 0.30273136496543884,
+            "baseline_rms": 0.1160970326513052,
+            "spike_ratio": 2.6075719426411665,
+            "delta_centroid_hz": 1092.5820588172921,
+            "delta_flatness": 0.40589206530300886,
+            "delta_voice_band_ratio": 0.21959510913988295,
+            "delta_high_band_ratio": 0.05332501635889997
+          }
+        },
+        {
+          "ms": 6496,
+          "type": "vocal",
+          "confidence": 0.5385360807372591,
+          "features": {
+            "peak_rms": 0.12801755964756012,
+            "baseline_rms": 0.06602141380310059,
+            "spike_ratio": 1.9390308730642176,
+            "delta_centroid_hz": 2080.0874776498526,
+            "delta_flatness": 0.35258580802779155,
+            "delta_voice_band_ratio": 0.5385360807372591,
+            "delta_high_band_ratio": 0.19487836157398697
+          }
+        },
+        {
+          "ms": 7712,
+          "type": "vocal",
+          "confidence": 0.5065714060075048,
+          "features": {
+            "peak_rms": 0.3186394274234772,
+            "baseline_rms": 0.06795446842908859,
+            "spike_ratio": 4.689013611459293,
+            "delta_centroid_hz": 819.7644912571054,
+            "delta_flatness": 0.17985472534148816,
+            "delta_voice_band_ratio": 0.5065714060075048,
+            "delta_high_band_ratio": 0.03945903871517227
+          }
+        }
+      ],
+      "overlays": [],
+      "visual_caption": null,
+      "spoken_window": ""
+    },
+    {
+      "start_ms": 7800,
+      "end_ms": 8600,
+      "has_face": true,
+      "ocr_text": "| skipped prom to)\n\napply to YC at 17\n\nAS\n\n2g\n\nLl\n\n3]\n\n5\n\n|\n\n14\n\nfousers |\n\nJ\n\n(7) jackisegal | Follote\n\nN\n\n20\n\nLJ\n\n| applied to YC with no users,\n\n§+o Liked by nitin.m8 and 1,064 others",
+      "speaker_verdict": "speaker",
+      "speaker_confidence": 1,
+      "sync_conf": 3.507437497387164,
+      "clip_type": "talking_head",
+      "face_bbox": {
+        "x": 0.2735091315375434,
+        "y": 0.15445454120635987,
+        "w": 0.5161764780680338,
+        "h": 0.2903483510017395
+      },
+      "face_region": "top_center",
+      "text_moments": [
+        {
+          "text": "| skipped prom to)",
+          "bbox": {
+            "x": 0.19753086419753085,
+            "y": 0.06666666666666667,
+            "w": 0.5876543209876544,
+            "h": 0.034722222222222224
+          },
+          "region": "top_center"
+        },
+        {
+          "text": "apply to YC at 17",
+          "bbox": {
+            "x": 0.21975308641975308,
+            "y": 0.10694444444444444,
+            "w": 0.5604938271604938,
+            "h": 0.034722222222222224
+          },
+          "region": "top_center"
+        },
+        {
+          "text": "Ll",
+          "bbox": {
+            "x": 0.4617283950617284,
+            "y": 0.5847222222222223,
+            "w": 0.08395061728395062,
+            "h": 0.0375
+          },
+          "region": "middle_center"
+        },
+        {
+          "text": "|",
+          "bbox": {
+            "x": 0.6641975308641975,
+            "y": 0.7222222222222222,
+            "w": 0.0049382716049382715,
+            "h": 0.018055555555555554
+          },
+          "region": "bottom_right"
+        },
+        {
+          "text": "14",
+          "bbox": {
+            "x": 0.9407407407407408,
+            "y": 0.7263888888888889,
+            "w": 0.0345679012345679,
+            "h": 0.013888888888888888
+          },
+          "region": "bottom_right"
+        },
+        {
+          "text": "|",
+          "bbox": {
+            "x": 0.6666666666666666,
+            "y": 0.7416666666666667,
+            "w": 0.012345679012345678,
+            "h": 0.058333333333333334
+          },
+          "region": "bottom_right"
+        },
+        {
+          "text": "jackisegal |",
+          "bbox": {
+            "x": 0.145679012345679,
+            "y": 0.8458333333333333,
+            "w": 0.2271604938271605,
+            "h": 0.05
+          },
+          "region": "bottom_left"
+        },
+        {
+          "text": "| applied with no users,",
+          "bbox": {
+            "x": 0.0049382716049382715,
+            "y": 0.9263888888888889,
+            "w": 0.5160493827160494,
+            "h": 0.022222222222222223
+          },
+          "region": "bottom_left"
+        },
+        {
+          "text": "Liked by and 1,064 others",
+          "bbox": {
+            "x": 0.07160493827160494,
+            "y": 0.9777777777777777,
+            "w": 0.5654320987654321,
+            "h": 0.018055555555555554
+          },
+          "region": "bottom_center"
+        }
+      ],
+      "audio_rms_mean": 0.13057009537259257,
+      "audio_peak_rms": 0.2769024308453799,
+      "audio_silence_pct": 0,
+      "audio_speech_pct": 1,
+      "audio_music_pct": 0,
+      "sfx_count": 2,
+      "sfx_at_start": true,
+      "sfx_classifications": [
+        {
+          "ms": 7808,
+          "type": "vocal",
+          "confidence": 0.7712857438701798,
+          "features": {
+            "peak_rms": 0.3454205393791199,
+            "baseline_rms": 0.11952988103032113,
+            "spike_ratio": 2.8898258443969933,
+            "delta_centroid_hz": 977.6241898402222,
+            "delta_flatness": 1.000257292382876,
+            "delta_voice_band_ratio": 0.7712857438701798,
+            "delta_high_band_ratio": 0.0101104340793335
+          }
+        },
+        {
+          "ms": 8576,
+          "type": "vocal",
+          "confidence": 0.6843937457255871,
+          "features": {
+            "peak_rms": 0.30796167254447937,
+            "baseline_rms": 0.07645860478281975,
+            "spike_ratio": 4.027822289188284,
+            "delta_centroid_hz": 1141.6528773762832,
+            "delta_flatness": 0.3675926988507463,
+            "delta_voice_band_ratio": 0.6843937457255871,
+            "delta_high_band_ratio": 0.07982787177518277
+          }
+        }
+      ],
+      "overlays": [],
+      "visual_caption": null,
+      "spoken_window": ""
+    },
+    {
+      "start_ms": 8600,
+      "end_ms": 9333,
+      "has_face": true,
+      "ocr_text": "tO stantorad universiwy,\n\nnn\n\n1 / |\n\n(4\n\nen\n\nJil\n\n-\n\nd\n\n—\n\no funding ~&)\\\n\n1\n\nat\n\nollo\n\n3 jacklsegal",
+      "speaker_verdict": "speaker",
+      "speaker_confidence": 1,
+      "sync_conf": 4.83031968520303,
+      "clip_type": "talking_head",
+      "face_bbox": {
+        "x": 0.15429130130343968,
+        "y": 0.07057328224182129,
+        "w": 0.6269520441691081,
+        "h": 0.3526602745056152
+      },
+      "face_region": "top_center",
+      "text_moments": [
+        {
+          "text": "tO",
+          "bbox": {
+            "x": 0.06666666666666667,
+            "y": 0,
+            "w": 0.07654320987654321,
+            "h": 0.030555555555555555
+          },
+          "region": "top_left"
+        },
+        {
+          "text": "(4",
+          "bbox": {
+            "x": 0.3432098765432099,
+            "y": 0.6472222222222223,
+            "w": 0.10617283950617284,
+            "h": 0.02361111111111111
+          },
+          "region": "middle_center"
+        },
+        {
+          "text": "Jil",
+          "bbox": {
+            "x": 0.49382716049382713,
+            "y": 0.6180555555555556,
+            "w": 0.14074074074074075,
+            "h": 0.05138888888888889
+          },
+          "region": "middle_center"
+        },
+        {
+          "text": "o funding",
+          "bbox": {
+            "x": 0.2740740740740741,
+            "y": 0.7305555555555555,
+            "w": 0.5061728395061729,
+            "h": 0.07916666666666666
+          },
+          "region": "bottom_center"
+        },
+        {
+          "text": "ollo",
+          "bbox": {
+            "x": 0.39753086419753086,
+            "y": 0.9333333333333333,
+            "w": 0.07654320987654321,
+            "h": 0.019444444444444445
+          },
+          "region": "bottom_center"
+        }
+      ],
+      "audio_rms_mean": 0.11461486783483708,
+      "audio_peak_rms": 0.22391451167846513,
+      "audio_silence_pct": 0,
+      "audio_speech_pct": 1,
+      "audio_music_pct": 0,
+      "sfx_count": 0,
+      "sfx_at_start": true,
+      "sfx_classifications": [],
+      "overlays": [
+        {
+          "start_ms": 8600,
+          "end_ms": 9333,
+          "bbox": {
+            "x": 0,
+            "y": 0.9111111111111111,
+            "w": 0.4,
+            "h": 0.08888888888888889
+          },
+          "region": "bottom_left",
+          "kind": "image",
+          "motion": "static",
+          "spoken_window": "",
+          "thumb_b64": "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"
+        }
+      ],
+      "visual_caption": null,
+      "spoken_window": ""
+    },
+    {
+      "start_ms": 9333,
+      "end_ms": 11000,
+      "has_face": true,
+      "ocr_text": "&\n\n|” IL\n\n=\n\n1)\n\nNU 7\n\nave noe revenue\n\ngal | Follow",
+      "speaker_verdict": "no_face",
+      "speaker_confidence": 0.6666666666666667,
+      "sync_conf": 0,
+      "clip_type": "talking_head_unknown",
+      "face_bbox": {
+        "x": 0.16744321187337233,
+        "y": -0.15903790593147277,
+        "w": 0.6398185306125217,
+        "h": 0.35989675521850584
+      },
+      "face_region": "top_center",
+      "text_moments": [
+        {
+          "text": "&",
+          "bbox": {
+            "x": 0.05925925925925926,
+            "y": 0.1,
+            "w": 0.07901234567901234,
+            "h": 0.03888888888888889
+          },
+          "region": "top_left"
+        },
+        {
+          "text": "noe revenue",
+          "bbox": {
+            "x": 0.2271604938271605,
+            "y": 0.7083333333333334,
+            "w": 0.6444444444444445,
+            "h": 0.075
+          },
+          "region": "bottom_center"
+        },
+        {
+          "text": "gal | Follow",
+          "bbox": {
+            "x": 0,
+            "y": 0.8736111111111111,
+            "w": 0.43209876543209874,
+            "h": 0.0763888888888889
+          },
+          "region": "bottom_left"
+        }
+      ],
+      "audio_rms_mean": 0.09433860373921352,
+      "audio_peak_rms": 0.25946630876519056,
+      "audio_silence_pct": 0,
+      "audio_speech_pct": 0.8867924528301887,
+      "audio_music_pct": 0.11320754716981132,
+      "sfx_count": 2,
+      "sfx_at_start": false,
+      "sfx_classifications": [
+        {
+          "ms": 9536,
+          "type": "vocal",
+          "confidence": 0.5040441235012989,
+          "features": {
+            "peak_rms": 0.30452829599380493,
+            "baseline_rms": 0.09182087682187558,
+            "spike_ratio": 3.3165474621263207,
+            "delta_centroid_hz": 643.0805530311507,
+            "delta_flatness": 0.15770745647774365,
+            "delta_voice_band_ratio": 0.5040441235012989,
+            "delta_high_band_ratio": 0.02377385766417335
+          }
+        },
+        {
+          "ms": 9792,
+          "type": "vocal",
+          "confidence": 0.4951122658241233,
+          "features": {
+            "peak_rms": 0.1903020441532135,
+            "baseline_rms": 0.12101924926042557,
+            "spike_ratio": 1.572494006665798,
+            "delta_centroid_hz": 1895.7542928236587,
+            "delta_flatness": 0.2820897564347418,
+            "delta_voice_band_ratio": 0.4951122658241233,
+            "delta_high_band_ratio": 0.1720345053376217
+          }
+        }
+      ],
+      "overlays": [],
+      "visual_caption": null,
+      "spoken_window": ""
+    },
+    {
+      "start_ms": 11000,
+      "end_ms": 13536,
+      "has_face": true,
+      "ocr_text": "my, official apology\n\ntefstanford university;\n\n5\n\n / [l\n\n(If\n\nEaf\n\nA\n\ni «> (a)\n\n_—\n\nL",
+      "speaker_verdict": "broll",
+      "speaker_confidence": 0.2726703065226861,
+      "sync_conf": 0.8180109195680583,
+      "clip_type": "broll_talking_head",
+      "face_bbox": {
+        "x": 0.18333157433403863,
+        "y": 0.6249783277511597,
+        "w": 0.7180716196695962,
+        "h": 0.4039147853851318
+      },
+      "face_region": "bottom_center",
+      "text_moments": [
+        {
+          "text": "my. official apology.",
+          "bbox": {
+            "x": 0.15555555555555556,
+            "y": 0.020833333333333332,
+            "w": 0.6691358024691358,
+            "h": 0.06805555555555555
+          },
+          "region": "top_center"
+        },
+        {
+          "text": "|",
+          "bbox": {
+            "x": 0.28641975308641976,
+            "y": 0.7138888888888889,
+            "w": 0.03950617283950617,
+            "h": 0.044444444444444446
+          },
+          "region": "bottom_left"
+        },
+        {
+          "text": "my, official apology",
+          "bbox": {
+            "x": 0.15555555555555556,
+            "y": 0.02638888888888889,
+            "w": 0.6691358024691358,
+            "h": 0.05694444444444444
+          },
+          "region": "top_center"
+        },
+        {
+          "text": "(If",
+          "bbox": {
+            "x": 0.5728395061728395,
+            "y": 0.4527777777777778,
+            "w": 0.07160493827160494,
+            "h": 0.019444444444444445
+          },
+          "region": "middle_center"
+        },
+        {
+          "text": "«>",
+          "bbox": {
+            "x": 0.3506172839506173,
+            "y": 0.6986111111111111,
+            "w": 0.08888888888888889,
+            "h": 0.044444444444444446
+          },
+          "region": "bottom_center"
+        },
+        {
+          "text": "my. official apology",
+          "bbox": {
+            "x": 0.15555555555555556,
+            "y": 0.020833333333333332,
+            "w": 0.6691358024691358,
+            "h": 0.06805555555555555
+          },
+          "region": "top_center"
+        },
+        {
+          "text": "my. official apology",
+          "bbox": {
+            "x": 0.15555555555555556,
+            "y": 0.020833333333333332,
+            "w": 0.6691358024691358,
+            "h": 0.06805555555555555
+          },
+          "region": "top_center"
+        },
+        {
+          "text": "~",
+          "bbox": {
+            "x": 0.2617283950617284,
+            "y": 0.18472222222222223,
+            "w": 0.022222222222222223,
+            "h": 0.008333333333333333
+          },
+          "region": "top_left"
+        },
+        {
+          "text": ">»",
+          "bbox": {
+            "x": 0.5901234567901235,
+            "y": 0.7180555555555556,
+            "w": 0.10617283950617284,
+            "h": 0.04861111111111111
+          },
+          "region": "bottom_center"
+        },
+        {
+          "text": "my. official apology",
+          "bbox": {
+            "x": 0.15555555555555556,
+            "y": 0.020833333333333332,
+            "w": 0.6691358024691358,
+            "h": 0.06805555555555555
+          },
+          "region": "top_center"
+        },
+        {
+          "text": "tofstanford university,",
+          "bbox": {
+            "x": 0.1111111111111111,
+            "y": 0.08194444444444444,
+            "w": 0.762962962962963,
+            "h": 0.05694444444444444
+          },
+          "region": "top_center"
+        },
+        {
+          "text": "| <>",
+          "bbox": {
+            "x": 0.2123456790123457,
+            "y": 0.6986111111111111,
+            "w": 0.21481481481481482,
+            "h": 0.08472222222222223
+          },
+          "region": "bottom_left"
+        }
+      ],
+      "audio_rms_mean": 0.1207178060242956,
+      "audio_peak_rms": 0.42001371275647453,
+      "audio_silence_pct": 0,
+      "audio_speech_pct": 0.925,
+      "audio_music_pct": 0.075,
+      "sfx_count": 2,
+      "sfx_at_start": true,
+      "sfx_classifications": [
+        {
+          "ms": 11200,
+          "type": "impulse_tonal",
+          "confidence": 0.45,
+          "features": {
+            "peak_rms": 0.5264468789100647,
+            "baseline_rms": 0.05830437004566193,
+            "spike_ratio": 9.029286801276989,
+            "delta_centroid_hz": 864.2040919493681,
+            "delta_flatness": 0.1669099401548273,
+            "delta_voice_band_ratio": 0.14604938885973534,
+            "delta_high_band_ratio": 0.06559310541239025
+          }
+        },
+        {
+          "ms": 11616,
+          "type": "impulse_tonal",
+          "confidence": 0.45,
+          "features": {
+            "peak_rms": 0.31925684213638306,
+            "baseline_rms": 0.04807243138551712,
+            "spike_ratio": 6.6411627815556304,
+            "delta_centroid_hz": 1163.0431848662327,
+            "delta_flatness": 0.15854208887820506,
+            "delta_voice_band_ratio": 0.20640629412914935,
+            "delta_high_band_ratio": 0.10623984750633261
+          }
+        }
+      ],
+      "overlays": [],
+      "visual_caption": null,
+      "spoken_window": ""
+    }
+  ],
+  "hook_text": "my official ley\n\no stanford university,\n\n~\n\n» -",
+  "hook_duration_ms": 667,
+  "median_shot_ms": 800,
+  "cuts_per_sec": 0.7387706855791962,
+  "talking_pct": 0.7808067375886525,
+  "broll_pct": 0.2191932624113475,
+  "text_overlay_pct": 1,
+  "real_speaker_pct": 0.2727272727272727,
+  "broll_talking_head_pct": 0.2727272727272727,
+  "clip_type_distribution": {
+    "talking_head": 0.1698433806146572,
+    "broll_talking_head": 0.36953309692671393,
+    "talking_head_unknown": 0.24143026004728133,
+    "broll_visual": 0.2191932624113475
+  },
+  "face_region_dominant": "mixed",
+  "face_region_distribution": {
+    "top_left": 0,
+    "top_center": 0.3,
+    "top_right": 0,
+    "middle_left": 0,
+    "middle_center": 0.5,
+    "middle_right": 0,
+    "bottom_left": 0,
+    "bottom_center": 0.2,
+    "bottom_right": 0
+  },
+  "face_size_median": 0.3790987759828568,
+  "text_region_dominant": "mixed",
+  "text_region_distribution": {
+    "top_left": 0.10569105691056911,
+    "top_center": 0.16260162601626016,
+    "top_right": 0.04878048780487805,
+    "middle_left": 0.11382113821138211,
+    "middle_center": 0.23577235772357724,
+    "middle_right": 0.08943089430894309,
+    "bottom_left": 0.07317073170731707,
+    "bottom_center": 0.08943089430894309,
+    "bottom_right": 0.08130081300813008
+  },
+  "audio_energy_mean": 0.11782131626670064,
+  "audio_energy_std": 0.03037144560690627,
+  "audio_silence_pct": 0.014034486859641286,
+  "voiceover_pct": 0.9252007806865159,
+  "music_pct": 0.06076473245384276,
+  "hook_speech": null,
+  "sfx_per_min": 57.6241134751773,
+  "cuts_with_sfx_pct": 0.6363636363636364,
+  "sfx_at_cuts_pct": 0.6153846153846154,
+  "media_overlay_pct": 0.09090909090909091,
+  "overlays_per_min": 4.432624113475177,
+  "overlay_kind_distribution": {
+    "image": 1,
+    "sticker": 0,
+    "gif": 0,
+    "pip_video": 0,
+    "emoji_graphic": 0
+  },
+  "overlay_motion_distribution": {
+    "static": 1,
+    "animated": 0
+  },
+  "overlay_region_distribution": {
+    "top_left": 0,
+    "top_center": 0,
+    "top_right": 0,
+    "middle_left": 0,
+    "middle_center": 0,
+    "middle_right": 0,
+    "bottom_left": 1,
+    "bottom_center": 0,
+    "bottom_right": 0
+  }
+}

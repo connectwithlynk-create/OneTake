@@ -94,6 +94,13 @@ export default function ProfileScreen() {
           full
           onPress={() => router.push('/debug-analyze')}
         />
+        <Button
+          label="Crash log"
+          tone="ghost"
+          icon="warning-outline"
+          full
+          onPress={() => router.push('/debug-crash')}
+        />
       </View>
 
       <View style={{ paddingHorizontal: 18, paddingVertical: 30 }}>

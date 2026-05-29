@@ -1,0 +1,35 @@
+{
+  "picks": [
+    {
+      "timestamp_ms": 8675,
+      "reason": "This frame likely shows the importance of technology in grocery stores.",
+      "file": "797f358dab9d519a-0.png"
+    },
+    {
+      "timestamp_ms": 21876,
+      "reason": "This frame likely shows a grocery store being prepared for opening.",
+      "file": "797f358dab9d519a-1.png"
+    },
+    {
+      "timestamp_ms": 95074,
+      "reason": "This frame likely shows the Vaurie system being demonstrated.",
+      "file": "797f358dab9d519a-2.png"
+    },
+    {
+      "timestamp_ms": 105793,
+      "reason": "This frame likely shows the user-friendly interface of the Vaurie system.",
+      "file": "797f358dab9d519a-3.png"
+    },
+    {
+      "timestamp_ms": 142809,
+      "reason": "This frame likely shows the electronic price tag labels in action.",
+      "file": "797f358dab9d519a-4.png"
+    },
+    {
+      "timestamp_ms": 160619,
+      "reason": "This frame likely shows the positive impact of Vaurie on work-life balance.",
+      "file": "797f358dab9d519a-5.png"
+    }
+  ],
+  "source_mp4_path": "/Users/rahulpeesa/Documents/GitHub/OneTake/desktop/.library/source-videos/15641a18538f2a9c.mp4"
+}

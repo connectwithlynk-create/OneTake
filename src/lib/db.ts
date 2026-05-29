@@ -256,6 +256,11 @@ async function migrate(db: SQLite.SQLiteDatabase) {
   // the project's voiceover/voice-enhance global config.
   await addColumn(db, 'projects', 'transitions_json', 'TEXT');
   await addColumn(db, 'projects', 'beats_json', 'TEXT');
+  // projects: edit timeline (decoupled from the raw clips table). Holds
+  // an ordered list of timeline rows; each row references a source clip
+  // by id and carries the editor-mutable fields (trim, volume, mirror,
+  // exclude, audio_detached, effects). See src/lib/timeline.ts.
+  await addColumn(db, 'projects', 'timeline_json', 'TEXT');
   // overlays: media-overlay columns. Old DBs created before the editor
   // supported image/video overlays only have the text-overlay columns.
   await addColumn(db, 'overlays', 'file_uri', 'TEXT');

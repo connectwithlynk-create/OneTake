@@ -11,8 +11,13 @@ import { execFile } from 'child_process';
 
 const FFMPEG = process.env.FFMPEG_PATH || 'ffmpeg';
 
-// scdet score (0-100) above which a frame is a cut.
-const SCENE_THRESHOLD = 7;
+// scdet score (0-100) above which a frame is a cut. The original
+// value of 7 was tuned for the SyncNet pipeline where missing a few
+// cuts didn't hurt; for inspiration analysis it under-counts cuts in
+// fast-paced reels where adjacent shots are visually similar (same
+// speaker, same backdrop, only the framing/angle changes). Lowering
+// to 4 catches those without dramatically increasing false positives.
+const SCENE_THRESHOLD = 4;
 // Merge cuts closer than this - scdet can flag one transition twice.
 const MIN_CUT_GAP_MS = 200;
 
