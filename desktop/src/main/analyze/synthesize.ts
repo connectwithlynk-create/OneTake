@@ -22,11 +22,17 @@
 // company website") and invents subject-specific content per shot.
 import OpenAI from 'openai';
 import type { ReelAnalysisResult } from './analyze';
+import type { EditingBrief } from './brief';
 import type { ContentVocabulary } from './content-vocab';
 import { summarizeShot } from './content-vocab';
-import type { CollectionFingerprint } from './fingerprint';
-import { spokenWindow, type TranscriptWord } from './transcribe';
-import type { ClipType, FrameRegion, ReelShot } from './types';
+import type {
+  CollectionFingerprint,
+  SfxCollectionPattern,
+} from './fingerprint';
+import type { SfxType } from './sfx-classify';
+import { deriveSubtitleSpec, type SubtitleSpec } from './subtitle-spec';
+import type { TranscriptWord } from './transcribe';
+import type { CaptionPosition, ClipType, FrameRegion, ReelShot } from './types';
 
 // gpt-4o handles the multi-idea schema reliably; mini was emitting 1
 // idea per shot or stubbed-empty entries due to truncation + weak
@@ -70,6 +76,27 @@ export interface BrollPlacement {
   scale: number;
 }
 
+/** A render-time motion preset applied to a shot's base media (the
+ *  b-roll / screen recording / still). These are the canonical "scene
+ *  animations" the user can pick per shot — equivalent to the camera
+ *  moves a human editor keyframes (Ken Burns push-in, slow pan, punch
+ *  zoom). The free-text `animation_cue` / `asset.camera_move` remain as
+ *  descriptive hints; this enum is the structured, render+preview-able
+ *  form derived from them. */
+export type SceneAnimation =
+  | 'none'
+  | 'zoom_in'
+  | 'zoom_out'
+  | 'pan_left'
+  | 'pan_right'
+  | 'ken_burns'
+  | 'punch_in';
+
+/** Timing curve for a scene animation. Maps 1:1 to a CSS
+ *  animation-timing-function keyword in preview, and to the equivalent
+ *  interpolation at render time. */
+export type AnimationEasing = 'ease-in-out' | 'linear' | 'ease-out' | 'ease-in';
+
 /** Extra elements composited on top of the b-roll besides the burned-in
  *  text caption. Mirrors what's typically called "stickers, GIFs,
  *  reaction overlays, face cams" in the editor. */
@@ -91,6 +118,17 @@ export interface SceneElement {
   position: FrameRegion;
   /** Animation hint (e.g., "scale-in pop", "static", "spinning") or null. */
   animation: string | null;
+  /** Stacking order, 1-based. Layer 1 sits closest to the base video;
+   *  higher layers paint on top. The editor exposes up to 3 layers. */
+  layer: number;
+  /** Auto-curated REAL media for this overlay — a web-sourced image/GIF
+   *  the curator found to match the element (NEVER AI-generated; web only).
+   *  Null/absent when the kind isn't web-sourceable (e.g. face_cam) or
+   *  nothing was found, in which case the preview shows a placeholder.
+   *  Filled in by curator/overlay-curate.ts. */
+  resolved_url?: string | null;
+  /** Page the resolved media was found on (provenance). */
+  resolved_source_page?: string | null;
 }
 
 /** How an editing agent should acquire the b-roll for a shot. The
@@ -132,6 +170,9 @@ export interface ShotAsset {
 export interface SectionVisualSignature {
   /** Dominant clip type in this section (talking_head / broll_visual / etc.). */
   dominant_clip_type: string;
+  /** Ordered shot-type recipe for this section, preserving the script-positioned
+   *  sequence instead of only the dominant bucket. */
+  shot_type_pattern: string;
   /** Where the b-roll typically sits — fullbleed, PiP, split, etc. */
   placement_pattern: string;
   /** Text-overlay treatment (e.g., "large center caption, big font",
@@ -237,9 +278,26 @@ export interface SelectedMedia {
    *  for screenshots/frames. */
   start_ms?: number | null;
   end_ms?: number | null;
+  /** User-selected in/out inside the selected media file itself. This is
+   *  distinct from start_ms/end_ms, which are provenance offsets in the
+   *  original source video for extracted clips. */
+  playback_start_ms?: number | null;
+  playback_end_ms?: number | null;
   /** For single-frame screenshots from a video — the timestamp the
    *  frame was extracted at. */
   timestamp_ms?: number | null;
+  scene_animation?: SceneAnimation;
+  animation_scale?: number;
+  animation_duration_ms?: number;
+  animation_easing?: AnimationEasing;
+  animation_origin?: FrameRegion;
+  animation_x?: number;
+  animation_y?: number;
+  media_start_zoom?: number;
+  zoom_region?: FrameRegion;
+  zoom_x?: number;
+  zoom_y?: number;
+  zoom_scale?: number;
 }
 
 export interface ShotPlan {
@@ -250,6 +308,9 @@ export interface ShotPlan {
   /** Transcript words playing during this shot — may span multiple
    *  sentences or be empty if the shot lands on silence. */
   spoken_during: string;
+  /** Word-level transcript timing for accurate burned-in subtitles.
+   *  Timestamps are reel-global ms, matching start_ms/end_ms. */
+  spoken_words?: TranscriptWord[];
   /** Which structural section this shot belongs to (matches one of
    *  the SuggestedEdit.structure_sections role labels). */
   structure_role: string;
@@ -266,10 +327,11 @@ export interface ShotPlan {
   asset: ShotAsset;
   /** Canvas composition. Mirrors options[0].placement. */
   placement: BrollPlacement;
-  /** Additional scene elements composited on top of the b-roll (face
-   *  cams, stickers, logos, reaction GIFs, lower-thirds). Empty when
-   *  the inspiration doesn't use any. The burned-in text caption is
-   *  tracked separately in text_overlay. */
+  /** Media overlay layers are disabled. Kept as a compatibility field for
+   *  older plan/caching code; new plans always set false. */
+  has_overlay: boolean;
+  /** Media overlay layers are disabled. Kept as a compatibility field;
+   *  new plans always set []. */
   additional_elements: SceneElement[];
   /** Short label for the content-source pattern this shot draws from.
    *  Mirrors options[0].source_type. */
@@ -283,7 +345,64 @@ export interface ShotPlan {
   } | null;
   text_overlay: string;
   text_position: FrameRegion;
+  /** Free-text motion hint kept for provenance / curator context. */
   animation_cue: string | null;
+  /** Structured motion preset applied to the base media at render time
+   *  and in the live preview. Derived from the inspiration's motion
+   *  pattern (animation_cue / camera_move) during synthesis; the user
+   *  can override it with the animation picker. */
+  scene_animation: SceneAnimation;
+  /** Per-shot intensity multiplier for scene_animation, 1 = the preset's
+   *  default magnitude. The user tunes it with the intensity slider;
+   *  drives the --anim-intensity CSS var in preview and the keyframe
+   *  amount at render time. Optional — defaults to 1 when absent. */
+  animation_scale?: number;
+  /** How long the scene animation plays, in ms. The motion runs ONCE
+   *  over this span then holds on its end state — it does not loop. When
+   *  absent it defaults to the shot's full duration (duration_ms), so the
+   *  move lasts exactly as long as the shot. The user can shorten it
+   *  (motion completes early and holds) via the duration slider. */
+  animation_duration_ms?: number;
+  /** Timing curve for scene_animation. Optional — defaults to
+   *  'ease-in-out' when absent. */
+  animation_easing?: AnimationEasing;
+  /** Focal point the motion pivots around (transform-origin) — e.g. a
+   *  zoom that pushes toward the subject's face. A 3x3 grid cell.
+   *  Optional — defaults to 'middle_center'. */
+  animation_origin?: FrameRegion;
+  animation_x?: number;
+  animation_y?: number;
+  /** Per-shot media zoom focal point. Applied to selected image/video,
+   *  independent from motion animation. Optional — defaults to center. */
+  zoom_region?: FrameRegion;
+  zoom_x?: number;
+  zoom_y?: number;
+  /** Per-shot media zoom multiplier, 1 = no zoom. Optional. */
+  zoom_scale?: number;
+  media_start_zoom?: number;
+  original_video_position?: FrameRegion;
+  split_media_fit?: 'fill' | 'contain';
+  overlay_stack_mode?: 'accumulate' | 'replace';
+  /** Scene animation applied to the ORIGINAL/creator video in a split
+   *  layout (the half that isn't the b-roll). Mirrors scene_animation
+   *  and friends but targets the original-video block. Only meaningful
+   *  when placement.fit is a split layout; ignored otherwise. */
+  original_scene_animation?: SceneAnimation;
+  original_animation_scale?: number;
+  original_animation_duration_ms?: number;
+  original_animation_easing?: AnimationEasing;
+  original_animation_origin?: FrameRegion;
+  original_animation_x?: number;
+  original_animation_y?: number;
+  original_media_start_zoom?: number;
+  /** For contain / "Actual size" media: blurred autofill backdrop or
+   *  underlying creator video background. */
+  contain_background_mode?: 'autofill' | 'show_background';
+  /** Per-shot subtitle position override. When set, this shot's burned-in
+   *  caption uses this position instead of the plan-wide subtitle_spec.position
+   *  — so captions can sit in different places on different shots. Optional;
+   *  falls back to the global spec when absent. */
+  subtitle_position?: CaptionPosition;
   sfx_cue: string | null;
   clip_type: ClipType;
   rationale: string;
@@ -316,6 +435,114 @@ export interface SuggestedEdit {
   style_summary: string;
   content_sources: string[];
   target_metrics: CollectionFingerprint | null;
+  /** Concrete burned-in subtitle style to apply to the whole edit,
+   *  resolved from the content reels' detected caption style. Null when
+   *  the inspiration burns in no spoken-word captions. See
+   *  subtitle-spec.ts / deriveSubtitleSpec. */
+  subtitle_spec: SubtitleSpec | null;
+  /** Absolute path to the uploaded target video, when target kind is
+   *  local_video. Renderer uses this as the always-loaded base preview. */
+  target_video_path?: string | null;
+  /** The collection's learned SFX-in-context pattern, copied from the
+   *  fingerprint so export can place SFX by cadence/hook/emphasis over the
+   *  narration's words (not just one hit per cut). Null when unavailable. */
+  sfx_plan?: SfxCollectionPattern | null;
+  /** User override of the SFX timeline (via the command bar). When set, it
+   *  takes precedence over the inspiration cadence/type. */
+  sfx_override?: SfxOverride | null;
+  /** Materialized, hand-editable SFX timeline (set once the user drags a
+   *  marker on the timeline). When present it is the source of truth for
+   *  SFX placement — preview + export use it verbatim, skipping auto
+   *  generation. ms = reel-time onset. */
+  sfx_events?:
+    | { ms: number; type: SfxType; sound?: string; volume?: number }[]
+    | null;
+  /** Plan-wide SFX track gain, 0-1 (default 0.5). Per-event `volume` on an
+   *  sfx_events entry overrides this for that event. Set by the command bar. */
+  sfx_volume?: number;
+  /** Lead time (ms) to fire each SFX BEFORE its word's spoken onset.
+   *  Positive = earlier; negative = later. Default 0 (on the word). */
+  sfx_lead_ms?: number;
+  /** Stable id for this reel, assigned at first synthesis and carried
+   *  through regenerations. Keys the persistent prompt log so a future
+   *  "remix" can recover how the user shaped this exact reel. */
+  reel_id?: string;
+  /** Background/b-roll audio gain, 0-1 (default 0.25). */
+  music_volume?: number;
+  /** Original target video's own audio gain, 0-1 (default 1). This is the
+   *  voiceover/talking-head track the reel is built on. */
+  narration_volume?: number;
+}
+
+/** One recorded user prompt, for the per-reel prompt history that will
+ *  drive "remix". Sources: synthesis, plan regeneration, library curation,
+ *  per-shot regenerate/continue, add-clip, and the command-bar agent. */
+export interface PromptLogEntry {
+  /** Unix ms when the prompt was issued. */
+  at: number;
+  /** Reel this prompt belongs to (plan.reel_id). */
+  reel_id: string;
+  /** Where it came from, e.g. 'synthesis' | 'regenerate_plan' | 'curate' |
+   *  'regenerate_shot' | 'continue_shot' | 'add_clip' | 'command_bar'. */
+  source: string;
+  /** The user's text. */
+  text: string;
+  /** Target shot (array index) when the prompt was shot-scoped. */
+  shot_idx?: number | null;
+}
+
+/** User SFX override produced by the command-bar agent. */
+export interface SfxOverride {
+  /** Placement density relative to spoken words. */
+  cadence?: 'every_word' | 'sparse' | 'normal' | 'off';
+  /** Force a specific SFX acoustic type. */
+  type?: SfxType;
+  /** Force a specific named library sound (free-text query), e.g. "iphone
+   *  message notification" — overrides type. */
+  sound?: string;
+}
+
+/** A single structured edit the command-bar agent can apply to a plan.
+ *  The LLM only chooses ops; the renderer applies them deterministically. */
+export type PlanEditOp =
+  | { op: 'set_motion'; target: 'all' | number[]; animation: SceneAnimation }
+  | {
+      op: 'set_sfx';
+      cadence?: 'every_word' | 'sparse' | 'normal' | 'off';
+      type?: SfxType;
+    }
+  | {
+      op: 'set_audio_level';
+      track: 'sfx' | 'music';
+      value?: number;
+      delta?: number;
+    }
+  | { op: 'set_sfx_timing'; lead_ms: number }
+  | { op: 'find_clip'; query: string }
+  | { op: 'note'; message: string };
+
+export interface PlanEditResult {
+  ops: PlanEditOp[];
+  /** One-line natural-language confirmation of what was done. */
+  reply: string;
+  /** Raw model output, included only when no ops parsed (for debugging). */
+  raw?: string;
+}
+
+/** Result of the tool-calling command-bar agent: the (possibly mutated) plan
+ *  to adopt, a natural-language reply, queued actions the renderer must run
+ *  (e.g. curation), and a tool-call transcript for transparency. */
+export interface PlanAgentResult {
+  plan: SuggestedEdit;
+  reply: string;
+  actions: { kind: 'find_clip'; query: string; shot_idx: number | null }[];
+  toolLog: string[];
+  /** Set when the agent needs the user to disambiguate; the command bar
+   *  renders the options and re-runs with the chosen one. */
+  clarify?: { question: string; options: string[] } | null;
+  /** Library sounds the agent surfaced this run (via search_sfx_library), so
+   *  the command bar can let the user preview every one it mentioned. */
+  sounds?: { name: string; label: string | null }[];
 }
 
 // ---------- shot-timeline planning ----------
@@ -326,6 +553,7 @@ interface ShotSlot {
   end_ms: number;
   duration_ms: number;
   spoken_during: string;
+  spoken_words: TranscriptWord[];
 }
 
 export interface PacingTemplate {
@@ -410,11 +638,44 @@ export function selectPacingTemplate(
   };
 }
 
-/** Build the target reel's shot timeline from a pacing template by
- *  scaling each shot duration so the sequence sums to target. Shot
- *  COUNT is preserved exactly from the template (the editor's
- *  decision of how many cuts to make is the meaningful primitive,
- *  not cuts/sec). */
+function hasPhraseBoundary(text: string): boolean {
+  return /[.!?;:,]$/.test(text.trim());
+}
+
+function chooseTranscriptBoundary(
+  words: TranscriptWord[],
+  startWord: number,
+  shotNumber: number,
+  shotCount: number,
+): number {
+  const remainingShots = shotCount - shotNumber - 1;
+  const ideal = Math.round(((shotNumber + 1) * words.length) / shotCount);
+  const minEnd = startWord + 1;
+  const maxEnd = words.length - remainingShots;
+  const lo = Math.max(minEnd, ideal - 4);
+  const hi = Math.min(maxEnd, ideal + 4);
+  let best = Math.max(minEnd, Math.min(maxEnd, ideal));
+  let bestScore = Infinity;
+
+  for (let end = lo; end <= hi; end++) {
+    const word = words[end - 1];
+    const distance = Math.abs(end - ideal);
+    const boundaryBonus = hasPhraseBoundary(word.text) ? -6 : 0;
+    const duration = word.end_ms - words[startWord].start_ms;
+    const shortPenalty = duration < 500 ? 5 : 0;
+    const score = distance * 2 + boundaryBonus + shortPenalty;
+    if (score < bestScore) {
+      bestScore = score;
+      best = end;
+    }
+  }
+
+  return best;
+}
+
+/** Build the target reel's shot timeline from transcript word boundaries.
+ *  Inspiration still supplies the target shot count, but each cut lands on
+ *  a target spoken beat instead of a scaled copy of source shot durations. */
 export function planShotTimeline(
   targetDurationMs: number,
   template: PacingTemplate,
@@ -423,27 +684,45 @@ export function planShotTimeline(
   if (
     targetDurationMs <= 0 ||
     template.shot_durations_ms.length === 0 ||
-    template.source_duration_ms <= 0
+    words.length === 0
   ) {
     return [];
   }
-  const scale = targetDurationMs / template.source_duration_ms;
+  const shotCount = Math.max(
+    1,
+    Math.min(template.shot_durations_ms.length, words.length),
+  );
   const slots: ShotSlot[] = [];
+  let startWord = 0;
   let cursor = 0;
-  for (let i = 0; i < template.shot_durations_ms.length; i++) {
-    const isLast = i === template.shot_durations_ms.length - 1;
-    const dur = isLast
-      ? targetDurationMs - cursor
-      : Math.max(200, Math.round(template.shot_durations_ms[i] * scale));
-    const end = Math.min(targetDurationMs, cursor + dur);
+  for (let i = 0; i < shotCount; i++) {
+    const isLast = i === shotCount - 1;
+    const endWord = isLast
+      ? words.length
+      : chooseTranscriptBoundary(words, startWord, i, shotCount);
+    const end = isLast
+      ? targetDurationMs
+      : Math.max(
+          cursor + 200,
+          Math.min(targetDurationMs, words[endWord - 1].end_ms),
+        );
+    const spokenWords = words.filter(
+      (w) => w.end_ms > cursor && w.start_ms < end,
+    );
     slots.push({
       shot_idx: slots.length,
       start_ms: cursor,
       end_ms: end,
       duration_ms: end - cursor,
-      spoken_during: spokenWindow(words, cursor, end),
+      spoken_during: spokenWords
+        .map((w) => w.text)
+        .join(' ')
+        .replace(/\s+/g, ' ')
+        .trim(),
+      spoken_words: spokenWords,
     });
     cursor = end;
+    startWord = endWord;
     if (cursor >= targetDurationMs) break;
   }
   return slots;
@@ -475,9 +754,38 @@ function summarizeStyleShot(shot: ReelShot, idx: number): string {
       .join(', ');
     parts.push(`       overlays: ${shot.overlays.length} — ${ovs}`);
   }
+  const layoutCues: string[] = [];
+  if (shot.clip_type === 'talking_head' || shot.clip_type === 'talking_head_unknown') {
+    layoutCues.push(
+      `talking_head base${shot.face_region ? `, face_${shot.face_region}` : ''}`,
+    );
+  } else if (shot.clip_type === 'broll_talking_head') {
+    layoutCues.push(
+      `broll talking-head clip${shot.face_region ? `, face_${shot.face_region}` : ''}`,
+    );
+  } else {
+    layoutCues.push('visual b-roll base');
+  }
+  if (shot.text_moments.length > 0) {
+    layoutCues.push(`text_${shot.text_moments[0].region}`);
+  }
+  if (shot.overlays.length > 0) {
+    layoutCues.push(
+      `media_overlay_${shot.overlays.map((o) => o.region).join('+')}`,
+    );
+  }
+  parts.push(`       layout_cues: ${layoutCues.join(' | ')}`);
   if (shot.sfx_at_start) parts.push(`       sfx_at_cut: yes`);
   if (shot.has_face && shot.face_region) {
     parts.push(`       face: ${shot.face_region}`);
+  }
+  // Measured camera motion (optical flow). Only surface confident,
+  // non-static estimates so the model copies real moves, not flow noise.
+  const m = shot.detected_motion;
+  if (m && m.kind !== 'none' && m.confidence >= 0.4) {
+    parts.push(
+      `       camera_motion: ${m.kind} (measured, conf ${m.confidence.toFixed(2)})`,
+    );
   }
   return parts.join('\n');
 }
@@ -554,6 +862,50 @@ function summarizeMetrics(fp: CollectionFingerprint): string {
     );
   }
   lines.push('');
+  const cap = fp.caption_style;
+  if (cap && cap.n_with_captions > 0) {
+    lines.push('## Spoken-word captions (burned-in subtitle style)');
+    if (cap.matched_preset && cap.matched_preset !== 'mixed') {
+      lines.push(
+        `  preset = ${cap.preset_label || cap.matched_preset} (${(cap.preset_confidence_avg * 100).toFixed(0)}% fit)  → reproduce THIS premade subtitle style`,
+      );
+    }
+    lines.push(
+      `  captions_pct = ${pct(cap.captions_pct)}  → fraction of content reels that burn in spoken-word subtitles (mirror this; add word-level captions to roughly this share of the reel)`,
+    );
+    lines.push(`  position  = ${cap.position}`);
+    lines.push(
+      `  chunking  = ${cap.chunking}  → word_by_word = one/two words on screen at a time (karaoke), sentence = full lines`,
+    );
+    if (cap.words_per_chunk_avg > 0) {
+      lines.push(
+        `  words_per_group ≈ ${cap.words_per_chunk_avg.toFixed(1)}  → typical word count shown at once before the caption swaps`,
+      );
+    }
+    lines.push(
+      `  font_size = ${cap.font_size}  → caption text height vs frame (large = Hormozi-style big bold)`,
+    );
+    lines.push(
+      `  treatment = ${cap.text_treatment}${cap.treatment_color_examples.length ? ` (${cap.treatment_color_examples.join(', ')})` : ''}  → bordered = outline/stroke around glyphs, backgrounded = solid color box behind text, clear = neither`,
+    );
+    lines.push(
+      `  emphasis  = ${cap.emphasis}  → active_word_highlight = recolor/scale the word being spoken`,
+    );
+    lines.push(`  casing    = ${cap.casing}`);
+    lines.push(
+      `  animation = ${cap.animation}  → how captions enter/move (pop, karaoke_fill, fade, typewriter, static)`,
+    );
+    if (cap.has_emoji_pct > 0.2) {
+      lines.push(`  emoji in captions = ${pct(cap.has_emoji_pct)}`);
+    }
+    if (cap.font_descriptors.length > 0) {
+      lines.push(`  font look: ${cap.font_descriptors.join('; ')}`);
+    }
+    if (cap.style_labels.length > 0) {
+      lines.push(`  styles seen: ${cap.style_labels.join('; ')}`);
+    }
+    lines.push('');
+  }
   lines.push('## SFX rhythm');
   lines.push(
     `  cuts_with_sfx_pct = ${pct(fp.cuts_with_sfx_pct)}  → fraction of shot cuts that should fire an SFX hit`,
@@ -567,30 +919,50 @@ function summarizeMetrics(fp: CollectionFingerprint): string {
       lines.push(`    ${k.padEnd(14)} ${pct(v)}`);
     }
   }
-  lines.push('');
-  lines.push('## Media overlays (stickers / GIFs / PiP / emoji on top of base video)');
-  lines.push(
-    `  media_overlay_pct = ${pct(fp.media_overlay_pct)}  → fraction of shots that should have a media overlay`,
-  );
-  if (fp.overlay_kind_distribution) {
-    const sortedKinds = Object.entries(fp.overlay_kind_distribution)
-      .filter(([, v]) => v > 0.05)
-      .sort(([, a], [, b]) => b - a);
-    if (sortedKinds.length > 0) {
-      lines.push(`  overlay kinds:`);
-      for (const [k, v] of sortedKinds) {
-        lines.push(`    ${k.padEnd(15)} ${pct(v)}`);
-      }
+  // SFX-in-context pattern: HOW sound effects relate to the spoken script
+  // (cadence, hook escalation, which moments get a hit). This is what makes
+  // sfx_cue placement match the creator instead of just landing on cuts.
+  const sp = fp.sfx_pattern;
+  if (sp) {
+    const s = sp.signals;
+    lines.push('  SFX-in-context pattern (match this when placing sfx_cue):');
+    lines.push(
+      `    cadence: ~${s.sfx_per_word.toFixed(2)} SFX/word, ` +
+        `${pct(s.on_word_pct)} land on a spoken word; ` +
+        `hook escalation ${s.hook_escalation >= 0.2 ? 'yes' : 'low'}`,
+    );
+    for (const r of sp.rules) {
+      lines.push(
+        `    - ${r.trigger} → ${r.sfx_type}` +
+          (r.example ? ` (e.g. "${r.example}")` : ''),
+      );
+    }
+    for (const sum of sp.summaries.slice(0, 3)) {
+      lines.push(`    note: ${sum}`);
     }
   }
-  if (fp.overlay_motion_distribution) {
-    const m = fp.overlay_motion_distribution;
+  if (fp.camera_motion_distribution && fp.camera_motion_pct !== null) {
+    lines.push('');
+    lines.push('## Camera motion (measured by optical flow on the inspiration)');
     lines.push(
-      `  overlay motion: static = ${pct(m.static)} | animated = ${pct(m.animated)}`,
+      `  camera_motion_pct = ${pct(fp.camera_motion_pct)}  → fraction of shots that MOVE the frame (zoom/pan); the rest are static holds. Match this share — set scene_animation to "none" on the rest.`,
     );
-  }
-  if (fp.overlay_region_dominant) {
-    lines.push(`  overlay_region_dominant = ${fp.overlay_region_dominant}`);
+    if (fp.camera_motion_dominant) {
+      lines.push(
+        `  camera_motion_dominant = ${fp.camera_motion_dominant}  → the move to reach for when a shot should move`,
+      );
+    }
+    const sortedMotion = Object.entries(fp.camera_motion_distribution)
+      .filter(([, v]) => v > 0.01)
+      .sort(([, a], [, b]) => b - a);
+    if (sortedMotion.length > 0) {
+      lines.push(
+        `  motion mix: ${sortedMotion.map(([k, v]) => `${k}=${pct(v)}`).join(' | ')}`,
+      );
+    }
+    lines.push(
+      `  → set each shot's scene_animation to match this profile; a shot's own "camera_motion: …(measured)" line, when present, is the ground-truth move for that exact shot.`,
+    );
   }
   return lines.join('\n');
 }
@@ -616,8 +988,8 @@ You receive:
     * CONTENT — borrow the kinds of b-roll this reel sources (subject footage, screen recordings, artifacts, etc.).
     * STRUCTURE — copy the narrative structure / script template of this reel (hook → intro → body → cta order, beat ratios, rhetorical pattern).
   A reel can carry any combination. Use ONLY the reels with the matching tag for each step. When NO reel carries a tag, fall back to all inspiration for that step.
-- STYLE METRICS — aggregated numerical targets your plan must approximate (clip-type mix, text overlay rate, SFX rate, media overlay rate, dominant face/text positions).
-- A SHOT TIMELINE — the shot boundaries for the target reel ARE ALREADY DECIDED (mirroring inspiration cut rhythm). Each shot has a fixed start_ms / end_ms / duration_ms / spoken_during.
+- STYLE METRICS — aggregated numerical targets your plan must approximate (clip-type mix, text overlay rate, SFX rate, dominant face/text positions).
+- A SHOT TIMELINE — the shot boundaries for the target reel ARE ALREADY DECIDED from the target transcript's spoken beats. Each shot has a fixed start_ms / end_ms / duration_ms / spoken_during.
 - Your job is to fill in the CONTENT of each pre-defined shot. Do NOT change shot timing.
 
 CRITICAL: inspiration is INSPIRATION, not a literal clip library. Do NOT copy any inspiration shot's visual caption into your output. Instead:
@@ -643,15 +1015,16 @@ Output:
   - structure_rationale: one sentence explaining why this template was chosen.
   - structure_alternatives: when confidence is 'low' or 'medium', list 1-2 alternative templates (same schema). Null when 'high'.
 
-Each section's visual_signature captures the visual treatment characteristic of that section in the inspiration:
+Each section's visual_signature captures the visual treatment characteristic of that section in the inspiration. This is SCRIPT-POSITIONED: derive it from the inspiration shots that occupy the same relative script beat / role, not from the collection average:
   - dominant_clip_type: which clip_type dominates this section in inspiration ('broll_visual', 'talking_head_unknown', etc.)
-  - placement_pattern: how b-roll typically sits on canvas in this section ('fullbleed 9:16', 'PiP bottom right', 'split-screen top', etc.)
-  - text_overlay_pattern: caption treatment ('large center caption big font', 'small bottom strip', 'none', etc.)
-  - sfx_pattern: SFX treatment ('vocal hit on cut in', 'silent open', 'whoosh whoosh', etc.)
-  - motion_pattern: animation / motion treatment ('zoom-in over the shot', 'type-on text', 'static cut', etc.)
-  - scene_elements: list of additional element types observed in this section's inspiration shots (['subscribe sticker', 'face cam corner'], or [] when none)
+  - shot_type_pattern: ordered shot recipe for this section, naming the clip_type and shot function for each kind of shot (e.g. 'hook: broll_talking_head close-up → broll_visual proof screen → talking_head_unknown reaction'). This must describe WHICH TYPES OF SHOTS appear WHERE in the section, not just percentages.
+  - placement_pattern: how b-roll typically sits on canvas in this section ('fullbleed 9:16', 'face centered full-screen', 'desktop screen recording full-screen/cropped', 'PiP bottom right', 'split-screen top', etc.)
+  - text_overlay_pattern: exact caption treatment and preset direction ('Hormozi Big Center: uppercase 1-2 word pop captions with yellow active-word highlight', 'Minimal Lower Third: sentence-case bottom strip', 'none', etc.)
+  - sfx_pattern: SFX treatment by moment ('vocal hit on hook cut-in, tonal ding on key number, silent setup beats', not just 'whooshes')
+  - motion_pattern: animation / motion treatment using scene_animation language where possible ('mostly static holds; punch_in only on reveal', 'slow zoom_in on proof b-roll', 'type-on caption with static base media', etc.)
+  - scene_elements: list of app overlay presets observed or implied for this section, using only these kinds when applicable: face_cam, sticker, logo, reaction_gif, emoji_burst, lower_third, other. Include placement/function in the phrase (e.g. 'reaction_gif top_right on punchline', 'logo lower_third during CTA'), or [] when none.
 
-The per-shot fill in each section should TEND to follow that section's visual_signature — same clip_type, placement, text/SFX/motion treatment, and only the scene_elements the section signature lists.
+The per-shot fill in each section must follow that section's visual_signature unless the target content makes it impossible — same clip_type, same base layout pattern, same text/SFX/motion treatment, and only the scene_elements the section signature lists. Do NOT merely match global clip-type percentages: preserve WHERE clip types and layouts occur in the script (hook vs setup vs proof vs punchline vs CTA).
 
 Step 1 — Extract content_source_patterns. Look at reels tagged CONTENT (or all reels if none have that tag). These are observations about WHERE / WHAT KIND OF b-roll the creator pulls from.
 
@@ -679,7 +1052,7 @@ CRITICAL — when the inspiration heavily features ONE identifiable person acros
 
 Maximum 6 patterns. Each must cite (in your inspired_by per shot) the inspiration shot that exemplifies it. If the inspiration only demonstrates 2 patterns, list 2 — don't pad with plausible-sounding others.
 
-Step 1.5 — For each shot, define its CANVAS COMPOSITION (the editor needs to know how to lay the b-roll out):
+Step 1.5 — For each shot, define its CANVAS COMPOSITION (the editor needs to know how to lay the b-roll out). Choose it from the shot's structure_role + that section's visual_signature + the inspiration shot-by-shot layout_cues:
   - placement.aspect: the b-roll asset's native aspect ratio.
       * "9:16" for vertically shot footage (most subject-on-stage clips)
       * "16:9" for desktop screen recordings, YouTube clips, landscape footage
@@ -694,9 +1067,9 @@ Step 1.5 — For each shot, define its CANVAS COMPOSITION (the editor needs to k
   - placement.position: where on the canvas the b-roll sits (3x3 grid). "middle_center" for fill; meaningful for pip and split.
   - placement.scale: fraction of canvas area, 0-1. 1.0 = full canvas; ~0.3 = typical PiP; 0.5 = split.
 
-Mirror the inspiration's composition. If every inspiration shot is fullbleed 9:16, your shots are too. If inspiration uses PiP / split-screen, you use it where appropriate.
+Mirror the inspiration's composition by SCRIPT POSITION. If the inspiration hook is a centered talking head, the target hook should be too; if proof beats use screen recordings, product clips, screenshots, split-screen, or PiP, use those layouts on the matching target proof beats; if CTA returns to talking head or logo card, preserve that transition. If every inspiration shot is fullbleed 9:16, your shots are too. If inspiration uses PiP / split-screen, use it on the same kind of spoken beat, not randomly.
 
-Step 1.7 — For each shot, list any ADDITIONAL SCENE ELEMENTS composited on top besides the burned-in text caption (face cams, stickers, logos, reaction GIFs, emoji bursts, lower-thirds). ONLY include elements the inspiration ACTUALLY uses — check each inspiration shot's "overlays:" line for evidence. If inspiration has no overlay stickers, your additional_elements is empty arrays everywhere. Don't invent.
+Step 1.7 — MEDIA OVERLAY LAYERS ARE DISABLED. Do not generate sticker/logo/reaction/lower-third/corner-face-cam layers on top of shots. For every shot, set has_overlay=false and additional_elements=[]. The burned-in text caption (text_overlay) is separate and still allowed.
 
 Step 2 — For EACH SHOT in the SHOT TIMELINE: assign a structure_role and emit 3-5 DISTINCT B-ROLL IDEAS in options[]. Aim for 3 strong ideas per shot; never fewer than 2; up to 5 when you genuinely have that many distinct creative directions.
 
@@ -712,7 +1085,7 @@ Each option gets:
 
   likelihood (0-1 OR null) = how easily the asset can actually be found via web search.
     - For asset.method = "web_capture" (and "stock_search" when allowed): leave likelihood as null. A post-synthesis verification pass will run a real web search per option and fill in the score based on what was actually found. Your guess would be redundant and often wrong.
-    - For asset.method in {"library_search", "manual"}: ALWAYS set likelihood: null. These aren't search-based — they depend on the user's own footage or what they shoot fresh.
+    - For asset.method = "library_search": ALWAYS set likelihood: null. It isn't search-based — it depends on the user's own footage.
 
 Examples for shot's spoken_during "they just got into YC" (subject = Ornadyne):
   {
@@ -729,11 +1102,11 @@ Examples for shot's spoken_during "they just got into YC" (subject = Ornadyne):
     "tier": "ideal", "fit_score": 0.85, "likelihood": null,
     "broll_description": "Stock footage of YC orange logo zooming in on a dark background, intercut with batch announcement screenshot.",
     "asset": { "method": "stock_search", "stock_search": { "query": "Y Combinator logo zoom" }, ... }
-  },
+  },   <- emit a stock_search option like this ONLY when STOCK FOOTAGE POLICY = true; when stock is banned, replace it with another web_capture idea
   {
     "tier": "fallback", "fit_score": 0.55, "likelihood": null,
-    "broll_description": "Static YC orange logo wordmark, no motion, plain white background.",
-    "asset": { "method": "manual", "manual": { "instruction": "Drop in the YC wordmark as a clean graphic asset." }, ... }
+    "broll_description": "Y Combinator homepage hero with the orange logo, slow push-in.",
+    "asset": { "method": "web_capture", "web_capture": { "url": "https://www.ycombinator.com", "focus": "header logo and hero section" }, ... }
   }
 
 The verification pass will run AFTER you finish, replacing the null likelihood with a real number for each searchable option. Do not estimate likelihood yourself.
@@ -753,18 +1126,22 @@ Structure-role assignment rules:
 A shot may have empty spoken_during (silence) — use it for a punchy beat or visual pause.
 
 Step 3 — Match per-shot fields to the STYLE METRICS targets:
-  - clip_type distribution across your shots should match metrics' clip_type_distribution
+  - clip_type distribution across your shots should match metrics' clip_type_distribution AND the script-position pattern learned in Step 0 (which section uses which clip type)
+  - style choices must be specific enough for an editing agent: name shot types, caption preset/treatment, app overlay preset kinds, motion presets, and SFX types/cadence. Avoid vague labels like "fast-paced", "dynamic", "engaging", or "similar style" unless followed by concrete shot/caption/overlay/motion/SFX details.
+  - placement fields should preserve the creator's layout progression by script role (hook layout, body/proof layout, punchline layout, CTA layout), not just a generic full-screen default
   - fraction of shots with non-empty text_overlay should match text_overlay_pct
   - fraction of shots with non-null sfx_cue should match cuts_with_sfx_pct
-  - fraction of shots with a media overlay (call out in broll_description or animation_cue) should match media_overlay_pct
   - text_position defaults to text_region_dominant
-  - sfx_cue strings should match dominant types in sfx_type_distribution
+  - sfx_cue strings should match dominant types in sfx_type_distribution AND follow the SFX-in-context pattern: place sfx_cue on the kinds of MOMENTS its rules describe (e.g. emphasized words, reveals/punchlines, hook build), not just on every cut. Word the cue for the moment (e.g. "ding on the key number", "whoosh into the reveal").
 
 Other rules:
 - broll_description must be specific to the TARGET subject (reference target's name, brand, claims).
 - source_type = the label you used in content_source_patterns.
 - inspired_by points to a specific inspiration shot exemplifying the pattern. Null when none stands out.
-- animation_cue captures motion ("zoom-in over the shot", "slide-up text", "type-on caption", "static cut").
+- animation_cue captures motion in free text ("zoom-in over the shot", "slide-up text", "type-on caption", "static cut").
+- scene_animation is the STRUCTURED motion preset for the base media. GROUND IT in the MEASURED optical-flow signal: the STYLE METRICS "Camera motion" block gives the collection's motion mix + camera_motion_pct, and individual inspiration shots carry a "camera_motion: <kind> (measured)" line when flow detected a real move. Prefer that measured kind for analogous shots, and match camera_motion_pct overall — if only ~30% of inspiration shots move, ~70% of your shots should be scene_animation "none". When no measurement exists, fall back to the inspiration's described motion (visual_signature.motion_pattern + animation_cue + asset.camera_move): gentle push-in / "zoom in 1.1x" → "zoom_in"; pull-back → "zoom_out"; fast/punchy emphasis zoom → "punch_in"; slow horizontal drift → "pan_left"/"pan_right" (match direction); combined scale+pan → "ken_burns"; static cut → "none". Do NOT add motion the inspiration doesn't have — a static-hold creator (low camera_motion_pct) should get mostly "none".
+- has_overlay (boolean, REQUIRED on every shot) — always false.
+- additional_elements — always [].
 - First shot is the hook — match the rhetorical structure of inspiration hooks.
 - Don't reuse the same source_type back-to-back. Vary.
 
@@ -815,23 +1192,15 @@ GOOD web_capture examples:
 
 If you can't think of a web_capture that satisfies this rule for a slot, write a different idea for that slot — don't invent an impossible one.
 
-For "manual" instructions: be SPECIFIC and ACTIONABLE — duration, framing, what to capture, what NOT to include. "Wide shot of a hopeful investor" is BAD (vague + assumes a person the user can't access). "Record a 1.5s static close-up of yourself nodding seriously at camera" is GOOD.
-
 Also set asset.camera_move when the inspiration suggests motion within a still (e.g., "zoom in 1.15× over the shot", "pan left to right", "static").
 
 For each shot's asset object: include "method" + ONLY the parameter sub-block matching that method (web_capture by default; library_search when library_available; stock_search only when opted in), plus "camera_move". OMIT the other unused method sub-blocks entirely — do not emit them as null. This keeps responses compact so all your options fit in the token budget. Reminder: "manual" is BANNED. ALL "generate_*" methods are BANNED.
 
-Example for a stock_search asset:
+Example for a stock_search asset (ONLY when STOCK FOOTAGE POLICY = true):
   "asset": {
     "method": "stock_search",
     "stock_search": { "query": "Y Combinator logo zoom" },
     "camera_move": "static"
-  }
-Example for a manual asset:
-  "asset": {
-    "method": "manual",
-    "manual": { "instruction": "Record a 1.5s close-up of yourself nodding at camera." },
-    "camera_move": null
   }
 
 Output STRICT JSON only — no markdown fences, no preamble. Schema:
@@ -846,11 +1215,12 @@ Output STRICT JSON only — no markdown fences, no preamble. Schema:
       "shot_count": <int, count of pre-computed shots in this section>,
       "visual_signature": {
         "dominant_clip_type": "<clip_type>",
+        "shot_type_pattern": "<ordered shot recipe with clip types and functions for this script section>",
         "placement_pattern": "<one phrase>",
-        "text_overlay_pattern": "<one phrase>",
-        "sfx_pattern": "<one phrase>",
-        "motion_pattern": "<one phrase>",
-        "scene_elements": ["<element kind/phrase>", ...]
+        "text_overlay_pattern": "<caption preset/treatment, position, chunking, casing, animation>",
+        "sfx_pattern": "<SFX type/cadence and the moments that receive hits>",
+        "motion_pattern": "<scene_animation/camera move pattern and when it applies>",
+        "scene_elements": ["<app overlay preset kind + placement/function>", ...]
       }
     }
   ],
@@ -913,14 +1283,8 @@ Output STRICT JSON only — no markdown fences, no preamble. Schema:
         // "manual" is BANNED. ALL "generate_*" methods are BANNED.
         // NEVER emit empty/placeholder options.
       ],
-      "additional_elements": [
-        {
-          "kind": "face_cam|sticker|logo|reaction_gif|emoji_burst|lower_third|other",
-          "description": "<what the element is, subject-aware>",
-          "position": "<3x3 grid cell>",
-          "animation": "<string or null>"
-        }
-      ],
+      "has_overlay": false,
+      "additional_elements": [],
       "inspired_by": {
         "url": "<inspiration reel URL>",
         "shot_idx": <int>,
@@ -929,6 +1293,7 @@ Output STRICT JSON only — no markdown fences, no preamble. Schema:
       "text_overlay": "<string or empty>",
       "text_position": "top_left|top_center|top_right|middle_left|middle_center|middle_right|bottom_left|bottom_center|bottom_right",
       "animation_cue": "<string or null>",
+      "scene_animation": "none|zoom_in|zoom_out|pan_left|pan_right|ken_burns|punch_in",
       "sfx_cue": "<short string or null>",
       "clip_type": "talking_head|broll_talking_head|talking_head_unknown|broll_visual",
       "rationale": "<one sentence: why this slot fits the structure_role + spoken_during>"
@@ -963,6 +1328,7 @@ function buildUserMessage(
   allowCopyrightedMedia: boolean,
   userInstructions: string,
   allowStock: boolean,
+  brief: EditingBrief | null,
 ): string {
   const lines: string[] = [];
 
@@ -975,6 +1341,7 @@ function buildUserMessage(
       lines.push(`  - ${it.id} — ${it.description}${tags}`);
     }
     lines.push('You may use "library_search" but ONLY when one of these items plausibly matches the spoken context.');
+    lines.push('FOOTAGE-FIRST: the user provided this footage because they want THEIR footage edited into the video. Whenever a library item plausibly matches a shot\'s spoken context, make "library_search" the PRIMARY (first, highest fit_score) option for that shot, with web_capture as the fallback option — not the other way around.');
   } else {
     lines.push('library_available: false');
     lines.push('"library_search" is FORBIDDEN. Use "web_capture" with a real existing URL for every shot. "manual" is also banned — there is no shoot-this-fresh fallback.');
@@ -987,7 +1354,7 @@ function buildUserMessage(
     lines.push('You MAY suggest "web_capture" URLs that point to copyrighted content — YouTube videos, news/TV clips, movie/TV stills, branded social posts, copyrighted images. Use them when they\'re the best fit. Pull from named sources (e.g., "https://www.youtube.com/watch?v=..." with a clear focus segment).');
   } else {
     lines.push('allow_copyrighted_media: false');
-    lines.push('"web_capture" is restricted to PUBLIC, NON-COPYRIGHTED sources: the SUBJECT\'s own website / press kit / social profiles, public government / institutional / academic pages, openly-licensed reference material. AVOID: YouTube videos, news/TV broadcast clips, movie/TV stills, copyrighted brand imagery from third parties (use the brand\'s own press kit instead), copyrighted music videos. When the only fitting source would be copyrighted, use "manual" (only if a human-filmed shot is appropriate) or fall back to a different real source.');
+    lines.push('"web_capture" is restricted to PUBLIC, NON-COPYRIGHTED sources: the SUBJECT\'s own website / press kit / social profiles, public government / institutional / academic pages, openly-licensed reference material. AVOID: YouTube videos, news/TV broadcast clips, movie/TV stills, copyrighted brand imagery from third parties (use the brand\'s own press kit instead), copyrighted music videos. When the only fitting source would be copyrighted, fall back to a different real non-copyrighted source instead (the subject\'s own posted media, press kit, or a public institutional page) — "manual" stays banned.');
   }
   lines.push('');
 
@@ -997,7 +1364,7 @@ function buildUserMessage(
     lines.push('"stock_search" is allowed where it fits naturally.');
   } else {
     lines.push('allow_stock_search: false');
-    lines.push('"stock_search" is BANNED on every option. The user did NOT request stock in their additional instructions. Use "web_capture" (with a specific real-world URL) or "manual" (when a human-filmed shot is appropriate) instead. Do not emit any option with asset.method="stock_search".');
+    lines.push('"stock_search" is BANNED on every option. The user did NOT request stock in their additional instructions. Use "web_capture" (with a specific real-world URL) or "library_search" (when the library has a match) instead — "manual" stays banned. Do not emit any option with asset.method="stock_search".');
   }
   lines.push('');
 
@@ -1033,6 +1400,34 @@ function buildUserMessage(
     lines.push('');
   }
 
+  // The editing BRIEF — the same playbook the analysis tab shows, here as
+  // editorial DIRECTIONS the planner must follow. It translates the raw
+  // metrics into concrete "do this" instructions (how to pace, what
+  // footage on the main track, how to organize overlays, sound design) and
+  // a script→screen guide. Treat it as authoritative alongside the metrics.
+  if (brief && brief.sections.length > 0) {
+    lines.push('# EDITING BRIEF (STRICT creator playbook — MUST FOLLOW when filling shots)');
+    if (brief.summary) lines.push(brief.summary);
+    lines.push('Priority rule: these brief directives are mandatory constraints. If a directive says a source category, shot layout, repeated shot structure, caption treatment, overlay pattern, motion pattern, or SFX cadence should be used, your structure_sections and every shot option must implement it. Do not merely mention it in rationale.');
+    for (const sec of brief.sections) {
+      lines.push(`${sec.title}${sec.tag ? ` (${sec.tag})` : ''}:`);
+      for (const d of sec.directives) lines.push(`  - ${d}`);
+    }
+    if (brief.script_map.length > 0) {
+      lines.push('Script → screen (mirror this pairing of what\'s said to what\'s shown, including the base clip type and layout used at each script beat):');
+      for (const b of brief.script_map.slice(0, 6)) {
+        lines.push(
+          `  - says "${b.says}" → ${b.footage}${b.overlay ? ` | overlay: ${b.overlay}` : ''}`,
+        );
+      }
+    }
+    lines.push(
+      'When remixing, treat the brief as a position-by-position edit map: preserve which script beats use talking head, screen/product b-roll, screenshots, PiP/split layouts, overlays, and motion. If the brief gives a repeated per-shot layout sequence, assign clip_type, placement, broll_description, source_type, animation_cue, text_overlay, and sfx_cue to match that sequence as closely as the target transcript allows.',
+    );
+    lines.push('');
+  }
+
+  // Overlay quota — translate media_overlay_pct into an explicit shot
   lines.push('# TARGET FULL TEXT (subject context — what the new reel is about)');
   lines.push(`"${fullTranscriptText}"`);
   lines.push('');
@@ -1044,7 +1439,7 @@ function buildUserMessage(
 
   lines.push('# TASK');
   lines.push(
-    `Fill content for the ${shotSlots.length} shots above. Do NOT change shot timing. Match the STYLE METRICS targets. Mirror the inspiration's editing patterns. Output JSON now.`,
+    `Fill content for the ${shotSlots.length} shots above. Do NOT change shot timing. Match the STYLE METRICS targets, FOLLOW the EDITING BRIEF directions, and mirror the inspiration's editing patterns. Output JSON now.`,
   );
   return lines.join('\n');
 }
@@ -1073,6 +1468,7 @@ interface RawSceneElement {
   description?: string;
   position?: string;
   animation?: string | null;
+  layer?: number;
 }
 
 interface RawOption {
@@ -1096,11 +1492,13 @@ interface RawShot {
   asset?: RawAsset | null;
   placement?: RawPlacement | null;
   source_type?: string;
+  has_overlay?: boolean | null;
   additional_elements?: RawSceneElement[] | null;
   inspired_by?: { url?: string; shot_idx?: number; pattern?: string } | null;
   text_overlay?: string;
   text_position?: string;
   animation_cue?: string | null;
+  scene_animation?: string | null;
   sfx_cue?: string | null;
   clip_type?: string;
   rationale?: string;
@@ -1172,16 +1570,6 @@ const VALID_FITS: BrollFit[] = [
   'split_right',
 ];
 
-const VALID_ELEMENT_KINDS: SceneElementKind[] = [
-  'face_cam',
-  'sticker',
-  'logo',
-  'reaction_gif',
-  'emoji_burst',
-  'lower_third',
-  'other',
-];
-
 function normalizePlacement(raw: RawPlacement | null | undefined): BrollPlacement {
   const aspect = VALID_ASPECTS.includes(raw?.aspect as BrollAspect)
     ? (raw!.aspect as BrollAspect)
@@ -1203,28 +1591,56 @@ function normalizePlacement(raw: RawPlacement | null | undefined): BrollPlacemen
   return { aspect, fit, position, scale };
 }
 
-function normalizeSceneElements(
-  raw: RawSceneElement[] | null | undefined,
-): SceneElement[] {
-  if (!Array.isArray(raw)) return [];
-  const out: SceneElement[] = [];
-  for (const r of raw) {
-    const kind = VALID_ELEMENT_KINDS.includes(r.kind as SceneElementKind)
-      ? (r.kind as SceneElementKind)
-      : 'other';
-    const description = r.description?.trim() ?? '';
-    if (!description) continue;
-    const position = VALID_REGIONS.includes(r.position as FrameRegion)
-      ? (r.position as FrameRegion)
-      : 'middle_center';
-    const animation = r.animation?.trim() || null;
-    out.push({ kind, description, position, animation });
+const VALID_SCENE_ANIMATIONS: SceneAnimation[] = [
+  'none',
+  'zoom_in',
+  'zoom_out',
+  'pan_left',
+  'pan_right',
+  'ken_burns',
+  'punch_in',
+];
+
+/** Resolve a structured motion preset for a shot. Prefers an explicit
+ *  `scene_animation` enum from the model, then falls back to keyword
+ *  matching the free-text motion hints (animation_cue / camera_move) the
+ *  synthesizer already extracts from the inspiration. Returns 'none' when
+ *  nothing suggests movement so static shots stay static. */
+function normalizeSceneAnimation(
+  explicit: string | null | undefined,
+  ...hints: (string | null | undefined)[]
+): SceneAnimation {
+  const direct = explicit?.trim().toLowerCase().replace(/[\s-]+/g, '_');
+  if (direct && VALID_SCENE_ANIMATIONS.includes(direct as SceneAnimation)) {
+    return direct as SceneAnimation;
   }
-  return out;
+  const text = hints.filter(Boolean).join(' ').toLowerCase();
+  if (!text || /\bstatic\b|\bnone\b|\bhold\b/.test(text)) {
+    // An explicit enum that wasn't recognized still implies intent; only
+    // return 'none' when there's genuinely no motion signal.
+    if (!text) return 'none';
+  }
+  const pans = /\bpan\b|\bslide\b|\bdrift\b|\btrack\b/.test(text);
+  const right = /\bright\b|left[\s-]*to[\s-]*right|l2r\b/.test(text);
+  const left = /\bleft\b|right[\s-]*to[\s-]*left|r2l\b/.test(text);
+  if (pans && (left || right)) return right ? 'pan_right' : 'pan_left';
+  if (/\bken[\s-]*burns\b/.test(text)) return 'ken_burns';
+  if (/\bpunch\b|\bsnap\b|\bfast zoom\b|\bquick zoom\b/.test(text)) {
+    return 'punch_in';
+  }
+  if (/\bzoom[\s-]*out\b|\bpull[\s-]*out\b|\bpull[\s-]*back\b/.test(text)) {
+    return 'zoom_out';
+  }
+  if (/\bzoom\b|\bpush[\s-]*in\b|\bscale[\s-]*in\b|\bzoom[\s-]*in\b/.test(text)) {
+    return 'zoom_in';
+  }
+  if (pans) return 'pan_left';
+  return 'none';
 }
 
 interface RawVisualSignature {
   dominant_clip_type?: string;
+  shot_type_pattern?: string;
   placement_pattern?: string;
   text_overlay_pattern?: string;
   sfx_pattern?: string;
@@ -1302,6 +1718,10 @@ function normalizeVisualSignature(
 ): SectionVisualSignature {
   return {
     dominant_clip_type: raw?.dominant_clip_type?.trim() || 'unspecified',
+    shot_type_pattern:
+      raw?.shot_type_pattern?.trim() ||
+      raw?.dominant_clip_type?.trim() ||
+      'unspecified',
     placement_pattern: raw?.placement_pattern?.trim() || 'unspecified',
     text_overlay_pattern: raw?.text_overlay_pattern?.trim() || 'unspecified',
     sfx_pattern: raw?.sfx_pattern?.trim() || 'unspecified',
@@ -1437,12 +1857,16 @@ function normalizeShot(raw: RawShot, slot: ShotSlot): ShotPlan {
   // explicitly. Don't re-sort.
   const primary = options[0];
 
+  const elements: SceneElement[] = [];
+  const hasOverlay = false;
+
   return {
     shot_idx: slot.shot_idx,
     start_ms: slot.start_ms,
     end_ms: slot.end_ms,
     duration_ms: slot.duration_ms,
     spoken_during: slot.spoken_during,
+    spoken_words: slot.spoken_words,
     structure_role: raw.structure_role?.trim() || 'unspecified',
     options,
     // Top-level mirror of options[0] for backward-compat consumers.
@@ -1450,15 +1874,81 @@ function normalizeShot(raw: RawShot, slot: ShotSlot): ShotPlan {
     asset: primary.asset,
     placement: primary.placement,
     source_type: primary.source_type,
-    additional_elements: normalizeSceneElements(raw.additional_elements ?? null),
+    has_overlay: hasOverlay,
+    additional_elements: elements,
     inspired_by: inspired && inspired.url ? inspired : null,
     text_overlay: raw.text_overlay?.trim() ?? '',
     text_position: textPosition,
     animation_cue: raw.animation_cue?.trim() || null,
+    scene_animation: normalizeSceneAnimation(
+      raw.scene_animation,
+      raw.animation_cue,
+      primary.asset.camera_move,
+    ),
+    animation_scale: 1,
+    animation_easing: 'ease-in-out',
+    animation_origin: 'middle_center',
     sfx_cue: raw.sfx_cue?.trim() || null,
     clip_type: clipType,
     rationale: raw.rationale?.trim() || '',
   };
+}
+
+function summaryPct(v: number): string {
+  return `${(v * 100).toFixed(0)}%`;
+}
+
+function topDistribution(
+  dist: Record<string, number> | null | undefined,
+  max = 3,
+  min = 0.03,
+): string {
+  if (!dist) return 'none';
+  const parts = Object.entries(dist)
+    .filter(([, value]) => value >= min)
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, max)
+    .map(([key, value]) => `${key} ${summaryPct(value)}`);
+  return parts.length > 0 ? parts.join(', ') : 'none';
+}
+
+function captionSummary(analysis: ReelAnalysisResult): string {
+  const cap = analysis.caption_style;
+  if (!cap?.present) return 'captions: none';
+  const preset = cap.preset_label || cap.matched_preset || cap.style_label || 'custom';
+  const font = cap.font_family_name || cap.font_descriptor || 'unmatched font';
+  const highlight = cap.highlight_color ? `, highlight ${cap.highlight_color}` : '';
+  const emoji = cap.has_emoji ? ', emoji' : '';
+  return (
+    `captions: ${preset}; ${cap.position}, ${cap.chunking}` +
+    `/${cap.words_per_chunk || '?'} words, ${cap.casing}, ${cap.font_size}, ` +
+    `${cap.text_treatment}${cap.treatment_color ? ` ${cap.treatment_color}` : ''}, ` +
+    `${cap.animation}, ${font}${highlight}${emoji}`
+  );
+}
+
+function overlaySummary(analysis: ReelAnalysisResult): string {
+  if (analysis.media_overlay_pct <= 0.01 && analysis.overlays_per_min <= 0) {
+    return 'overlays: none';
+  }
+  return (
+    `overlays: ${summaryPct(analysis.media_overlay_pct)} shots, ` +
+    `${analysis.overlays_per_min.toFixed(1)}/min; ` +
+    `kinds ${topDistribution(analysis.overlay_kind_distribution)}; ` +
+    `motion ${topDistribution(analysis.overlay_motion_distribution)}; ` +
+    `regions ${topDistribution(analysis.overlay_region_distribution)}`
+  );
+}
+
+function motionSummary(analysis: ReelAnalysisResult): string {
+  if (!analysis.camera_motion_distribution) return 'motion: unknown';
+  const movingPct = Object.entries(analysis.camera_motion_distribution)
+    .filter(([kind]) => kind !== 'none')
+    .reduce((sum, [, value]) => sum + value, 0);
+  return (
+    `motion: ${summaryPct(movingPct)} moving; ` +
+    `${topDistribution(analysis.camera_motion_distribution, 4, 0.01)}`
+  );
 }
 
 function styleSummaryString(
@@ -1469,11 +1959,16 @@ function styleSummaryString(
   for (let i = 0; i < reels.length; i++) {
     const a = reels[i].analysis;
     const dur = a.shots.length ? a.shots[a.shots.length - 1].end_ms : 0;
+    const clipMix = topDistribution(a.clip_type_distribution, 4, 0.01);
     lines.push(
       `- reel ${i + 1}: ${(dur / 1000).toFixed(1)}s, ${a.shots.length} shots, ` +
         `cuts/sec=${a.cuts_per_sec.toFixed(2)}, ` +
-        `text=${(a.text_overlay_pct * 100).toFixed(0)}%, ` +
-        `SFX=${a.sfx_per_min.toFixed(0)}/min`,
+        `shot types: ${clipMix}; ` +
+        `${captionSummary(a)}; ` +
+        `text overlays ${summaryPct(a.text_overlay_pct)} at ${a.text_region_dominant ?? 'none'}; ` +
+        `${overlaySummary(a)}; ` +
+        `${motionSummary(a)}; ` +
+        `SFX ${a.sfx_per_min.toFixed(0)}/min, ${summaryPct(a.cuts_with_sfx_pct)} cut hits`,
     );
   }
   return lines.join('\n');
@@ -1483,6 +1978,9 @@ function styleSummaryString(
 
 export interface SynthesizeInput {
   transcript: TranscriptWord[];
+  /** Actual target media duration. For uploaded/reel video this is the
+   *  audio/video timeline length, not the last spoken word timestamp. */
+  targetDurationMs?: number;
   inspirationReels: {
     url: string;
     analysis: ReelAnalysisResult;
@@ -1509,6 +2007,11 @@ export interface SynthesizeInput {
    *  unless this string contains an explicit request for it (regex on
    *  /stock|pexels|pond5|getty|archival footage/i). */
   userInstructions?: string;
+  /** The collection's editing BRIEF — the analysis-derived editorial
+   *  playbook (pace, main-track footage, overlay organization, sound,
+   *  script→screen). Injected into the prompt as directions the planner
+   *  follows. Null/omitted → the prompt relies on STYLE METRICS alone. */
+  brief?: EditingBrief | null;
   /** Optional progress callback. Fires per streaming chunk during the
    *  LLM call with the accumulated text length so the UI can show a
    *  live "received N chars" indicator. */
@@ -1536,13 +2039,17 @@ export async function synthesize(
       style_summary: styleSummaryString(inspirationReels),
       content_sources: vocabulary?.source_reels ?? [],
       target_metrics: metrics ?? null,
+      sfx_plan: metrics?.sfx_pattern ?? null,
+      subtitle_spec: deriveSubtitleSpec(metrics?.caption_style),
     };
   }
 
-  // Pick the inspiration reel closest in duration to target → use its
-  // EXACT shot count + scaled duration sequence. Editor's decision
-  // about how many cuts to make is preserved verbatim.
-  const targetDurationMs = transcript[transcript.length - 1].end_ms;
+  // Pick the inspiration reel closest in duration to target for shot count,
+  // then place the actual cut boundaries on target transcript beats.
+  const targetDurationMs = Math.max(
+    input.targetDurationMs ?? 0,
+    transcript[transcript.length - 1].end_ms,
+  );
   const template = selectPacingTemplate(targetDurationMs, inspirationReels);
   if (!template) {
     console.error('[synthesize] no inspiration shots to derive pacing from');
@@ -1550,9 +2057,9 @@ export async function synthesize(
   }
   const slots = planShotTimeline(targetDurationMs, template, transcript);
   console.error(
-    `[synthesize] pacing template: ${template.shot_durations_ms.length} shots from ${template.source_url} ` +
-      `(${(template.source_duration_ms / 1000).toFixed(1)}s → ${(targetDurationMs / 1000).toFixed(1)}s, ` +
-      `scale=${(targetDurationMs / template.source_duration_ms).toFixed(2)}×)`,
+    `[synthesize] transcript timeline: ${slots.length} shots from ${transcript.length} words ` +
+      `(count target from ${template.source_url}, ` +
+      `${(targetDurationMs / 1000).toFixed(1)}s target)`,
   );
 
   const fullText = transcript.map((w) => w.text).join(' ');
@@ -1570,6 +2077,7 @@ export async function synthesize(
     input.allowCopyrightedMedia === true,
     instructions,
     allowStock,
+    input.brief ?? null,
   );
 
   let raw: RawResponse;
@@ -1828,5 +2336,7 @@ export async function synthesize(
     style_summary: styleSummaryString(inspirationReels),
     content_sources: vocabulary?.source_reels ?? [],
     target_metrics: metrics ?? null,
+    sfx_plan: metrics?.sfx_pattern ?? null,
+    subtitle_spec: deriveSubtitleSpec(metrics?.caption_style),
   };
 }

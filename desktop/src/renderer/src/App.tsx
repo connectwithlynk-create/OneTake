@@ -1,24 +1,36 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type {
   AgentTrace,
   AgentTurn,
   AlternativeShot,
   AnalyzeHistoryEntry,
+  SfxCollectionPattern,
+  SfxType,
+  CaptionTreatment,
   ClipType,
+  Collection,
   CurationResult,
   CuratorClarificationRequest,
   CuratorTurnEvent,
+  EditingBrief,
+  ExportProgressEvent,
+  ExportReelResponse,
   ExtractClipsResponse,
   ExtractProgressEvent,
   ExtractedClip,
   FrameRegion,
+  AnimationEasing,
+  CameraMotionKind,
+  SceneAnimation,
   LibraryReel,
   MediaCandidate,
+  PastedMediaEntry,
   PlanListEntry,
   RecordPageResponse,
   RecordProgressEvent,
   ReelAnalysisResult,
   ReelTag,
+  RemixProfile,
   ResolvedReel,
   ResolveResult,
   ScreenshotPageResponse,
@@ -29,6 +41,7 @@ import type {
   ShotOptionTier,
   ShotPlan,
   StructureSection,
+  SubtitleSpec,
   SuggestedEdit,
   SynthesizeProgress,
   TargetInput,
@@ -36,8 +49,35 @@ import type {
   VideoFrameProgressEvent,
   VideoFramesResponse,
 } from './global';
+import { subtitleTextForShot } from './subtitles';
+import {
+  MIN_SHOT_MS,
+  alignShotEndsToTranscript,
+  snapBoundaryToTranscript,
+  splitAdjacentShotsAtTranscriptBoundary,
+} from './shot-timing';
 
 type ViewMode = 'workflow' | 'analyze';
+
+/** Canvas composition for a shot's b-roll (aspect / fit / position /
+ *  scale). Derived from the already-imported ShotOption so it always
+ *  matches the source-of-truth shape without a separate import. */
+type BrollPlacement = ShotOption['placement'];
+
+/** Outcome of an "add clip" request, so the panel can report whether a
+ *  new clip actually landed (vs. found-but-already-present vs. error). */
+type AddClipResult =
+  | { ok: false }
+  | { ok: true; added: number; foundButDuplicate?: boolean };
+
+export type PreviewMediaLayer = {
+  src: string;
+  kind: PreviewKind;
+  shot: ShotPlan;
+  label: string;
+  playbackStartMs?: number | null;
+  playbackEndMs?: number | null;
+};
 
 /** Devtools toggle — gates verbose "thought process" panels (extract /
  *  screenshot / record / video-frames logs) inside the candidate cards.
@@ -69,7 +109,7 @@ function useDevtoolsState(): [boolean, (next: boolean) => void] {
 /** The four stages of the make-a-reel flow, rendered as a horizontal
  *  progress stepper at the top of the app. Stays in lockstep with the
  *  sections inside WorkflowView. */
-type Stage = 'inspire' | 'target' | 'plan' | 'review';
+type Stage = 'dashboard' | 'inspire' | 'target' | 'plan' | 'review';
 
 interface StageDef {
   id: Stage;
@@ -83,6 +123,33 @@ const STAGES: StageDef[] = [
   { id: 'plan', num: '3', title: 'The plan', sub: 'Shots + media' },
   { id: 'review', num: '4', title: 'Review', sub: 'Full preview' },
 ];
+const STAGE_ROUTES: Record<Stage, string> = {
+  dashboard: 'dashboard',
+  inspire: 'inspire',
+  target: 'target',
+  plan: 'plan',
+  review: 'review',
+};
+const ROUTE_STAGES: Record<string, Stage> = {
+  dashboard: 'dashboard',
+  home: 'dashboard',
+  inspire: 'inspire',
+  inspiration: 'inspire',
+  target: 'target',
+  video: 'target',
+  plan: 'plan',
+  review: 'review',
+};
+
+function routeFromHash(): { view: ViewMode; stage: Stage } {
+  const route = window.location.hash.replace(/^#\/?/, '').split(/[/?]/)[0];
+  if (route === 'analyze') return { view: 'analyze', stage: 'inspire' };
+  return { view: 'workflow', stage: ROUTE_STAGES[route] ?? 'dashboard' };
+}
+
+function hashForPage(view: ViewMode, stage: Stage): string {
+  return view === 'analyze' ? '#/analyze' : `#/${STAGE_ROUTES[stage]}`;
+}
 
 /** Progress flag per stage — drives the stepper's "done" check icon. */
 type StageProgress = Partial<Record<Stage, boolean>>;
@@ -125,7 +192,7 @@ class AppErrorBoundary extends React.Component<
  *  shape (single SelectedMedia object) from plans written before the
  *  multi-select rollout. Returns a fresh array each call; callers
  *  should mutate via setState, not in place. */
-function getSelections(shot: ShotPlan | undefined): SelectedMedia[] {
+export function getSelections(shot: ShotPlan | undefined): SelectedMedia[] {
   if (!shot) return [];
   const raw = shot.selected_media as
     | SelectedMedia[]
@@ -151,6 +218,359 @@ function toggleSelection(
     return next;
   }
   return [...current, media];
+}
+
+type LibraryCandidate = {
+  candidate: MediaCandidate;
+  sourceShotIdx: number;
+  sourceLabel: string;
+  brollOverride?: string;
+};
+
+type PickClipboard = {
+  sourceShotIdx: number;
+  picks: SelectedMedia[];
+} | null;
+
+function mediaKey(url: string | null | undefined): string {
+  if (!url) return '';
+  try {
+    const u = new URL(url);
+    u.hash = '';
+    u.search = '';
+    return u.toString().replace(/\/$/, '').toLowerCase();
+  } catch {
+    return url.trim().replace(/[?#].*$/, '').replace(/\/$/, '').toLowerCase();
+  }
+}
+
+function libraryDedupeKey(candidate: MediaCandidate): string {
+  // Key on the ACTUAL displayable media (the recording, each screenshot
+  // image, or the page URL) — NOT the source page. buildMediaLibrary
+  // explodes one captured candidate into separate entries (a recording
+  // + one per screenshot) that all share the same source_page; keying
+  // on source_page collapsed them into a single entry, which is why
+  // screenshots never showed up in the library. candidate.url is set to
+  // the specific media URL for each derived entry, so it dedupes
+  // recordings vs screenshots correctly while still folding true
+  // duplicates of the same asset.
+  return mediaKey(
+    candidate.url ||
+      candidate.auto_recording_url ||
+      candidate.thumbnail_url ||
+      candidate.source_page,
+  );
+}
+
+function shotDuplicateKey(shot: ShotPlan): string {
+  const spoken = shot.spoken_during.trim().replace(/\s+/g, ' ').toLowerCase();
+  const idea = shot.broll_description.trim().replace(/\s+/g, ' ').toLowerCase();
+  return `${spoken}::${idea}`;
+}
+
+function buildMediaLibrary(curation: CurationResult | null): LibraryCandidate[] {
+  if (!curation) return [];
+  const seen = new Set<string>();
+  const out: LibraryCandidate[] = [];
+  const add = (
+    candidate: MediaCandidate,
+    sourceShotIdx: number,
+    sourceLabel: string,
+    brollOverride?: string,
+  ): void => {
+    const key = libraryDedupeKey(candidate);
+    if (!key || seen.has(key)) return;
+    seen.add(key);
+    out.push({ candidate, sourceShotIdx, sourceLabel, brollOverride });
+  };
+  const addResolved = (
+    candidate: MediaCandidate,
+    sourceShotIdx: number,
+    sourceLabel: string,
+    brollOverride?: string,
+  ): void => {
+    let addedCapture = false;
+    if (candidate.auto_recording_url) {
+      addedCapture = true;
+      add(
+        {
+          ...candidate,
+          source: 'web_video',
+          url: candidate.auto_recording_url,
+          source_page: candidate.source_page ?? candidate.url,
+          title: candidate.title ? `${candidate.title} · recording` : 'Page recording',
+          auto_recording_url: candidate.auto_recording_url,
+        },
+        sourceShotIdx,
+        sourceLabel,
+        brollOverride,
+      );
+    }
+    for (const [i, shot] of (candidate.auto_screenshots ?? []).entries()) {
+      addedCapture = true;
+      add(
+        {
+          ...candidate,
+          source: 'web_image',
+          url: shot.image_url,
+          source_page: candidate.source_page ?? candidate.url,
+          title: candidate.title
+            ? `${candidate.title} · screenshot ${i + 1}`
+            : `Screenshot ${i + 1}`,
+          auto_recording_url: null,
+          auto_screenshots: [shot],
+        },
+        sourceShotIdx,
+        sourceLabel,
+        brollOverride,
+      );
+    }
+    if (!addedCapture) {
+      add(candidate, sourceShotIdx, sourceLabel, brollOverride);
+    }
+  };
+  for (const sc of curation.shots) {
+    if (!sc) continue;
+    for (const c of sc.candidates ?? []) {
+      addResolved(c, sc.shot_idx, `shot ${sc.shot_idx + 1}`);
+    }
+    for (const [i, alt] of (sc.alternatives ?? []).entries()) {
+      for (const c of alt.candidates ?? []) {
+        addResolved(c, sc.shot_idx, `shot ${sc.shot_idx + 1} alt ${i + 1}`, alt.broll_description);
+      }
+    }
+  }
+  return out;
+}
+
+/** Turn pasted clipboard media into library candidates so they show in
+ *  the media library grid and can be assigned to shots like any other. */
+function pastedMediaToLibrary(
+  entries: PastedMediaEntry[],
+): LibraryCandidate[] {
+  return entries.map((entry) => ({
+    candidate: {
+      source: entry.kind === 'video' ? 'web_video' : 'web_image',
+      url: entry.url,
+      source_page: entry.url,
+      title: entry.name || `Pasted ${entry.kind}`,
+      notes: 'Pasted from clipboard',
+      auto_recording_url: entry.kind === 'video' ? entry.url : null,
+      auto_screenshots:
+        entry.kind === 'image' ? [{ image_url: entry.url }] : [],
+    } as MediaCandidate,
+    sourceShotIdx: -1,
+    sourceLabel: 'pasted',
+  }));
+}
+
+function libraryCandidateToSelectedMedia(item: LibraryCandidate): SelectedMedia {
+  const c = item.candidate;
+  const hasScreenshot = !!c.auto_screenshots?.[0]?.image_url;
+  const url = c.auto_recording_url || c.auto_screenshots?.[0]?.image_url || c.url;
+  const kind: SelectedMedia['kind'] =
+    hasScreenshot && !c.auto_recording_url
+      ? 'image'
+      : c.source === 'web_image' || c.source === 'generated_image'
+        ? 'image'
+        : 'video';
+  return {
+    url,
+    kind,
+    origin:
+      c.auto_recording_url
+        ? 'page_recording'
+        : hasScreenshot
+          ? 'page_screenshot'
+          : 'original_candidate',
+    from_candidate_url: c.url,
+    reason: c.notes ?? null,
+  };
+}
+
+function wordsForMatch(text: string): Set<string> {
+  return new Set(
+    text
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, ' ')
+      .split(/\s+/)
+      .filter((w) => w.length > 3),
+  );
+}
+
+function matchScore(shot: ShotPlan, item: LibraryCandidate): number {
+  let score = item.sourceShotIdx === shot.shot_idx ? 10 : 0;
+  const shotWords = wordsForMatch(
+    `${shot.spoken_during} ${shot.broll_description} ${shot.source_type}`,
+  );
+  const mediaWords = wordsForMatch(
+    `${item.candidate.title ?? ''} ${item.candidate.notes ?? ''} ${item.brollOverride ?? ''}`,
+  );
+  for (const w of shotWords) if (mediaWords.has(w)) score += 1;
+  if (item.candidate.auto_recording_url) score += 1.5;
+  if (item.candidate.auto_screenshots?.length) score += 0.75;
+  return score;
+}
+
+export function animationForMedia(media: SelectedMedia, shotIdx: number): SceneAnimation {
+  if (media.kind === 'video') return shotIdx % 3 === 0 ? 'punch_in' : 'zoom_in';
+  return shotIdx % 4 === 0
+    ? 'ken_burns'
+    : shotIdx % 4 === 1
+      ? 'zoom_in'
+      : shotIdx % 4 === 2
+        ? 'pan_left'
+        : 'pan_right';
+}
+
+function shotWithMediaOverrides(shot: ShotPlan, media: SelectedMedia | null): ShotPlan {
+  if (!media) return shot;
+  return {
+    ...shot,
+    ...(media.scene_animation ? { scene_animation: media.scene_animation } : {}),
+    ...(media.animation_scale !== undefined ? { animation_scale: media.animation_scale } : {}),
+    ...(media.animation_duration_ms !== undefined ? { animation_duration_ms: media.animation_duration_ms } : {}),
+    ...(media.animation_easing ? { animation_easing: media.animation_easing } : {}),
+    ...(media.animation_origin ? { animation_origin: media.animation_origin } : {}),
+    ...(media.animation_x !== undefined ? { animation_x: media.animation_x } : {}),
+    ...(media.animation_y !== undefined ? { animation_y: media.animation_y } : {}),
+    ...(media.media_start_zoom !== undefined ? { media_start_zoom: media.media_start_zoom } : {}),
+    ...(media.zoom_region ? { zoom_region: media.zoom_region } : {}),
+    ...(media.zoom_x !== undefined ? { zoom_x: media.zoom_x } : {}),
+    ...(media.zoom_y !== undefined ? { zoom_y: media.zoom_y } : {}),
+    ...(media.zoom_scale !== undefined ? { zoom_scale: media.zoom_scale } : {}),
+  };
+}
+
+function previewFromSelectedMedia(
+  media: SelectedMedia | null,
+): { src: string | null; kind: PreviewKind } {
+  if (!media) return { src: null, kind: 'image' };
+  if (media.kind === 'image') return { src: media.url, kind: 'image' };
+  if (isPlayableVideoUrl(media.url)) return { src: media.url, kind: 'video' };
+  const embed = videoEmbedUrl(media.url);
+  if (embed) return { src: embed, kind: 'embed' };
+  return { src: media.from_candidate_url || media.url, kind: 'reelthumb' };
+}
+
+function previewLayerFromPick(
+  pick: SelectedMedia,
+  shot: ShotPlan,
+  index: number,
+  count: number,
+): PreviewMediaLayer | null {
+  const preview = previewFromSelectedMedia(pick);
+  if (!preview.src) return null;
+  const sliceMs = Math.max(250, Math.round(shot.duration_ms / Math.max(1, count)));
+  const startMs = shot.start_ms + index * sliceMs;
+  const endMs = index === count - 1 ? shot.end_ms : Math.min(shot.end_ms, startMs + sliceMs);
+  return {
+    src: preview.src,
+    kind: preview.kind,
+    shot: shotWithMediaOverrides(
+      {
+        ...shot,
+        start_ms: startMs,
+        end_ms: endMs,
+        duration_ms: Math.max(250, endMs - startMs),
+      },
+      pick,
+    ),
+    label: `Overlay ${index + 1}`,
+    playbackStartMs: pick.playback_start_ms ?? null,
+    playbackEndMs: pick.playback_end_ms ?? null,
+  };
+}
+
+/** Pure derivation of what a shot renders as: the preview ShotPlan (with
+ *  overlays merged from curation), the per-pick mockup ShotPlan, and the
+ *  on-screen media src/kind. Mirrors the inline logic in PhoneSidebar
+ *  (the live shot preview) so the EXPORTED video composites identically.
+ *  Keep the two in sync — this is what the deterministic renderer uses. */
+export function resolveShotRender(
+  shot: ShotPlan,
+  curation: ShotCuration | null,
+  optionIdx: number,
+  pickIdx: number,
+): {
+  previewShot: ShotPlan;
+  mockupShot: ShotPlan;
+  previewSrc: string | null;
+  previewKind: PreviewKind;
+  previewVideoMode: 'segment' | 'full';
+  previewPlaybackStartMs?: number | null;
+  previewPlaybackEndMs?: number | null;
+  layeredPreviewMedia: PreviewMediaLayer[];
+  picks: SelectedMedia[];
+  pickDurationMs: number;
+} {
+  const picks = getSelections(shot);
+  const pickDurationMs =
+    picks.length > 0
+      ? Math.max(250, Math.round(shot.duration_ms / picks.length))
+      : 0;
+  const selOpt = shot.options[optionIdx] ?? shot.options[0];
+  const baseShot: ShotPlan = selOpt
+    ? {
+        ...shot,
+        broll_description: selOpt.broll_description,
+        asset: selOpt.asset,
+        placement: selOpt.placement,
+        source_type: selOpt.source_type,
+      }
+    : shot;
+  const previewShot: ShotPlan = {
+    ...baseShot,
+    has_overlay: false,
+    additional_elements: [],
+  };
+  const isOverlayLayout = previewShot.placement.fit === 'pip';
+  const layeredPreviewMedia =
+    isOverlayLayout && picks.length > 1
+      ? picks
+          .map((pick, i) => previewLayerFromPick(pick, previewShot, i, picks.length))
+          .filter((layer): layer is PreviewMediaLayer => !!layer)
+      : [];
+  const currentPick = picks[pickIdx] ?? null;
+  const mockupShot: ShotPlan = {
+    ...(picks.length > 1 && !isOverlayLayout
+      ? {
+          ...previewShot,
+          start_ms: 0,
+          end_ms: pickDurationMs,
+          duration_ms: pickDurationMs,
+        }
+      : previewShot),
+  };
+  const mediaShot = shotWithMediaOverrides(mockupShot, currentPick);
+  let previewSrc: string | null = null;
+  let previewKind: PreviewKind = 'image';
+  let previewVideoMode: 'segment' | 'full' = 'segment';
+  let previewPlaybackStartMs: number | null = null;
+  let previewPlaybackEndMs: number | null = null;
+  if (currentPick && layeredPreviewMedia.length === 0) {
+    const preview = previewFromSelectedMedia(currentPick);
+    previewSrc = preview.src;
+    previewKind = preview.kind;
+    previewVideoMode = preview.kind === 'video' ? 'full' : 'segment';
+    previewPlaybackStartMs = currentPick.playback_start_ms ?? null;
+    previewPlaybackEndMs = currentPick.playback_end_ms ?? null;
+  } else {
+    previewSrc = curation?.candidates?.[0]?.thumbnail_url ?? null;
+    previewKind = 'image';
+  }
+  return {
+    previewShot,
+    mockupShot: mediaShot,
+    previewSrc,
+    previewKind,
+    previewVideoMode,
+    previewPlaybackStartMs,
+    previewPlaybackEndMs,
+    layeredPreviewMedia,
+    picks,
+    pickDurationMs,
+  };
 }
 
 /** Horizontal 4-step progress stepper. Coral fills as you advance,
@@ -251,6 +671,14 @@ function TopNav({
       <div className="appbar-right">
         <button
           type="button"
+          className={`appbar-tool ${view === 'workflow' && stage === 'dashboard' ? 'on' : ''}`}
+          onClick={() => setStage('dashboard')}
+          title="Workspace dashboard"
+        >
+          ▦ Dashboard
+        </button>
+        <button
+          type="button"
           className={`appbar-tool ${devtools ? 'on' : ''}`}
           onClick={() => setDevtools(!devtools)}
           title={
@@ -294,11 +722,235 @@ function TopNav({
   );
 }
 
+/** Bottom command bar: type any instruction; a tool-calling agent inspects
+ *  the plan, makes the edits, and returns the plan to adopt. */
+function CommandBar({
+  plan,
+  onApply,
+  onFindClip,
+  onPrompt,
+  narrationPath = null,
+}: {
+  plan: SuggestedEdit;
+  onApply: (next: SuggestedEdit) => void;
+  /** Run curation for a shot from a find_clip action (array index). */
+  onFindClip?: (query: string, shotIdx: number | null) => void | Promise<void>;
+  /** Record the raw command to the persistent prompt log. */
+  onPrompt?: (text: string) => void;
+  /** Narration source (with audio) so the agent can reason over word timings. */
+  narrationPath?: string | null;
+}): React.JSX.Element {
+  const [text, setText] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [status, setStatus] = useState<string | null>(null);
+  const [clarify, setClarify] = useState<{
+    question: string;
+    options: string[];
+  } | null>(null);
+  // Library sounds the agent surfaced this run, so the user can hear each one.
+  const [sounds, setSounds] = useState<
+    { name: string; label: string | null }[]
+  >([]);
+  const lastCommandRef = useRef('');
+  const previewRef = useRef<HTMLAudioElement | null>(null);
+  const [previewing, setPreviewing] = useState<string | null>(null);
+
+  // Play the SFX a disambiguation option refers to, so the user can hear
+  // each candidate before choosing. Resolves the option text to a clip URL.
+  const preview = async (option: string): Promise<void> => {
+    try {
+      const url = await window.api.resolveSfxUrl(option);
+      if (!url) {
+        setStatus(`No sound found for "${option}".`);
+        return;
+      }
+      previewRef.current?.pause();
+      const audio = new Audio(url);
+      previewRef.current = audio;
+      setPreviewing(option);
+      audio.onended = () => setPreviewing((p) => (p === option ? null : p));
+      await audio.play();
+    } catch {
+      setPreviewing(null);
+    }
+  };
+
+  const run = async (command: string): Promise<void> => {
+    if (!command || busy) return;
+    lastCommandRef.current = command;
+    onPrompt?.(command);
+    setBusy(true);
+    setStatus('Working…');
+    setClarify(null);
+    setSounds([]);
+    try {
+      const res = await window.api.agentEditPlan({
+        command,
+        plan,
+        narrationPath,
+      });
+      // Adopt the agent's (possibly mutated) plan copy.
+      onApply(res.plan);
+      // Run queued actions (curation) the agent couldn't do itself.
+      for (const a of res.actions) {
+        if (a.kind === 'find_clip' && onFindClip) {
+          void onFindClip(a.query, a.shot_idx);
+        }
+      }
+      if (res.toolLog?.length) console.error('[cmdbar] tools:', res.toolLog);
+      // Sounds the agent mentioned — let the user hear each, even when it
+      // replied in prose rather than asking a structured question.
+      setSounds(res.sounds ?? []);
+      if (res.clarify && res.clarify.options.length > 0) {
+        // Agent is unsure — let the user pick instead of guessing.
+        setClarify(res.clarify);
+        setStatus(res.clarify.question);
+      } else {
+        setStatus(res.reply || 'Done.');
+        setText('');
+      }
+    } catch (e) {
+      setStatus(`Failed: ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setBusy(false);
+    }
+  };
+  const submit = (): Promise<void> => run(text.trim());
+  // Picking a disambiguation option re-runs the original request, pinned to
+  // the chosen option.
+  const choose = (option: string): Promise<void> =>
+    run(`${lastCommandRef.current}\n\nUse this option: ${option}`);
+
+  return (
+    <div className="cmdbar">
+      {status && <div className="cmdbar-status">{status}</div>}
+      {clarify && (
+        <div className="cmdbar-choices">
+          {clarify.options.map((opt) => (
+            <span key={opt} className="cmdbar-choice-wrap">
+              <button
+                type="button"
+                className="cmdbar-choice-play"
+                disabled={busy}
+                title={`Hear "${opt}"`}
+                onClick={() => void preview(opt)}
+              >
+                {previewing === opt ? '♪' : '▶'}
+              </button>
+              <button
+                type="button"
+                className="cmdbar-choice"
+                disabled={busy}
+                onClick={() => void choose(opt)}
+              >
+                {opt}
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+      {sounds.filter((s) => !clarify?.options.includes(s.label ?? s.name))
+        .length > 0 && (
+        <div className="cmdbar-sounds">
+          <span className="cmdbar-sounds-label">Hear:</span>
+          {sounds
+            .filter((s) => !clarify?.options.includes(s.label ?? s.name))
+            .map((s) => {
+              const display = s.label ?? s.name;
+              return (
+                <span key={s.name} className="cmdbar-choice-wrap">
+                  <button
+                    type="button"
+                    className="cmdbar-choice-play"
+                    disabled={busy}
+                    title={`Hear "${display}"`}
+                    onClick={() => void preview(s.name)}
+                  >
+                    {previewing === s.name ? '♪' : '▶'}
+                  </button>
+                  <button
+                    type="button"
+                    className="cmdbar-choice"
+                    disabled={busy}
+                    title={`Use the "${display}" sound effect`}
+                    onClick={() => void run(`Use the "${display}" sound effect.`)}
+                  >
+                    {display}
+                  </button>
+                </span>
+              );
+            })}
+        </div>
+      )}
+      <div className="cmdbar-row">
+        <input
+          className="cmdbar-input"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') void submit();
+          }}
+          placeholder="Tell the editor what to change — e.g. “add a ding on every word”, “zoom in on everything”, “lower the SFX volume”"
+          disabled={busy}
+        />
+        <button
+          className="cmdbar-send"
+          onClick={() => void submit()}
+          disabled={busy || !text.trim()}
+        >
+          {busy ? '…' : 'Send'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function AppInner(): React.JSX.Element {
-  const [view, setView] = useState<ViewMode>('workflow');
-  const [stage, setStage] = useState<Stage>('inspire');
+  const initialPage = routeFromHash();
+  const [view, setViewState] = useState<ViewMode>(initialPage.view);
+  const [stage, setStageState] = useState<Stage>(initialPage.stage);
   const [progress, setProgress] = useState<StageProgress>({});
   const [devtools, setDevtools] = useDevtoolsState();
+
+  const navigatePage = React.useCallback((nextView: ViewMode, nextStage: Stage): void => {
+    setViewState(nextView);
+    setStageState(nextStage);
+    const nextHash = hashForPage(nextView, nextStage);
+    if (window.location.hash !== nextHash) {
+      window.history.pushState(null, '', nextHash);
+    }
+  }, []);
+
+  const setView = React.useCallback(
+    (nextView: ViewMode): void => {
+      navigatePage(nextView, nextView === 'workflow' ? stage : stage);
+    },
+    [navigatePage, stage],
+  );
+
+  const setStage = React.useCallback(
+    (nextStage: Stage): void => {
+      navigatePage('workflow', nextStage);
+    },
+    [navigatePage],
+  );
+
+  useEffect(() => {
+    if (!window.location.hash) {
+      window.history.replaceState(null, '', hashForPage(view, stage));
+    }
+    const onHashChange = (): void => {
+      const next = routeFromHash();
+      setViewState(next.view);
+      setStageState((prev) => (next.view === 'workflow' ? next.stage : prev));
+    };
+    window.addEventListener('hashchange', onHashChange);
+    window.addEventListener('popstate', onHashChange);
+    return () => {
+      window.removeEventListener('hashchange', onHashChange);
+      window.removeEventListener('popstate', onHashChange);
+    };
+  }, [stage, view]);
 
   // Plan + review are locked until a plan has been synthesized. The
   // 'plan' progress flag is reported up by WorkflowView whenever the
@@ -352,12 +1004,914 @@ interface LibraryRow {
   status: 'pending' | 'hydrating' | 'ready' | 'error';
   from_cache?: boolean;
   error?: string;
+  caption_text?: string | null;
   analysis?: ReelAnalysisResult;
 }
 
-type Busy = null | 'hydrating' | 'synthesizing' | 'curating';
+type Busy = null | 'hydrating' | 'synthesizing' | 'batch_synthesizing' | 'curating';
 
 type TargetMode = 'reel_url' | 'script' | 'local_video';
+
+function meanNumber(values: number[]): number {
+  if (values.length === 0) return 0;
+  return values.reduce((sum, v) => sum + v, 0) / values.length;
+}
+
+function formatPct(value: number): string {
+  return `${Math.round(Math.max(0, Math.min(1, value)) * 100)}%`;
+}
+
+function formatSeconds(ms: number): string {
+  return `${(ms / 1000).toFixed(ms >= 1000 ? 1 : 2)}s`;
+}
+
+function dominantClipType(rows: (LibraryRow & { analysis: ReelAnalysisResult })[]): {
+  label: string;
+  pct: string;
+} | null {
+  const totals = new Map<ClipType, number>();
+  for (const row of rows) {
+    const dist = row.analysis.clip_type_distribution;
+    for (const key of Object.keys(dist) as ClipType[]) {
+      totals.set(key, (totals.get(key) ?? 0) + dist[key]);
+    }
+  }
+  if (totals.size === 0) return null;
+  const [kind, value] = [...totals.entries()].sort((a, b) => b[1] - a[1])[0];
+  const share = value / rows.length;
+  return {
+    label: CLIP_META[kind]?.label ?? kind.replace(/_/g, ' '),
+    pct: formatPct(share),
+  };
+}
+
+function reelHost(url: string): string {
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname.replace(/^www\./, '');
+    const parts = parsed.pathname.split('/').filter(Boolean);
+    if (/instagram\.com$/i.test(host)) {
+      const kind = parts[0];
+      const code = parts[1];
+      if (kind && code && ['reel', 'reels', 'p', 'tv'].includes(kind)) {
+        return `Instagram ${kind.replace(/^p$/, 'post')} ${code}`;
+      }
+      if (parts[0]) return `Instagram ${parts[0]}`;
+      return 'Instagram';
+    }
+    if (/tiktok\.com$/i.test(host)) {
+      const user = parts.find((p) => p.startsWith('@'));
+      const videoIdx = parts.indexOf('video');
+      const videoId = videoIdx >= 0 ? parts[videoIdx + 1] : null;
+      if (user && videoId) return `TikTok ${user} ${videoId}`;
+      if (user) return `TikTok ${user}`;
+    }
+    if (/youtu\.be$/i.test(host) && parts[0]) return `YouTube ${parts[0]}`;
+    if (/youtube\.com$/i.test(host)) {
+      const id = parsed.searchParams.get('v') || parts.at(-1);
+      if (id) return `YouTube ${id}`;
+    }
+    const path = parts.slice(0, 2).join('/');
+    return path ? `${host}/${path}` : host;
+  } catch {
+    return clipText(url, 56);
+  }
+}
+
+function labelTextFromCaption(text: string | null | undefined): string | null {
+  if (!text) return null;
+  const clean = text
+    .replace(/https?:\/\/\S+/g, '')
+    .replace(/#[\w-]+/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (clean.length < 4) return null;
+  const stop = new Set([
+    'a',
+    'an',
+    'and',
+    'are',
+    'as',
+    'at',
+    'be',
+    'but',
+    'by',
+    'for',
+    'from',
+    'has',
+    'have',
+    'he',
+    'her',
+    'his',
+    'how',
+    'i',
+    'in',
+    'is',
+    'it',
+    'its',
+    'me',
+    'my',
+    'of',
+    'on',
+    'or',
+    'our',
+    'she',
+    'that',
+    'the',
+    'their',
+    'they',
+    'this',
+    'to',
+    'was',
+    'we',
+    'what',
+    'when',
+    'where',
+    'who',
+    'why',
+    'with',
+    'you',
+    'your',
+  ]);
+  const words = clean
+    .replace(/[^\p{L}\p{N}\s'-]/gu, ' ')
+    .split(/\s+/)
+    .map((word) => word.replace(/^['-]+|['-]+$/g, ''))
+    .filter((word) => word.length > 2 && !stop.has(word.toLowerCase()));
+  const picked: string[] = [];
+  for (const word of words) {
+    if (picked.some((w) => w.toLowerCase() === word.toLowerCase())) continue;
+    picked.push(word);
+    if (picked.length === 4) break;
+  }
+  return picked.length > 0 ? picked.join(' ') : null;
+}
+
+function reelDisplayName(row: LibraryRow & { analysis?: ReelAnalysisResult }): string {
+  const caption = labelTextFromCaption(row.caption_text);
+  if (caption) return caption;
+  const hook = labelTextFromCaption(
+    row.analysis?.hook_speech || row.analysis?.hook_text || null,
+  );
+  if (hook) return hook;
+  const visual = labelTextFromCaption(
+    row.analysis?.shots.find((shot) => shot.visual_caption)?.visual_caption ?? null,
+  );
+  if (visual) return visual;
+  return reelHost(row.url);
+}
+
+function hookExamples(rows: (LibraryRow & { analysis: ReelAnalysisResult })[]): string[] {
+  return rows
+    .map((r) => r.analysis.hook_speech || r.analysis.hook_text || '')
+    .map((s) => s.replace(/\s+/g, ' ').trim())
+    .filter(Boolean)
+    .slice(0, 3);
+}
+
+function clipText(text: string, max = 84): string {
+  const clean = text.replace(/\s+/g, ' ').trim();
+  return clean.length > max ? `${clean.slice(0, max - 1)}...` : clean;
+}
+
+function aggregateDistribution<T extends string>(
+  rows: (LibraryRow & { analysis: ReelAnalysisResult })[],
+  pick: (analysis: ReelAnalysisResult) => Partial<Record<T, number>> | null | undefined,
+): Map<T, number> {
+  const totals = new Map<T, number>();
+  for (const row of rows) {
+    const dist = pick(row.analysis);
+    if (!dist) continue;
+    for (const [key, value] of Object.entries(dist) as [T, number][]) {
+      totals.set(key, (totals.get(key) ?? 0) + value);
+    }
+  }
+  return totals;
+}
+
+function topDistributionItems<T extends string>(
+  rows: (LibraryRow & { analysis: ReelAnalysisResult })[],
+  pick: (analysis: ReelAnalysisResult) => Partial<Record<T, number>> | null | undefined,
+  label: (key: T) => string,
+  max = 4,
+): string[] {
+  const totals = aggregateDistribution(rows, pick);
+  return [...totals.entries()]
+    .map(([key, value]) => [key, value / Math.max(1, rows.length)] as [T, number])
+    .filter(([, value]) => value > 0.01)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, max)
+    .map(([key, value]) => `${label(key)} ${formatPct(value)}`);
+}
+
+function overlayPresetLabel(kind: string): string {
+  switch (kind) {
+    case 'gif':
+      return 'reaction_gif';
+    case 'emoji_graphic':
+      return 'emoji_burst';
+    case 'pip_video':
+      return 'face_cam / PiP';
+    case 'image':
+      return 'image / logo / lower_third';
+    default:
+      return kind;
+  }
+}
+
+function sfxLabel(kind: string): string {
+  return kind.replace(/^impulse_/, '').replace(/_/g, ' ');
+}
+
+function captionOutcome(rows: (LibraryRow & { analysis: ReelAnalysisResult })[]): string[] {
+  const captioned = rows
+    .map((r) => r.analysis.caption_style)
+    .filter((style): style is NonNullable<ReelAnalysisResult['caption_style']> =>
+      !!style?.present,
+    );
+  if (captioned.length === 0) return ['No burned-in spoken captions detected.'];
+  const first = captioned[0];
+  const presetCounts = new Map<string, number>();
+  for (const style of captioned) {
+    const preset = style.preset_label || style.matched_preset || style.style_label || 'Custom';
+    presetCounts.set(preset, (presetCounts.get(preset) ?? 0) + 1);
+  }
+  const preset = [...presetCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'Custom';
+  return [
+    `${captioned.length}/${rows.length} reels use captions; preset/treatment: ${preset}.`,
+    `${first.position}, ${first.chunking}, ${first.words_per_chunk || '?'} words/group, ${first.casing}, ${first.font_size}, ${first.animation}.`,
+    `${first.text_treatment}${first.treatment_color ? ` ${first.treatment_color}` : ''}${first.highlight_color ? ` with ${first.highlight_color} highlight` : ''}; font ${first.font_family_name || first.font_descriptor || 'unmatched'}.`,
+  ];
+}
+
+function structureShotRecipe(
+  rows: (LibraryRow & { analysis: ReelAnalysisResult })[],
+): string[] {
+  const sourceRows = rows.slice(0, 2);
+  if (sourceRows.length === 0) return ['No structure-tagged reel yet; structure will be inferred from the ready set.'];
+  return sourceRows.map((row) => {
+    const shots = row.analysis.shots.slice(0, 6).map((shot, idx) => {
+      const role = idx === 0 ? 'hook' : idx === row.analysis.shots.length - 1 ? 'cta' : `beat ${idx + 1}`;
+      const label = CLIP_META[shot.clip_type]?.label ?? shot.clip_type.replace(/_/g, ' ');
+      const caption = shot.visual_caption ? ` (${clipText(shot.visual_caption, 46)})` : '';
+      return `${role}: ${label}${caption}`;
+    });
+    return `${reelDisplayName(row)} -> ${shots.join(' -> ')}`;
+  });
+}
+
+function contentExamples(
+  rows: (LibraryRow & { analysis: ReelAnalysisResult })[],
+): string[] {
+  const examples: string[] = [];
+  for (const row of rows) {
+    for (const shot of row.analysis.shots) {
+      if (!shot.visual_caption) continue;
+      examples.push(`${reelDisplayName(row)}: ${clipText(shot.visual_caption, 92)}`);
+      if (examples.length >= 5) return examples;
+    }
+  }
+  return examples.length > 0 ? examples : ['No visual captions extracted yet.'];
+}
+
+function contentSourceKind(text: string): string {
+  const t = text.toLowerCase();
+  if (/\b(screen recording|website|homepage|browser|dashboard|app|ui|interface|landing page)\b/.test(t)) {
+    return 'screen recordings / product UI';
+  }
+  if (/\b(tweet|x post|linkedin|instagram|tiktok|social|profile|post)\b/.test(t)) {
+    return 'social posts / profile screenshots';
+  }
+  if (/\b(podcast|interview|stage|conference|talk|speaking|microphone)\b/.test(t)) {
+    return 'founder/interview/stage clips';
+  }
+  if (/\b(photo|portrait|headshot|image|screenshot)\b/.test(t)) {
+    return 'photos / screenshots';
+  }
+  if (/\b(product|device|robot|car|drone|prototype|hardware)\b/.test(t)) {
+    return 'product or object b-roll';
+  }
+  if (/\b(chart|graph|map|document|paper|article|news|headline)\b/.test(t)) {
+    return 'documents, articles, charts';
+  }
+  return 'general visual b-roll';
+}
+
+function contentSourceOutcomes(
+  rows: (LibraryRow & { analysis: ReelAnalysisResult })[],
+): { choices: string[]; details: string[] } {
+  const counts = new Map<string, number>();
+  const examples = new Map<string, string>();
+  for (const row of rows) {
+    for (const shot of row.analysis.shots) {
+      const caption = shot.visual_caption?.trim();
+      if (!caption) continue;
+      const kind = contentSourceKind(caption);
+      counts.set(kind, (counts.get(kind) ?? 0) + 1);
+      if (!examples.has(kind)) examples.set(kind, clipText(caption, 82));
+    }
+  }
+  const ranked = [...counts.entries()].sort((a, b) => b[1] - a[1]);
+  if (ranked.length === 0) {
+    return {
+      choices: [
+        'Use concrete web-captured visuals for each idea.',
+        'Generate multiple subject-specific options per shot.',
+        'Fallback ideas should use reliable official pages or profiles.',
+      ],
+      details: contentExamples(rows),
+    };
+  }
+  const choices = ranked.slice(0, 3).map(([kind]) => {
+    const example = examples.get(kind);
+    return `Pull from ${kind}${example ? `, like "${example}"` : ''}.`;
+  });
+  choices.push('Turn each script beat into several specific b-roll ideas plus a reliable fallback.');
+  return {
+    choices,
+    details: ranked.map(([kind, count]) => {
+      const example = examples.get(kind);
+      return `${kind}: ${count} observed shot${count === 1 ? '' : 's'}${example ? `; example: ${example}` : ''}`;
+    }),
+  };
+}
+
+function shotRoleLabel(shot: ReelAnalysisResult['shots'][number]): string {
+  if (shot.speaker_verdict === 'speaker' || shot.clip_type === 'talking_head') {
+    return 'talking';
+  }
+  if (shot.clip_type === 'broll_talking_head') return 'b-roll talking';
+  if (shot.clip_type === 'talking_head_unknown') return 'talking unknown';
+  return 'no talking';
+}
+
+function shotLayoutCue(shot: ReelAnalysisResult['shots'][number]): string | null {
+  const text = `${shot.visual_caption ?? ''} ${shot.ocr_text ?? ''}`.toLowerCase();
+  if (/\b(top|bottom)\b/.test(text) && /\b(split|panel|half|above|below)\b/.test(text)) {
+    return 'top/bottom split';
+  }
+  if (/\b(split|side[\s-]*by[\s-]*side|two[\s-]*(panel|up)|dual)\b/.test(text)) {
+    return 'split layout';
+  }
+  if (/\b(pip|picture[\s-]*in[\s-]*picture|corner)\b/.test(text)) {
+    return 'PiP/corner';
+  }
+  if (shot.overlays.some((o) => o.kind === 'pip_video')) return 'PiP video';
+  if (shot.clip_type === 'talking_head' || shot.clip_type === 'talking_head_unknown') {
+    return shot.face_region ? `talking head ${shot.face_region.replace(/_/g, ' ')}` : 'talking head full frame';
+  }
+  if (shot.clip_type === 'broll_talking_head') {
+    return shot.face_region ? `b-roll talking ${shot.face_region.replace(/_/g, ' ')}` : 'b-roll talking full frame';
+  }
+  return 'full-screen b-roll';
+}
+
+function shotStructureKind(shot: ReelAnalysisResult['shots'][number]): string {
+  const text = `${shot.visual_caption ?? ''} ${shot.ocr_text ?? ''}`.toLowerCase();
+  const hasOverlay = shot.overlays.length > 0;
+  const overlayKinds = new Set(shot.overlays.map((o) => o.kind));
+  if (/\b(top|upper)\b/.test(text) && /\b(media|image|video|screenshot|panel|half)\b/.test(text)) {
+    return 'top media layout';
+  }
+  if (/\b(bottom|lower)\b/.test(text) && /\b(media|image|video|screenshot|panel|half)\b/.test(text)) {
+    return 'bottom media layout';
+  }
+  if (/\b(top|bottom)\b/.test(text) && /\b(split|panel|half|above|below)\b/.test(text)) {
+    return 'top/bottom split layout';
+  }
+  if (/\b(actual[\s-]*size|uncropped|contained|letterbox|full screenshot|screenshot)\b/.test(text)) {
+    return 'actual-size screenshot';
+  }
+  if (/\b(screen recording|website|homepage|browser|dashboard|app|ui|interface)\b/.test(text)) {
+    return 'full-screen screen recording';
+  }
+  if (hasOverlay && overlayKinds.has('pip_video')) return 'PiP overlay shot';
+  if (hasOverlay) return 'overlay shot';
+  if (shot.clip_type === 'talking_head' || shot.clip_type === 'talking_head_unknown') {
+    return shot.face_region
+      ? `talking-head ${shot.face_region.replace(/_/g, ' ')}`
+      : 'talking-head full frame';
+  }
+  if (shot.clip_type === 'broll_talking_head') {
+    return shot.face_region
+      ? `b-roll talking ${shot.face_region.replace(/_/g, ' ')}`
+      : 'b-roll talking full frame';
+  }
+  return 'full-screen b-roll';
+}
+
+function layoutOutcomes(
+  rows: (LibraryRow & { analysis: ReelAnalysisResult })[],
+): { choices: string[]; details: string[] } {
+  const counts = new Map<string, number>();
+  const examples = new Map<string, string>();
+  for (const row of rows) {
+    for (const shot of row.analysis.shots) {
+      const cue = shotLayoutCue(shot) ?? 'unknown layout';
+      counts.set(cue, (counts.get(cue) ?? 0) + 1);
+      if (!examples.has(cue) && shot.visual_caption) {
+        examples.set(cue, clipText(shot.visual_caption, 76));
+      }
+    }
+  }
+  const ranked = [...counts.entries()].sort((a, b) => b[1] - a[1]);
+  const choices = ranked.slice(0, 3).map(([cue]) => {
+    const example = examples.get(cue);
+    return `Use ${cue}${example ? ` when the shot resembles "${example}"` : ''}.`;
+  });
+  if (choices.length === 0) {
+    choices.push('Use the detected layout progression from each reference shot.');
+  }
+  return {
+    choices,
+    details: ranked.map(([cue, count]) => {
+      const example = examples.get(cue);
+      return `${cue}: ${count} shot${count === 1 ? '' : 's'}${example ? `; example: ${example}` : ''}`;
+    }),
+  };
+}
+
+function consistentShotStructureOutcomes(
+  rows: (LibraryRow & { analysis: ReelAnalysisResult })[],
+): { choices: string[]; details: string[] } {
+  const choices: string[] = [];
+  const details: string[] = [];
+  for (const row of rows) {
+    const shots = row.analysis.shots;
+    if (shots.length === 0) continue;
+    const kinds = shots.map(shotStructureKind);
+    const counts = new Map<string, number>();
+    for (const kind of kinds) counts.set(kind, (counts.get(kind) ?? 0) + 1);
+    const ranked = [...counts.entries()].sort((a, b) => b[1] - a[1]);
+    const [dominantKind, dominantCount] = ranked[0] ?? ['unknown layout', 0];
+    const total = shots.length;
+    const lastKind = kinds[kinds.length - 1];
+    const firstKind = kinds[0];
+    const overlayCount = shots.filter((shot) => shot.overlays.length > 0).length;
+    const label = reelDisplayName(row);
+    if (dominantCount >= Math.max(2, Math.ceil(total * 0.7))) {
+      choices.push(`${label}: ${dominantCount}/${total} shots use ${dominantKind}.`);
+    }
+    if (total >= 2 && lastKind !== dominantKind && dominantCount >= total - 1) {
+      choices.push(`${label}: keep the final-shot switch to ${lastKind}.`);
+    } else if (total >= 3 && lastKind !== firstKind) {
+      choices.push(`${label}: starts as ${firstKind}, ends as ${lastKind}.`);
+    }
+    if (overlayCount === total && total > 0) {
+      choices.push(`${label}: every shot is an overlay shot.`);
+    } else if (overlayCount >= Math.ceil(total * 0.7)) {
+      choices.push(`${label}: ${overlayCount}/${total} shots use overlays.`);
+    }
+    details.push(
+      `${label}: ${kinds.map((kind, idx) => `shot ${idx + 1} ${kind}`).join(' -> ')}`,
+    );
+  }
+  if (choices.length === 0 && rows.length > 0) {
+    choices.push('No single repeated shot layout dominates; follow the per-shot layout sequence.');
+  }
+  return {
+    choices: [...new Set(choices)].slice(0, 5),
+    details,
+  };
+}
+
+function structureSequenceItems(
+  analysis: ReelAnalysisResult,
+): { range: string; label: string; detail: string }[] {
+  if (analysis.shots.length === 0) return [];
+  const signatures = analysis.shots.map((shot) => {
+    const role = shotRoleLabel(shot);
+    const layout = shotLayoutCue(shot);
+    return {
+      key: `${role}|${layout ?? ''}`,
+      role,
+      layout,
+      shot,
+    };
+  });
+  const groups: { start: number; end: number; role: string; layout: string | null; shot: ReelAnalysisResult['shots'][number] }[] = [];
+  for (let i = 0; i < signatures.length; i++) {
+    const sig = signatures[i];
+    const prev = groups[groups.length - 1];
+    if (prev && `${prev.role}|${prev.layout ?? ''}` === sig.key) {
+      prev.end = i;
+    } else {
+      groups.push({
+        start: i,
+        end: i,
+        role: sig.role,
+        layout: sig.layout,
+        shot: sig.shot,
+      });
+    }
+  }
+  return groups.map((group) => {
+    const range = group.start === group.end
+      ? `shot ${group.start + 1}`
+      : `shots ${group.start + 1}-${group.end + 1}`;
+    const layout = group.layout ? `, ${group.layout}` : '';
+    const visual = group.shot.visual_caption
+      ? `Example: ${clipText(group.shot.visual_caption, 86)}`
+      : CLIP_META[group.shot.clip_type]?.label ?? group.shot.clip_type;
+    return {
+      range,
+      label: `${group.role}${layout}`,
+      detail: visual,
+    };
+  });
+}
+
+function perReelAnalysisRows(
+  rows: (LibraryRow & { analysis: ReelAnalysisResult })[],
+): {
+  url: string;
+  label: string;
+  tags: ReelTag[];
+  metrics: string;
+  style: string[];
+  content: string[];
+  structure: { range: string; label: string; detail: string }[];
+}[] {
+  return rows.map((row) => {
+    const a = row.analysis;
+    const clipMix = topDistributionItems([row], (analysis) => analysis.clip_type_distribution, (kind) =>
+      CLIP_META[kind as ClipType]?.label ?? kind.replace(/_/g, ' '),
+    );
+    const overlays = topDistributionItems([row], (analysis) => analysis.overlay_kind_distribution, overlayPresetLabel);
+    const motion = topDistributionItems([row], (analysis) => analysis.camera_motion_distribution, (kind) =>
+      MOTION_META[kind as CameraMotionKind]?.label ?? kind.replace(/_/g, ' '),
+    );
+    const sfx = topDistributionItems([row], (analysis) => analysis.sfx_type_distribution, sfxLabel);
+    return {
+      url: row.url,
+      label: reelDisplayName(row),
+      tags: row.tags,
+      metrics: `${a.shots.length} shots · ${formatSeconds(a.median_shot_ms)} median · ${a.cuts_per_sec.toFixed(2)} cuts/sec`,
+      style: [
+        `Shot types: ${clipMix.join(' · ') || 'mixed'}`,
+        ...captionOutcome([row]),
+        `Overlay presets: ${overlays.join(' · ') || 'none detected'}`,
+        `Motion: ${motion.join(' · ') || 'static/unknown'}`,
+        `SFX: ${a.sfx_per_min.toFixed(1)}/min; ${sfx.join(' · ') || 'no dominant type'}`,
+      ],
+      content: contentExamples([row]).slice(0, 3),
+      structure: structureSequenceItems(a),
+    };
+  });
+}
+
+function editPreviewOutcomes({
+  avgShots,
+  avgMedianShot,
+  dominant,
+  contentChoices,
+  structureChoices,
+  captioned,
+  avgSfx,
+}: {
+  avgShots: number;
+  avgMedianShot: number;
+  dominant: { label: string; pct: string } | null;
+  contentChoices: string[];
+  structureChoices: string[];
+  captioned: number;
+  avgSfx: number;
+}): string[] {
+  const out = [
+    `A ${Math.max(1, Math.round(avgShots))}-shot vertical edit with roughly ${formatSeconds(avgMedianShot)} shots.`,
+  ];
+  if (dominant) {
+    out.push(`Mostly ${dominant.label.toLowerCase()} visuals (${dominant.pct} of style references).`);
+  }
+  out.push(contentChoices[0] ?? 'B-roll ideas will come from the strongest reference source pattern.');
+  const layoutChoice = structureChoices.find((choice) =>
+    /\d+\/\d+|layout|overlay|shot/.test(choice),
+  );
+  if (layoutChoice) out.push(layoutChoice);
+  out.push(
+    captioned > 0
+      ? 'Captions will mirror the detected reference caption style.'
+      : 'Captions will stay minimal unless the edit needs them.',
+  );
+  out.push(
+    avgSfx > 8
+      ? 'Sound design will use frequent hits on cuts and emphasis beats.'
+      : avgSfx > 0
+        ? 'Sound design will use selective hits on important beats.'
+        : 'Sound design will stay minimal.',
+  );
+  return out;
+}
+
+function InspirationAnalysisPanel({
+  library,
+}: {
+  library: LibraryRow[];
+}): React.JSX.Element | null {
+  const ready = library.filter(
+    (r): r is LibraryRow & { analysis: ReelAnalysisResult } =>
+      r.status === 'ready' && !!r.analysis,
+  );
+  if (ready.length === 0) return null;
+
+  const styleRows = ready.filter((r) => r.tags.includes('style_reference'));
+  const contentRows = ready.filter((r) => r.tags.includes('content_reference'));
+  const structureRows = ready.filter((r) =>
+    r.tags.includes('structure_reference'),
+  );
+  const metricsRows = styleRows.length > 0 ? styleRows : ready;
+  const contentSourceRows = contentRows.length > 0 ? contentRows : ready;
+  const dominant = dominantClipType(metricsRows);
+  const avgShots = meanNumber(metricsRows.map((r) => r.analysis.shots.length));
+  const avgMedianShot = meanNumber(
+    metricsRows.map((r) => r.analysis.median_shot_ms),
+  );
+  const avgCuts = meanNumber(metricsRows.map((r) => r.analysis.cuts_per_sec));
+  const avgTalking = meanNumber(metricsRows.map((r) => r.analysis.talking_pct));
+  const avgBroll = meanNumber(metricsRows.map((r) => r.analysis.broll_pct));
+  const avgText = meanNumber(
+    metricsRows.map((r) => r.analysis.text_overlay_pct),
+  );
+  const avgMediaOverlay = meanNumber(
+    metricsRows.map((r) => r.analysis.media_overlay_pct ?? 0),
+  );
+  const avgSfx = meanNumber(metricsRows.map((r) => r.analysis.sfx_per_min ?? 0));
+  const captioned = metricsRows.filter(
+    (r) => r.analysis.caption_style?.present,
+  ).length;
+  const hooks = hookExamples(metricsRows);
+  const shotMix = topDistributionItems(
+    metricsRows,
+    (analysis) => analysis.clip_type_distribution,
+    (kind) => CLIP_META[kind as ClipType]?.label ?? kind.replace(/_/g, ' '),
+  );
+  const overlayMix = topDistributionItems(
+    metricsRows,
+    (analysis) => analysis.overlay_kind_distribution,
+    overlayPresetLabel,
+  );
+  const motionMix = topDistributionItems(
+    metricsRows,
+    (analysis) => analysis.camera_motion_distribution,
+    (kind) => MOTION_META[kind as CameraMotionKind]?.label ?? kind.replace(/_/g, ' '),
+  );
+  const sfxMix = topDistributionItems(
+    metricsRows,
+    (analysis) => analysis.sfx_type_distribution,
+    sfxLabel,
+  );
+  const captionDetails = captionOutcome(metricsRows);
+  const contentDetails = contentExamples(contentSourceRows);
+  const structureDetails = structureShotRecipe(
+    structureRows.length > 0 ? structureRows : ready,
+  );
+  const contentSourceSummary = contentSourceOutcomes(contentSourceRows);
+  const structureSourceRows = structureRows.length > 0 ? structureRows : ready;
+  const layoutSummary = layoutOutcomes(structureSourceRows);
+  const consistentStructure = consistentShotStructureOutcomes(structureSourceRows);
+  const styleChoices = [
+    dominant
+      ? `Use ${dominant.label.toLowerCase()} as the main on-screen format.`
+      : 'Use a mixed on-screen format.',
+    avgCuts >= 0.65
+      ? 'Cut quickly and avoid long holds.'
+      : avgCuts >= 0.35
+        ? 'Use a steady cut rhythm.'
+        : 'Let shots breathe with longer holds.',
+    captioned > 0
+      ? 'Match the detected caption preset and placement.'
+      : 'Do not force burned-in spoken captions.',
+    avgSfx > 8
+      ? 'Use frequent sound hits on cuts and emphasis beats.'
+      : avgSfx > 0
+        ? 'Use selective sound hits, not every cut.'
+        : 'Keep sound design minimal.',
+  ];
+  const contentChoices = [
+    ...contentSourceSummary.choices,
+  ];
+  const structureChoices = [
+    structureRows.length > 0
+      ? `Follow ${structureRows.length} structure-tagged reference${structureRows.length === 1 ? '' : 's'}.`
+      : 'Infer structure from all ready references.',
+    `Target about ${avgShots.toFixed(0)} shots with ${formatSeconds(avgMedianShot)} median shots.`,
+    ...consistentStructure.choices,
+    'Preserve run-level patterns like no-talking sequences, talking-head returns, and CTA endings.',
+  ];
+  const patternReview = [
+    `Source pattern: ${contentSourceSummary.details.slice(0, 2).join(' · ') || 'No dominant content source detected yet.'}`,
+    `Shot structure: ${consistentStructure.choices.slice(0, 2).join(' · ') || 'No single repeated shot layout dominates.'}`,
+    `Layout mix: ${layoutSummary.details.slice(0, 2).join(' · ') || 'No dominant layout detected yet.'}`,
+    `Style mix: ${shotMix.join(' · ') || 'mixed'}; ${captioned}/${metricsRows.length} references use captions; SFX ${avgSfx.toFixed(1)}/min.`,
+  ];
+  const editPreview = editPreviewOutcomes({
+    avgShots,
+    avgMedianShot,
+    dominant,
+    contentChoices,
+    structureChoices,
+    captioned,
+    avgSfx,
+  });
+
+  return (
+    <section className="inspiration-analysis">
+      <div className="ia-head">
+        <div>
+          <div className="eyebrow">After hydration</div>
+          <h2>Edit analysis</h2>
+        </div>
+        <div className="ia-ready">
+          {ready.length}/{library.length} ready
+        </div>
+      </div>
+
+      <div className="ia-grid">
+        <div className="ia-card ia-card-wide">
+          <span>Pacing model</span>
+          <strong>
+            {avgShots.toFixed(1)} shots/reel · {formatSeconds(avgMedianShot)} median
+          </strong>
+          <p>
+            The planner will use this to choose shot count and cut spacing
+            before snapping cuts to your target transcript.
+          </p>
+        </div>
+        <div className="ia-card">
+          <span>Cuts</span>
+          <strong>{avgCuts.toFixed(2)}/sec</strong>
+          <p>{avgCuts >= 0.65 ? 'Fast-cut rhythm' : avgCuts >= 0.35 ? 'Steady rhythm' : 'Slower holds'}</p>
+        </div>
+        <div className="ia-card">
+          <span>Screen mix</span>
+          <strong>{dominant ? `${dominant.label} ${dominant.pct}` : 'Mixed'}</strong>
+          <p>
+            {formatPct(avgTalking)} talking · {formatPct(avgBroll)} b-roll
+          </p>
+        </div>
+        <div className="ia-card">
+          <span>Text + overlays</span>
+          <strong>{formatPct(avgText)} text</strong>
+          <p>{formatPct(avgMediaOverlay)} media overlays</p>
+        </div>
+        <div className="ia-card">
+          <span>Sound design</span>
+          <strong>{avgSfx.toFixed(1)} SFX/min</strong>
+          <p>{captioned}/{metricsRows.length} reels with caption style</p>
+        </div>
+      </div>
+
+      {hooks.length > 0 && (
+        <div className="ia-hooks">
+          <span>Hook examples</span>
+          {hooks.map((hook) => (
+            <q key={hook}>{hook}</q>
+          ))}
+        </div>
+      )}
+
+      <div className="ia-outcomes">
+        <div className="ia-outcome">
+          <b>Style outcome</b>
+          <ul>
+            {styleChoices.map((choice) => (
+              <li key={choice}>{choice}</li>
+            ))}
+          </ul>
+          <details className="ia-readmore">
+            <summary>Read more</summary>
+            <ul>
+              <li>Shot types: {shotMix.join(' · ') || 'mixed'}</li>
+              {captionDetails.map((detail) => (
+                <li key={detail}>{detail}</li>
+              ))}
+              <li>Overlay presets: {overlayMix.join(' · ') || 'none detected'}</li>
+              <li>Motion: {motionMix.join(' · ') || 'static/unknown'}</li>
+              <li>SFX: {avgSfx.toFixed(1)}/min; {sfxMix.join(' · ') || 'no dominant type'}</li>
+            </ul>
+          </details>
+        </div>
+        <div className="ia-outcome">
+          <b>Content outcome</b>
+          <ul>
+            {contentChoices.map((choice) => (
+              <li key={choice}>{choice}</li>
+            ))}
+          </ul>
+          <details className="ia-readmore">
+            <summary>Read more</summary>
+            <ul>
+              <li>
+                Sources: {contentSourceRows.slice(0, 3).map((r) => reelDisplayName(r)).join(', ')}.
+              </li>
+              {contentSourceSummary.details.map((detail) => (
+                <li key={detail}>{detail}</li>
+              ))}
+              {contentDetails.map((detail) => (
+                <li key={detail}>{detail}</li>
+              ))}
+            </ul>
+          </details>
+        </div>
+        <div className="ia-outcome">
+          <b>Structure outcome</b>
+          <ul>
+            {structureChoices.map((choice) => (
+              <li key={choice}>{choice}</li>
+            ))}
+          </ul>
+          <details className="ia-readmore">
+            <summary>Read more</summary>
+            <ul>
+              <li>
+                Source: {structureRows.length > 0
+                  ? `${structureRows.length} structure-tagged reel${structureRows.length === 1 ? '' : 's'}`
+                  : 'ready reels fallback'}
+              </li>
+              <li>
+                Pacing: {avgShots.toFixed(1)} shots/reel, {formatSeconds(avgMedianShot)} median shot, {avgCuts.toFixed(2)} cuts/sec.
+              </li>
+              {consistentStructure.details.map((detail) => (
+                <li key={detail}>{detail}</li>
+              ))}
+              {layoutSummary.details.map((detail) => (
+                <li key={detail}>{detail}</li>
+              ))}
+              {structureDetails.map((detail) => (
+                <li key={detail}>{detail}</li>
+              ))}
+            </ul>
+          </details>
+        </div>
+      </div>
+
+      <div className="ia-pattern-review">
+        <div className="ia-section-title">
+          <span>Overall pattern review</span>
+          <small>Collection-level patterns the planner will carry into the edit.</small>
+        </div>
+        <div className="ia-review-grid">
+          <div className="ia-review-card">
+            <b>Patterns found</b>
+            <ul>
+              {patternReview.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          </div>
+          <div className="ia-review-card">
+            <b>What the edit will show</b>
+            <ul>
+              {editPreview.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          </div>
+        </div>
+        <details className="ia-all-reels">
+          <summary>Read more</summary>
+          <ul>
+            {consistentStructure.details.map((detail) => (
+              <li key={detail}>{detail}</li>
+            ))}
+            {contentSourceSummary.details.map((detail) => (
+              <li key={detail}>{detail}</li>
+            ))}
+            {layoutSummary.details.map((detail) => (
+              <li key={detail}>{detail}</li>
+            ))}
+            {structureDetails.map((detail) => (
+              <li key={detail}>{detail}</li>
+            ))}
+          </ul>
+        </details>
+      </div>
+    </section>
+  );
+}
+
+function targetFromPlanMeta(meta: PlanListEntry | null | undefined): TargetInput | null {
+  if (!meta) return null;
+  if (meta.target_kind === 'reel_url' && meta.target_label.trim()) {
+    return { kind: 'reel_url', url: meta.target_label.trim() };
+  }
+  if (
+    meta.target_kind === 'local_video' &&
+    meta.target_file_path &&
+    meta.target_file_path.trim()
+  ) {
+    return { kind: 'local_video', filePath: meta.target_file_path };
+  }
+  return null;
+}
+
+function targetFromExistingPlan(plan: SuggestedEdit | null): TargetInput | null {
+  const text = plan?.shots
+    .map((shot) => shot.spoken_during.trim())
+    .filter(Boolean)
+    .join(' ');
+  return text ? { kind: 'script', text } : null;
+}
 
 interface WorkflowViewProps {
   stage: Stage;
@@ -366,11 +1920,19 @@ interface WorkflowViewProps {
 }
 
 /** Shared context for the inner timeline so the plan top bar's
- *  "Find media for all" + "Preview reel" buttons can reach the
+ *  "Curate library" + "Preview reel" buttons can reach the
  *  curate handler from the parent workflow. */
 interface PlanTopActions {
-  onCurateAll: () => void;
+  onCurateAll: (force?: boolean, userPrompt?: string) => Promise<void>;
+  onFilterExistingScreenshots: () => Promise<void>;
+  onRegeneratePlan: (details: string) => Promise<void>;
+  onRegenerateShotIdea: (shotIdx: number, details: string) => Promise<void>;
+  onRegenerateAllShotIdeas: (details: string) => Promise<void>;
+  /** Cancel the in-flight bulk library curation. */
+  onStop: () => void;
   curating: boolean;
+  regeneratingPlan: boolean;
+  canRegeneratePlan: boolean;
   curatingProgress?: { completed: number; total: number };
   onPreview: () => void;
 }
@@ -401,12 +1963,189 @@ interface AgentActivity {
   ) => Promise<void>;
 }
 
+type ProjectStatusKind =
+  | 'empty'
+  | 'ready'
+  | 'planning'
+  | 'planned'
+  | 'agent'
+  | 'needs_input'
+  | 'done'
+  | 'error';
+
+interface ProjectStatus {
+  kind: ProjectStatusKind;
+  label: string;
+}
+
+interface WorkflowProject {
+  id: string;
+  title: string;
+  createdAt: number;
+  targetMode: TargetMode;
+  targetUrl: string;
+  targetScript: string;
+  targetFile: string | null;
+  targetVideoUrl: string | null;
+  targetPreviewVideoPath: string | null;
+  planTarget: TargetInput | null;
+  plan: SuggestedEdit | null;
+  curation: CurationResult | null;
+  progress: { completed: number; total: number; latest?: ShotCuration } | null;
+  synthProgress: SynthesizeProgress | null;
+  turnsByShot: Map<number, CuratorTurnEvent[]>;
+  expandedShots: Set<number>;
+  pendingClarifications: Map<number, CuratorClarificationRequest>;
+  clarificationTyping: Map<string, string>;
+  status: ProjectStatus;
+}
+
+function blankProject(title = 'Untitled reel'): WorkflowProject {
+  return {
+    id: crypto.randomUUID(),
+    title,
+    createdAt: Date.now(),
+    targetMode: 'local_video',
+    targetUrl: '',
+    targetScript: '',
+    targetFile: null,
+    targetVideoUrl: null,
+    targetPreviewVideoPath: null,
+    planTarget: null,
+    plan: null,
+    curation: null,
+    progress: null,
+    synthProgress: null,
+    turnsByShot: new Map(),
+    expandedShots: new Set(),
+    pendingClarifications: new Map(),
+    clarificationTyping: new Map(),
+    status: { kind: 'empty', label: 'No target' },
+  };
+}
+
+function projectFromFile(filePath: string): WorkflowProject {
+  const p = blankProject(topicFromPath(filePath));
+  return {
+    ...p,
+    targetFile: filePath,
+    status: { kind: 'ready', label: 'Ready to plan' },
+  };
+}
+
+function topicFromPath(filePath: string): string {
+  const base = filePath.split(/[\\/]/).pop() ?? 'Untitled reel';
+  return base
+    .replace(/\.[^.]+$/, '')
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 44) || 'Untitled reel';
+}
+
+function topicFromPlan(plan: SuggestedEdit | null, fallback: string): string {
+  const text =
+    plan?.structure_sections?.[0]?.target_fill ||
+    plan?.shots
+      ?.map((shot) => shot.spoken_during)
+      .join(' ')
+      .trim() ||
+    fallback;
+  return topicFromText(text, fallback);
+}
+
+function topicFromText(text: string, fallback: string): string {
+  const cleaned = text
+    .replace(/https?:\/\/\S+/g, '')
+    .replace(/[^\w\s'$-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!cleaned) return fallback;
+  const stop = new Set([
+    'the',
+    'a',
+    'an',
+    'and',
+    'or',
+    'but',
+    'to',
+    'of',
+    'in',
+    'on',
+    'for',
+    'with',
+    'this',
+    'that',
+    'is',
+    'are',
+    'was',
+    'were',
+    'you',
+    'your',
+    'we',
+    'our',
+    'i',
+  ]);
+  const words = cleaned
+    .split(' ')
+    .filter((word) => word.length > 2 && !stop.has(word.toLowerCase()))
+    .slice(0, 5);
+  return (words.length ? words : cleaned.split(' ').slice(0, 5)).join(' ');
+}
+
+function computeProjectStatus(input: {
+  busy: Busy;
+  targetReady: boolean;
+  plan: SuggestedEdit | null;
+  curation: CurationResult | null;
+  progress: { completed: number; total: number; latest?: ShotCuration } | null;
+  pendingClarifications: Map<number, CuratorClarificationRequest>;
+  error: string | null;
+}): ProjectStatus {
+  if (input.pendingClarifications.size > 0) {
+    return { kind: 'needs_input', label: 'Task needed' };
+  }
+  if (input.busy === 'curating') {
+    const suffix = input.progress
+      ? ` ${input.progress.completed}/${input.progress.total}`
+      : '';
+    return { kind: 'agent', label: `Agent running${suffix}` };
+  }
+  if (input.busy === 'synthesizing') {
+    return { kind: 'planning', label: 'Planning' };
+  }
+  if (input.busy === 'batch_synthesizing') {
+    return { kind: 'planning', label: 'Batch planning' };
+  }
+  if (input.error) {
+    return { kind: 'error', label: 'Needs attention' };
+  }
+  if (input.curation) {
+    return { kind: 'done', label: 'Curated' };
+  }
+  if (input.plan) {
+    return { kind: 'planned', label: 'Plan ready' };
+  }
+  if (input.targetReady) {
+    return { kind: 'ready', label: 'Ready to plan' };
+  }
+  return { kind: 'empty', label: 'No target' };
+}
+
 function WorkflowView({
   stage,
   setStage,
   setStageDone,
 }: WorkflowViewProps): React.JSX.Element {
   const [library, setLibrary] = useState<LibraryRow[]>([]);
+  // Named collections of inspiration reels. `library` always reflects the
+  // ACTIVE collection's reels; switching swaps the list. Each collection
+  // is fingerprinted independently when you synthesize.
+  const [collections, setCollections] = useState<Collection[]>([]);
+  const [activeCollectionId, setActiveCollectionId] = useState<string | null>(
+    null,
+  );
+  const [renameDraft, setRenameDraft] = useState('');
   const [draftUrl, setDraftUrl] = useState('');
   const [draftTags, setDraftTags] = useState<ReelTag[]>(['content_reference']);
 
@@ -414,11 +2153,19 @@ function WorkflowView({
   const [targetUrl, setTargetUrl] = useState('');
   const [targetScript, setTargetScript] = useState('');
   const [targetFile, setTargetFile] = useState<string | null>(null);
+  const [targetVideoUrl, setTargetVideoUrl] = useState<string | null>(null);
+  const [targetPreviewVideoPath, setTargetPreviewVideoPath] = useState<string | null>(null);
+  const [planTarget, setPlanTarget] = useState<TargetInput | null>(null);
   const [allowCopyrightedMedia, setAllowCopyrightedMedia] = useState(false);
   const [userInstructions, setUserInstructions] = useState('');
 
   const [plan, setPlan] = useState<SuggestedEdit | null>(null);
   const [curation, setCuration] = useState<CurationResult | null>(null);
+  // Media the user pasted into the app (clipboard image/video). Global,
+  // persisted in main; surfaced in every plan's media library.
+  const [pastedMedia, setPastedMedia] = useState<PastedMediaEntry[]>([]);
+  // Brief confirmation banner after a paste lands.
+  const [pasteToast, setPasteToast] = useState<string | null>(null);
   const [progress, setProgress] = useState<{
     completed: number;
     total: number;
@@ -427,6 +2174,11 @@ function WorkflowView({
   const [synthProgress, setSynthProgress] = useState<SynthesizeProgress | null>(
     null,
   );
+  const [batchProgress, setBatchProgress] = useState<{
+    current: number;
+    total: number;
+    title: string;
+  } | null>(null);
   /** Full turn history per shot. The agent emits twice per turn (pre +
    *  post tool execution, same turn number) — we de-dup by `turn` so
    *  the post-emission overwrites the pre-emission. Anything with a
@@ -457,14 +2209,125 @@ function WorkflowView({
   const [busy, setBusy] = useState<Busy>(null);
   const [error, setError] = useState<string | null>(null);
   const [pastPlans, setPastPlans] = useState<PlanListEntry[]>([]);
+  const [remixProfiles, setRemixProfiles] = useState<RemixProfile[]>([]);
+  const [selectedRemixProfileId, setSelectedRemixProfileId] = useState('');
+  const selectedRemixProfile =
+    remixProfiles.find((p) => p.id === selectedRemixProfileId) ?? null;
+  const currentPlanProfile = plan?.reel_id
+    ? remixProfiles.find((p) => p.reel_id === plan.reel_id)
+    : null;
+  const [projects, setProjects] = useState<WorkflowProject[]>(() => {
+    const p = blankProject('Untitled reel');
+    return [p];
+  });
+  const [activeProjectId, setActiveProjectId] = useState<string>(() => projects[0].id);
 
-  // Subscribe to curate progress events.
+  // Subscribe to curate progress events. Each completed shot is
+  // upserted into the curation state immediately so its clips render
+  // without waiting for the whole bulk run to resolve.
   useEffect(() => {
     const unsubscribe = window.api.onCurateProgress(
       ({ curation: c, completed, total }) => {
         setProgress({ completed, total, latest: c });
+        setCuration((prev) => upsertShotCuration(prev, c));
       },
     );
+    return unsubscribe;
+  }, []);
+
+  // Load previously-pasted media on mount.
+  useEffect(() => {
+    if (typeof window.api?.listPastedMedia !== 'function') return;
+    window.api
+      .listPastedMedia()
+      .then((items) => setPastedMedia(items))
+      .catch(() => {
+        /* best-effort */
+      });
+  }, []);
+
+  // Paste-to-add: any image/video on the clipboard is saved and added
+  // to the media library automatically. Ignores pastes while typing in a
+  // text field (so Cmd+V into a prompt box still works normally).
+  useEffect(() => {
+    if (typeof window.api?.savePastedMedia !== 'function') return;
+    const onPaste = async (e: ClipboardEvent): Promise<void> => {
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+      const items = Array.from(e.clipboardData?.items ?? []);
+      const mediaItems = items.filter(
+        (it) =>
+          it.kind === 'file' &&
+          (it.type.startsWith('image/') || it.type.startsWith('video/')),
+      );
+      if (mediaItems.length === 0) return;
+      e.preventDefault();
+      let added = 0;
+      for (const it of mediaItems) {
+        const file = it.getAsFile();
+        if (!file) continue;
+        try {
+          const buf = await file.arrayBuffer();
+          let binary = '';
+          const bytes = new Uint8Array(buf);
+          for (let i = 0; i < bytes.length; i++) {
+            binary += String.fromCharCode(bytes[i]);
+          }
+          const data = btoa(binary);
+          const res = await window.api.savePastedMedia({
+            data,
+            mime: file.type,
+            name: file.name || null,
+          });
+          if ('entry' in res) {
+            setPastedMedia((prev) =>
+              prev.some((p) => p.id === res.entry.id)
+                ? prev
+                : [res.entry, ...prev],
+            );
+            added++;
+          } else {
+            setError(res.error);
+          }
+        } catch (err) {
+          setError(err instanceof Error ? err.message : String(err));
+        }
+      }
+      if (added > 0) {
+        setPasteToast(
+          `Added ${added} pasted ${added === 1 ? 'item' : 'items'} to your media library.`,
+        );
+      }
+    };
+    window.addEventListener('paste', onPaste);
+    return () => window.removeEventListener('paste', onPaste);
+  }, []);
+
+  // Auto-dismiss the paste confirmation toast.
+  useEffect(() => {
+    if (!pasteToast) return;
+    const t = window.setTimeout(() => setPasteToast(null), 3200);
+    return () => window.clearTimeout(t);
+  }, [pasteToast]);
+
+  // Subscribe to streaming per-shot partials: candidates appear as
+  // soon as a shot's research lands, and each candidate's footage
+  // (recording / screenshots) fills in as its capture finishes.
+  // Guarded for stale preload bundles that predate the channel.
+  useEffect(() => {
+    if (typeof window.api?.onCurateShotPartial !== 'function') {
+      return undefined;
+    }
+    const unsubscribe = window.api.onCurateShotPartial(({ curation: c }) => {
+      setCuration((prev) => upsertShotCuration(prev, c));
+    });
     return unsubscribe;
   }, []);
 
@@ -489,6 +2352,18 @@ function WorkflowView({
     refreshPastPlans();
   }, [refreshPastPlans]);
 
+  const refreshRemixProfiles = React.useCallback(async (): Promise<void> => {
+    try {
+      const profiles = await window.api.listRemixProfiles();
+      setRemixProfiles(profiles);
+    } catch {
+      /* listing is best-effort */
+    }
+  }, []);
+  useEffect(() => {
+    refreshRemixProfiles();
+  }, [refreshRemixProfiles]);
+
   const loadPastPlan = async (key: string): Promise<void> => {
     if (!key) return;
     setError(null);
@@ -509,7 +2384,34 @@ function WorkflowView({
       setProgress(null);
       setSynthProgress(null);
       setBusy(null);
-      setPlan(loaded.plan);
+      const planWithId: SuggestedEdit = loaded.plan.reel_id
+        ? loaded.plan
+        : { ...loaded.plan, reel_id: crypto.randomUUID() };
+      setPlan(planWithId);
+      if (!loaded.plan.reel_id) {
+        void window.api.savePlan(planWithId);
+      }
+      setPlanTarget(targetFromPlanMeta(loaded.meta));
+      // Restore the local target video so reel-mode narration audio + export
+      // have an audio bed. Prefer the original source file recorded in meta;
+      // setting targetFile re-prepares the preview video (cached/idempotent)
+      // and re-resolves targetVideoUrl. Plans without a local target
+      // (reel_url / script, or older plans missing the path) stay silent.
+      if (
+        loaded.meta?.target_kind === 'local_video' &&
+        loaded.meta.target_file_path
+      ) {
+        setTargetPreviewVideoPath(null);
+        setTargetFile(loaded.meta.target_file_path);
+      } else {
+        setTargetFile(null);
+        setTargetVideoUrl(null);
+        setTargetPreviewVideoPath(planWithId.target_video_path ?? null);
+      }
+      if (loaded.meta) {
+        setAllowCopyrightedMedia(loaded.meta.allow_copyrighted);
+        setUserInstructions(loaded.meta.user_instructions);
+      }
       // Restore companion curation when one exists for this plan.
       // The curation cache is content-keyed off plan.shots, so if the
       // plan hasn't been edited since curation was saved, this is the
@@ -598,55 +2500,108 @@ function WorkflowView({
     [],
   );
 
-  // On mount: load the persisted library list, then for each URL try
-  // its cached analysis. Cache hits show as 'ready' without forcing a
-  // re-analyze on app launch; misses stay 'pending' until the user
-  // clicks Hydrate.
-  const initialLoadDone = React.useRef(false);
-  useEffect(() => {
-    if (initialLoadDone.current) return;
-    initialLoadDone.current = true;
-    (async () => {
-      const persisted = await window.api.loadLibrary();
-      if (persisted.length === 0) return;
-      const rows: LibraryRow[] = persisted.map((r) => ({
+  // Load a collection's reels into `library` as pending rows, then fill
+  // cached analyses (fast disk read; cache hits show 'ready' without
+  // re-analyzing). Shared by initial load and collection switching.
+  const applyCollectionReels = React.useCallback(
+    async (reels: { url: string; tags: ReelTag[] }[]) => {
+      const rows: LibraryRow[] = reels.map((r) => ({
         url: r.url,
         tags: r.tags,
         status: 'pending',
       }));
       setLibrary(rows);
-      // Fill in cached analyses (fast — disk read only).
       const updates = await Promise.all(
-        persisted.map(async (r) => {
-          const analysis = await window.api.loadCachedAnalysis(r.url);
-          return { url: r.url, analysis };
-        }),
+        reels.map(async (r) => ({
+          url: r.url,
+          analysis: await window.api.loadCachedAnalysis(r.url),
+        })),
       );
       setLibrary((prev) =>
         prev.map((row) => {
           const u = updates.find((x) => x.url === row.url);
-          if (u && u.analysis) {
-            return {
-              ...row,
-              status: 'ready',
-              from_cache: true,
-              analysis: u.analysis,
-            };
-          }
-          return row;
+          return u && u.analysis
+            ? { ...row, status: 'ready', from_cache: true, analysis: u.analysis }
+            : row;
         }),
       );
-    })();
-  }, []);
+    },
+    [],
+  );
 
-  // Auto-save library (URLs + tags) whenever it changes.
+  // On mount: load collections (migrates the legacy flat library on first
+  // run), activate the first, and load its reels.
+  const initialLoadDone = React.useRef(false);
   useEffect(() => {
-    if (!initialLoadDone.current) return;
+    if (initialLoadDone.current) return;
+    initialLoadDone.current = true;
+    (async () => {
+      const cols = await window.api.listCollections();
+      setCollections(cols);
+      const active = cols[0] ?? null;
+      if (active) {
+        setActiveCollectionId(active.id);
+        setRenameDraft(active.name);
+        await applyCollectionReels(active.reels);
+      }
+    })();
+  }, [applyCollectionReels]);
+
+  // Auto-save the active collection's reels (URLs + tags) on change.
+  // Mirror the same slim list into `collections` so switching away and
+  // back restores this session's edits instead of the at-launch snapshot
+  // (which the auto-save would then persist, deleting reels added since).
+  useEffect(() => {
+    if (!initialLoadDone.current || !activeCollectionId) return;
     const slim = library.map((r) => ({ url: r.url, tags: r.tags }));
-    window.api.saveLibrary(slim).catch(() => {
+    setCollections((prev) =>
+      prev.map((c) => (c.id === activeCollectionId ? { ...c, reels: slim } : c)),
+    );
+    window.api.saveCollectionReels(activeCollectionId, slim).catch(() => {
       /* best-effort; surface error elsewhere if it matters */
     });
-  }, [library]);
+  }, [library, activeCollectionId]);
+
+  // Switch the active collection — persist nothing here (the active
+  // collection was already auto-saved); just load the target's reels.
+  const switchCollection = (id: string): void => {
+    if (id === activeCollectionId) return;
+    const col = collections.find((c) => c.id === id);
+    if (!col) return;
+    setActiveCollectionId(id);
+    setRenameDraft(col.name);
+    void applyCollectionReels(col.reels);
+  };
+
+  const createCollectionHandler = async (): Promise<void> => {
+    const col = await window.api.createCollection('New collection');
+    setCollections((prev) => [...prev, col]);
+    setActiveCollectionId(col.id);
+    setRenameDraft(col.name);
+    void applyCollectionReels(col.reels);
+  };
+
+  const commitRename = (): void => {
+    if (!activeCollectionId) return;
+    const name = renameDraft.trim();
+    if (!name) return;
+    setCollections((prev) =>
+      prev.map((c) => (c.id === activeCollectionId ? { ...c, name } : c)),
+    );
+    void window.api.renameCollection(activeCollectionId, name);
+  };
+
+  const deleteCollectionHandler = async (): Promise<void> => {
+    if (!activeCollectionId || collections.length <= 1) return;
+    const next = await window.api.deleteCollection(activeCollectionId);
+    setCollections(next);
+    const active = next[0] ?? null;
+    if (active) {
+      setActiveCollectionId(active.id);
+      setRenameDraft(active.name);
+      void applyCollectionReels(active.reels);
+    }
+  };
 
   const addReel = (): void => {
     const url = draftUrl.trim();
@@ -702,6 +2657,7 @@ function WorkflowView({
                       ...r,
                       status: 'ready',
                       from_cache: result.from_cache,
+                      caption_text: result.caption_text ?? r.caption_text ?? null,
                       analysis: result.analysis,
                     }
                 : r,
@@ -728,6 +2684,97 @@ function WorkflowView({
     setBusy(null);
   };
 
+  // Re-run the analyzer for a single library reel, bypassing the on-disk
+  // cache (force=true). Lets users refresh one reel to pick up analyzer
+  // changes — e.g. the subtitle-style detection — without re-hydrating the
+  // whole library or bumping ANALYSIS_VERSION.
+  const reanalyzeReel = async (url: string): Promise<void> => {
+    setError(null);
+    setLibrary((prev) =>
+      prev.map((r) => (r.url === url ? { ...r, status: 'hydrating' } : r)),
+    );
+    try {
+      const result = await window.api.hydrateLibraryReel(url, true);
+      setLibrary((prev) =>
+        prev.map((r) =>
+          r.url === url
+            ? 'error' in result
+              ? { ...r, status: 'error', error: result.error }
+              : {
+                  ...r,
+                  status: 'ready',
+                  from_cache: result.from_cache,
+                  caption_text: result.caption_text ?? r.caption_text ?? null,
+                  analysis: result.analysis,
+                }
+            : r,
+        ),
+      );
+    } catch (e) {
+      setLibrary((prev) =>
+        prev.map((r) =>
+          r.url === url
+            ? {
+                ...r,
+                status: 'error',
+                error: e instanceof Error ? e.message : String(e),
+              }
+            : r,
+        ),
+      );
+    }
+  };
+
+  const reanalyzeAllReels = async (): Promise<void> => {
+    setBusy('hydrating');
+    setError(null);
+    const urls = library.map((r) => r.url);
+    setLibrary((prev) =>
+      prev.map((r) => ({ ...r, status: 'hydrating', error: undefined })),
+    );
+    const CONCURRENCY = 2;
+    let next = 0;
+    const worker = async (): Promise<void> => {
+      while (next < urls.length) {
+        const url = urls[next++];
+        try {
+          const result = await window.api.hydrateLibraryReel(url, true);
+          setLibrary((prev) =>
+            prev.map((r) =>
+              r.url === url
+                ? 'error' in result
+                  ? { ...r, status: 'error', error: result.error }
+                  : {
+                      ...r,
+                      status: 'ready',
+                      from_cache: result.from_cache,
+                      caption_text: result.caption_text ?? r.caption_text ?? null,
+                      analysis: result.analysis,
+                    }
+                : r,
+            ),
+          );
+        } catch (e) {
+          setLibrary((prev) =>
+            prev.map((r) =>
+              r.url === url
+                ? {
+                    ...r,
+                    status: 'error',
+                    error: e instanceof Error ? e.message : String(e),
+                  }
+                : r,
+            ),
+          );
+        }
+      }
+    };
+    await Promise.all(
+      Array.from({ length: Math.min(CONCURRENCY, urls.length) }, worker),
+    );
+    setBusy(null);
+  };
+
   const buildTarget = (): TargetInput | string => {
     if (targetMode === 'reel_url') {
       const url = targetUrl.trim();
@@ -743,7 +2790,31 @@ function WorkflowView({
     return { kind: 'local_video', filePath: targetFile };
   };
 
-  const buildPlan = async (): Promise<void> => {
+  /** Append a user prompt to the persistent per-reel log. Best-effort. */
+  const recordPrompt = (
+    source: string,
+    text: string,
+    shotIdx?: number | null,
+    reelIdOverride?: string,
+  ): void => {
+    const reel_id = reelIdOverride ?? plan?.reel_id;
+    if (!reel_id || !text || !text.trim()) return;
+    void window.api.recordPrompt({
+      at: Date.now(),
+      reel_id,
+      source,
+      text: text.trim(),
+      shot_idx: shotIdx ?? null,
+    });
+  };
+
+  const buildPlan = async (opts?: {
+    userInstructionsOverride?: string;
+    keepExistingPlan?: boolean;
+    targetOverride?: TargetInput;
+    reuseLastTarget?: boolean;
+    remixProfile?: RemixProfile | null;
+  }): Promise<void> => {
     const ready = library.filter(
       (r): r is LibraryRow & { analysis: ReelAnalysisResult } =>
         r.status === 'ready' && !!r.analysis,
@@ -752,16 +2823,35 @@ function WorkflowView({
       setError('Hydrate the library first.');
       return;
     }
-    const target = buildTarget();
+    const target =
+      opts?.targetOverride ??
+      (opts?.reuseLastTarget ? undefined : buildTarget());
     if (typeof target === 'string') {
       setError(target);
       return;
     }
     setBusy('synthesizing');
-    setPlan(null);
+    if (!opts?.keepExistingPlan) setPlan(null);
     setCuration(null);
     setError(null);
     setSynthProgress(null);
+    const remixProfile = opts?.remixProfile ?? selectedRemixProfile;
+    const baseUserInstructions =
+      opts?.userInstructionsOverride ?? userInstructions;
+    const effectiveUserInstructions = [
+      baseUserInstructions.trim(),
+      remixProfile
+        ? [
+            `Use remix profile "${remixProfile.name}".`,
+            remixProfile.preference_instructions,
+          ].join('\n')
+        : '',
+    ]
+      .filter(Boolean)
+      .join('\n\n');
+    // Stable reel id: reuse on regeneration, mint on a fresh synthesis.
+    const reelId =
+      (opts?.keepExistingPlan && plan?.reel_id) || crypto.randomUUID();
     try {
       const synth = await window.api.synthesizePlan({
         library: ready.map((r) => ({
@@ -771,9 +2861,35 @@ function WorkflowView({
         })),
         target,
         allowCopyrightedMedia,
-        userInstructions,
+        userInstructions: effectiveUserInstructions,
+        reuseLastTarget: opts?.reuseLastTarget,
       });
-      setPlan(synth);
+      setPlan(
+        (target?.kind ?? targetMode) === 'local_video'
+          ? {
+              ...synth,
+              reel_id: reelId,
+              target_video_path:
+                targetPreviewVideoPath ?? synth.target_video_path ?? targetFile,
+            }
+          : { ...synth, reel_id: reelId },
+      );
+      if (target) setPlanTarget(target);
+      // Log the synthesis inputs against this reel (instructions + target).
+      const targetDesc =
+        typeof target === 'object' && target
+          ? ((target as { url?: string; path?: string }).url ??
+            (target as { url?: string; path?: string }).path ??
+            target.kind)
+          : 'reused target';
+      recordPrompt(
+        'synthesis',
+        `[${targetDesc}] ${baseUserInstructions || '(default)'}${
+          remixProfile ? `\n\n[remix_profile] ${remixProfile.name}` : ''
+        }`,
+        null,
+        reelId,
+      );
       refreshPastPlans();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -782,14 +2898,256 @@ function WorkflowView({
     }
   };
 
+  const batchBuildPlans = async (): Promise<void> => {
+    const ready = library.filter(
+      (r): r is LibraryRow & { analysis: ReelAnalysisResult } =>
+        r.status === 'ready' && !!r.analysis,
+    );
+    if (ready.length === 0) {
+      setError('Hydrate the inspiration library first.');
+      return;
+    }
+    const activeSnapshot: WorkflowProject = {
+      ...(projects.find((p) => p.id === activeProjectId) ?? blankProject()),
+      targetMode,
+      targetUrl,
+      targetScript,
+      targetFile,
+      targetVideoUrl,
+      targetPreviewVideoPath,
+      planTarget,
+      plan,
+      curation,
+      progress,
+      synthProgress,
+      turnsByShot,
+      expandedShots,
+      pendingClarifications,
+      clarificationTyping,
+      status: activeProjectStatus,
+    };
+    const queue = projects
+      .map((project) => (project.id === activeProjectId ? activeSnapshot : project))
+      .filter(
+        (project) =>
+          project.targetMode === 'local_video' &&
+          !!project.targetFile &&
+          !project.plan,
+      );
+    if (queue.length === 0) {
+      setError('No uploaded videos need an edit plan.');
+      return;
+    }
+    const remixProfile = selectedRemixProfile;
+    const effectiveUserInstructions = [
+      userInstructions.trim(),
+      remixProfile
+        ? [
+            `Use remix profile "${remixProfile.name}".`,
+            remixProfile.preference_instructions,
+          ].join('\n')
+        : '',
+    ]
+      .filter(Boolean)
+      .join('\n\n');
+    setBusy('batch_synthesizing');
+    setError(null);
+    setSynthProgress(null);
+    try {
+      for (let i = 0; i < queue.length; i++) {
+        const project = queue[i];
+        if (!project.targetFile) continue;
+        setBatchProgress({
+          current: i + 1,
+          total: queue.length,
+          title: project.title,
+        });
+        setProjects((prev) =>
+          prev.map((p) =>
+            p.id === project.id
+              ? { ...p, status: { kind: 'planning', label: 'Planning' } }
+              : p,
+          ),
+        );
+        const target: TargetInput = {
+          kind: 'local_video',
+          filePath: project.targetFile,
+        };
+        const reelId = project.plan?.reel_id ?? crypto.randomUUID();
+        try {
+          const synth = await window.api.synthesizePlan({
+            library: ready.map((r) => ({
+              url: r.url,
+              tags: r.tags,
+              analysis: r.analysis,
+            })),
+            target,
+            allowCopyrightedMedia,
+            userInstructions: effectiveUserInstructions,
+          });
+          const nextPlan: SuggestedEdit = {
+            ...synth,
+            reel_id: reelId,
+            target_video_path:
+              project.targetPreviewVideoPath ??
+              synth.target_video_path ??
+              project.targetFile,
+          };
+          const nextTitle = topicFromPlan(nextPlan, project.title);
+          setProjects((prev) =>
+            prev.map((p) =>
+              p.id === project.id
+                ? {
+                    ...p,
+                    title: nextTitle,
+                    planTarget: target,
+                    plan: nextPlan,
+                    curation: null,
+                    progress: null,
+                    synthProgress: null,
+                    status: { kind: 'planned', label: 'Plan ready' },
+                  }
+                : p,
+            ),
+          );
+          if (project.id === activeProjectId) {
+            setPlanTarget(target);
+            setPlan(nextPlan);
+            setCuration(null);
+            setProgress(null);
+            setStage('plan');
+          }
+          void window.api.recordPrompt({
+            at: Date.now(),
+            reel_id: reelId,
+            source: 'batch_synthesis',
+            text: `[${project.targetFile}] ${userInstructions || '(default)'}${
+              remixProfile ? `\n\n[remix_profile] ${remixProfile.name}` : ''
+            }`,
+            shot_idx: null,
+          });
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : String(e);
+          setProjects((prev) =>
+            prev.map((p) =>
+              p.id === project.id
+                ? { ...p, status: { kind: 'error', label: 'Needs attention' } }
+                : p,
+            ),
+          );
+          if (project.id === activeProjectId) setError(msg);
+        }
+      }
+      await refreshPastPlans();
+      setPasteToast(`Built edit plans for ${queue.length} uploaded videos.`);
+    } finally {
+      setBusy(null);
+      setBatchProgress(null);
+    }
+  };
+
+  const regeneratePlan = async (details: string): Promise<void> => {
+    const trimmed = details.trim();
+    if (!trimmed) {
+      setError('Add a few details before regenerating the plan.');
+      return;
+    }
+    recordPrompt('regenerate_plan', trimmed);
+    const nextInstructions = [
+      userInstructions.trim(),
+      `Plan regeneration request: ${trimmed}`,
+    ]
+      .filter(Boolean)
+      .join('\n\n');
+    setUserInstructions(nextInstructions);
+    const fallbackTarget = planTarget ?? targetFromExistingPlan(plan);
+    await buildPlan({
+      userInstructionsOverride: nextInstructions,
+      keepExistingPlan: true,
+      targetOverride: fallbackTarget ?? undefined,
+      reuseLastTarget: !fallbackTarget,
+    });
+  };
+
+  const saveCurrentRemixProfile = async (): Promise<void> => {
+    if (!plan) {
+      setError('Build a plan before saving a remix profile.');
+      return;
+    }
+    setError(null);
+    try {
+      if (typeof window.api.saveRemixProfile !== 'function') {
+        setError('Remix profile API is not loaded. Restart the desktop app and try again.');
+        return;
+      }
+      const planWithId = plan.reel_id
+        ? plan
+        : { ...plan, reel_id: crypto.randomUUID() };
+      if (!plan.reel_id) {
+        setPlan(planWithId);
+        void window.api.savePlan(planWithId);
+      }
+      const result = await window.api.saveRemixProfile({ plan: planWithId });
+      if ('error' in result) {
+        setError(result.error);
+        return;
+      }
+      setRemixProfiles((prev) => [
+        result,
+        ...prev.filter((p) => p.id !== result.id),
+      ]);
+      setSelectedRemixProfileId(result.id);
+      setPasteToast(`Saved remix profile "${result.name}".`);
+      recordPrompt('save_remix_profile', `Saved remix profile "${result.name}".`);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  };
+
   const pickFile = async (): Promise<void> => {
     const filePath = await window.api.pickVideoFile();
     if (filePath) setTargetFile(filePath);
   };
 
-  const approveCurate = async (): Promise<void> => {
+  const pickBatchFiles = async (): Promise<void> => {
+    const files =
+      typeof window.api.pickVideoFiles === 'function'
+        ? await window.api.pickVideoFiles()
+        : [];
+    addProjectsFromFiles(files);
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!targetFile) {
+      setTargetVideoUrl(null);
+      setTargetPreviewVideoPath(null);
+      return;
+    }
+    window.api
+      .prepareLocalVideoPreview(targetFile)
+      .catch(() => targetFile)
+      .then((previewPath) => {
+        if (cancelled) return null;
+        setTargetPreviewVideoPath(previewPath);
+        return window.api.localVideoUrl(previewPath);
+      })
+      .then((url) => {
+        if (!cancelled && url) setTargetVideoUrl(url);
+      })
+      .catch(() => {
+        if (!cancelled) setTargetVideoUrl(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [targetFile]);
+
+  const approveCurate = async (force = false, userPrompt?: string): Promise<void> => {
     if (!plan) return;
+    if (userPrompt) recordPrompt('curate', userPrompt);
     setBusy('curating');
+    if (force) setCuration(null);
     setProgress({ completed: 0, total: plan.shots.length });
     setTurnsByShot(new Map());
     setExpandedShots(new Set());
@@ -797,13 +3155,37 @@ function WorkflowView({
     setClarificationTyping(new Map());
     setError(null);
     try {
-      const result = await window.api.curatePlan(plan);
+      const result = await window.api.curatePlan(plan, { force, userPrompt });
       setCuration(result);
       setProgress(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(null);
+    }
+  };
+
+  const filterExistingScreenshots = async (): Promise<void> => {
+    if (!plan || !curation) return;
+    if (typeof window.api?.filterExistingScreenshots !== 'function') {
+      setError(
+        'filterExistingScreenshots not available yet — restart the desktop app so the new preload bundle loads.',
+      );
+      return;
+    }
+    setError(null);
+    try {
+      const result = await window.api.filterExistingScreenshots({
+        plan,
+        curation,
+      });
+      if ('error' in result) {
+        setError(result.error);
+        return;
+      }
+      setCuration(result);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
     }
   };
 
@@ -820,6 +3202,7 @@ function WorkflowView({
     userPrompt: string,
   ): Promise<void> => {
     setError(null);
+    recordPrompt('regenerate_shot', userPrompt, shotIdx);
     try {
       const result = await window.api.regenerateShot({
         shot_idx: shotIdx,
@@ -829,19 +3212,127 @@ function WorkflowView({
         setError(result.error);
         return;
       }
+      const rewritten = result.curation.rewritten_shot;
+      if (rewritten) {
+        setPlan((prev) =>
+          prev
+            ? {
+                ...prev,
+                shots: prev.shots.map((s) =>
+                  s.shot_idx === shotIdx
+                    ? {
+                        ...s,
+                        broll_description: rewritten.broll_description,
+                        asset: rewritten.asset,
+                        placement: rewritten.placement,
+                        source_type: rewritten.source_type,
+                        options: rewritten.options,
+                        rationale: rewritten.rationale,
+                      }
+                    : s,
+                ),
+              }
+            : prev,
+        );
+      }
       setCuration((prev) => {
         if (!prev) return prev;
-        const nextShots = prev.shots.map((s) =>
-          s != null && s.shot_idx === shotIdx ? result.curation : s,
+        // Upsert by shot_idx — the curation arrays are keyed by shot_idx,
+        // not aligned to plan.shots positions (which shift on delete).
+        const existing = prev.shots.findIndex(
+          (s) => s != null && s.shot_idx === shotIdx,
         );
-        const nextTraces = prev.traces.map((t, i) =>
-          plan && plan.shots[i].shot_idx === shotIdx ? result.trace : t,
-        );
+        const nextShots =
+          existing >= 0
+            ? prev.shots.map((s) =>
+                s != null && s.shot_idx === shotIdx ? result.curation : s,
+              )
+            : [...prev.shots, result.curation];
+        const nextTraces =
+          existing >= 0
+            ? (prev.traces ?? []).map((t, i) =>
+                i === existing ? result.trace : t,
+              )
+            : [...(prev.traces ?? []), result.trace];
         return { ...prev, shots: nextShots, traces: nextTraces };
       });
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     }
+  };
+
+  const applyRewrittenShots = (rewrittenShots: ShotPlan[]): void => {
+    if (rewrittenShots.length === 0) return;
+    const byIdx = new Map(rewrittenShots.map((s) => [s.shot_idx, s]));
+    setPlan((prev) =>
+      prev
+        ? {
+            ...prev,
+            shots: prev.shots.map((s) => {
+              const rewritten = byIdx.get(s.shot_idx);
+              return rewritten
+                ? {
+                    ...s,
+                    broll_description: rewritten.broll_description,
+                    asset: rewritten.asset,
+                    placement: rewritten.placement,
+                    source_type: rewritten.source_type,
+                    options: rewritten.options,
+                    rationale: rewritten.rationale,
+                  }
+                : s;
+            }),
+          }
+        : prev,
+    );
+  };
+
+  const rewriteShotIdeas = async (
+    shotIdxs: number[],
+    userPrompt: string,
+  ): Promise<void> => {
+    if (!plan) return;
+    setError(null);
+    recordPrompt(
+      'rewrite_shot_ideas',
+      userPrompt,
+      shotIdxs.length === 1 ? shotIdxs[0] : null,
+    );
+    try {
+      const result = await window.api.rewriteShotIdeas({
+        plan,
+        shot_idxs: shotIdxs,
+        user_prompt: userPrompt,
+      });
+      if ('error' in result) {
+        setError(result.error);
+        return;
+      }
+      if (result.shots.length === 0) {
+        setError(
+          'No shot ideas were rewritten. Try a more specific instruction.',
+        );
+        return;
+      }
+      applyRewrittenShots(result.shots);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  };
+
+  const regenerateShotIdeaOnly = async (
+    shotIdx: number,
+    userPrompt: string,
+  ): Promise<void> => {
+    await rewriteShotIdeas([shotIdx], userPrompt);
+  };
+
+  const regenerateAllShotIdeas = async (userPrompt: string): Promise<void> => {
+    if (!plan) return;
+    await rewriteShotIdeas(
+      plan.shots.map((shot) => shot.shot_idx),
+      userPrompt,
+    );
   };
 
   /** Continue the same agent session for a shot with a follow-up
@@ -856,6 +3347,7 @@ function WorkflowView({
       `[continueOneShot] firing shot_idx=${shotIdx} prompt="${userPrompt.slice(0, 80)}"`,
     );
     setError(null);
+    recordPrompt('continue_shot', userPrompt, shotIdx);
     try {
       const result = await window.api.continueShot({
         shot_idx: shotIdx,
@@ -912,6 +3404,7 @@ function WorkflowView({
     userPrompt?: string,
   ): Promise<void> => {
     if (!plan) return;
+    if (userPrompt) recordPrompt('curate_shot', userPrompt, shotIdx);
     setError(null);
     try {
       const result = await window.api.curateShot({
@@ -954,13 +3447,233 @@ function WorkflowView({
     }
   };
 
+  /** Research a user-described clip and APPEND it to the shot's
+   *  candidates (the "Add clip" button). Streaming partials update the
+   *  card live; this final upsert lands the authoritative merged set. */
+  const addClipToShot = async (
+    shotIdx: number,
+    description: string,
+  ): Promise<AddClipResult> => {
+    if (!plan) return { ok: false };
+    setError(null);
+    recordPrompt('add_clip', description, shotIdx);
+    try {
+      const result = await window.api.addShotClip({
+        plan,
+        shot_idx: shotIdx,
+        description,
+      });
+      if ('error' in result) {
+        setError(result.error);
+        return { ok: false };
+      }
+      setCuration((prev) => upsertShotCuration(prev, result.curation));
+      return {
+        ok: true,
+        added: result.added,
+        foundButDuplicate: result.foundButDuplicate,
+      };
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+      return { ok: false };
+    }
+  };
+
   const readyCount = library.filter((r) => r.status === 'ready').length;
   const targetReady =
     (targetMode === 'reel_url' && targetUrl.trim().length > 0) ||
     (targetMode === 'script' && targetScript.trim().length > 0) ||
     (targetMode === 'local_video' && targetFile !== null);
   const canBuildPlan = !busy && readyCount > 0 && targetReady;
+  const batchReadyCount = projects.filter(
+    (project) =>
+      project.targetMode === 'local_video' &&
+      !!project.targetFile &&
+      !project.plan,
+  ).length;
+  const canBatchBuildPlans =
+    !busy && readyCount > 0 && batchReadyCount > 1;
   const canCurate = !busy && plan !== null;
+  const activeProjectStatus = useMemo(
+    () =>
+      computeProjectStatus({
+        busy,
+        targetReady,
+        plan,
+        curation,
+        progress,
+        pendingClarifications,
+        error,
+      }),
+    [busy, curation, error, pendingClarifications, plan, progress, targetReady],
+  );
+
+  useEffect(() => {
+    setProjects((prev) =>
+      prev.map((project) => {
+        if (project.id !== activeProjectId) return project;
+        const fallbackTitle =
+          targetMode === 'local_video' && targetFile
+            ? topicFromPath(targetFile)
+            : targetMode === 'script'
+              ? topicFromText(targetScript, project.title)
+              : project.title;
+        return {
+          ...project,
+          title: topicFromPlan(plan, fallbackTitle),
+          targetMode,
+          targetUrl,
+          targetScript,
+          targetFile,
+          targetVideoUrl,
+          targetPreviewVideoPath,
+          planTarget,
+          plan,
+          curation,
+          progress,
+          synthProgress,
+          turnsByShot,
+          expandedShots,
+          pendingClarifications,
+          clarificationTyping,
+          status: activeProjectStatus,
+        };
+      }),
+    );
+  }, [
+    activeProjectId,
+    activeProjectStatus,
+    curation,
+    clarificationTyping,
+    expandedShots,
+    pendingClarifications,
+    plan,
+    planTarget,
+    progress,
+    synthProgress,
+    targetFile,
+    targetMode,
+    targetPreviewVideoPath,
+    targetScript,
+    targetUrl,
+    targetVideoUrl,
+    turnsByShot,
+  ]);
+
+  const activateProject = (projectId: string): void => {
+    const project = projects.find((p) => p.id === projectId);
+    if (!project || project.id === activeProjectId) return;
+    setActiveProjectId(project.id);
+    setTargetMode(project.targetMode);
+    setTargetUrl(project.targetUrl);
+    setTargetScript(project.targetScript);
+    setTargetFile(project.targetFile);
+    setTargetVideoUrl(project.targetVideoUrl);
+    setTargetPreviewVideoPath(project.targetPreviewVideoPath);
+    setPlanTarget(project.planTarget);
+    setPlan(project.plan);
+    setCuration(project.curation);
+    setProgress(project.progress);
+    setSynthProgress(project.synthProgress);
+    setTurnsByShot(project.turnsByShot);
+    setExpandedShots(project.expandedShots);
+    setPendingClarifications(project.pendingClarifications);
+    setClarificationTyping(project.clarificationTyping);
+    setError(null);
+    setStage(project.plan ? 'plan' : 'target');
+  };
+
+  const addProjectsFromFiles = (files: string[]): void => {
+    const uniqueFiles = files.filter(
+      (filePath) =>
+        filePath &&
+        !projects.some((p) => p.targetFile === filePath) &&
+        filePath !== targetFile,
+    );
+    if (uniqueFiles.length === 0) return;
+    const nextProjects = uniqueFiles.map(projectFromFile);
+    setProjects((prev) => [...prev, ...nextProjects]);
+    const first = nextProjects[0];
+    setActiveProjectId(first.id);
+    setTargetMode('local_video');
+    setTargetUrl('');
+    setTargetScript('');
+    setTargetFile(first.targetFile);
+    setTargetVideoUrl(null);
+    setTargetPreviewVideoPath(null);
+    setPlanTarget(null);
+    setPlan(null);
+    setCuration(null);
+    setProgress(null);
+    setSynthProgress(null);
+    setTurnsByShot(new Map());
+    setExpandedShots(new Set());
+    setPendingClarifications(new Map());
+    setClarificationTyping(new Map());
+    setError(null);
+    setStage('target');
+    setPasteToast(
+      `Created ${nextProjects.length} ${nextProjects.length === 1 ? 'project' : 'projects'} from batch upload.`,
+    );
+  };
+
+  const createNewProject = (): void => {
+    const fresh = blankProject(`Untitled ${projects.length + 1}`);
+    setProjects((prev) => [...prev, fresh]);
+    setActiveProjectId(fresh.id);
+    setPlan(null);
+    setCuration(null);
+    setPlanTarget(null);
+    setTargetMode('local_video');
+    setTargetUrl('');
+    setTargetScript('');
+    setTargetFile(null);
+    setTargetVideoUrl(null);
+    setTargetPreviewVideoPath(null);
+    setUserInstructions('');
+    setSynthProgress(null);
+    setProgress(null);
+    setTurnsByShot(new Map());
+    setExpandedShots(new Set());
+    setPendingClarifications(new Map());
+    setClarificationTyping(new Map());
+    setError(null);
+    setStage('target');
+  };
+
+  const saveWorkspace = async (): Promise<void> => {
+    try {
+      if (activeCollectionId) {
+        await window.api.saveCollectionReels(
+          activeCollectionId,
+          library.map((r) => ({ url: r.url, tags: r.tags })),
+        );
+      } else {
+        await window.api.saveLibrary(
+          library.map((r) => ({ url: r.url, tags: r.tags })),
+        );
+      }
+      if (plan) {
+        const result = await window.api.savePlan(plan);
+        if (!result.ok) throw new Error(result.error ?? 'Plan save failed.');
+      }
+      await refreshPastPlans();
+      await refreshRemixProfiles();
+      setPasteToast('Workspace saved.');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  };
+
+  const openCollectionFromDashboard = (id: string): void => {
+    switchCollection(id);
+    setStage('inspire');
+  };
+
+  const openProjectFromDashboard = async (key: string): Promise<void> => {
+    await loadPastPlan(key);
+    setStage('plan');
+  };
 
   // Push stage-done flags up to the top stepper. Inspiration is done
   // once at least one reel is hydrated; target is done once any input
@@ -988,6 +3701,301 @@ function WorkflowView({
     <div className="scroll">
       <div className="canvas canvas-wide workflow">
         {error && <div className="error">{error}</div>}
+        {pasteToast && <div className="paste-toast">📋 {pasteToast}</div>}
+
+        <div className="project-tabs" aria-label="Editing projects">
+          <div className="project-tabs-head">
+            <div>
+              <div className="project-tabs-kicker">Edit queue</div>
+              <div className="project-tabs-title">
+                {projects.length} {projects.length === 1 ? 'video' : 'videos'} loaded
+              </div>
+            </div>
+            <span className={`project-tabs-live status-${activeProjectStatus.kind}`}>
+              <span className="project-tab-dot" aria-hidden="true" />
+              {activeProjectStatus.label}
+            </span>
+          </div>
+          <div className="project-tabs-scroll">
+            {projects.map((project, index) => {
+              const status =
+                project.id === activeProjectId ? activeProjectStatus : project.status;
+              return (
+                <button
+                  key={project.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={project.id === activeProjectId}
+                  className={`project-tab ${project.id === activeProjectId ? 'active' : ''} status-${status.kind}`}
+                  onClick={() => activateProject(project.id)}
+                  disabled={busy !== null && project.id !== activeProjectId}
+                  title={`${project.title} — ${status.label}`}
+                >
+                  <span className="project-tab-index">
+                    {String(index + 1).padStart(2, '0')}
+                  </span>
+                  <span className="project-tab-main">
+                    <span className="project-tab-title">{project.title}</span>
+                    <span className="project-tab-status">
+                      <span className="project-tab-dot" aria-hidden="true" />
+                      {status.label}
+                    </span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          <div className="project-tabs-actions">
+            <button
+              type="button"
+              className="queue-action"
+              onClick={createNewProject}
+              disabled={busy !== null}
+            >
+              + New
+            </button>
+            <button
+              type="button"
+              className="queue-action queue-action-primary"
+              onClick={() => void pickBatchFiles()}
+              disabled={busy !== null}
+            >
+              Batch upload…
+            </button>
+          </div>
+        </div>
+
+      {stage === 'dashboard' && (
+      <section className="workflow-section dashboard-page rise">
+        <header className="dashboard-hero">
+          <div>
+            <div className="eyebrow">Workspace</div>
+            <h1 className="stage-title">
+              Control <em>room</em>
+            </h1>
+            <p className="stage-desc">
+              Collections, projects, remix profiles, and the current reel live here.
+              Create, open, and save without digging through the flow.
+            </p>
+          </div>
+          <div className="dashboard-actions">
+            <button type="button" className="btn btn-primary" onClick={createNewProject}>
+              + New project
+            </button>
+            <button
+              type="button"
+              className="btn"
+              onClick={() => void createCollectionHandler()}
+            >
+              + Collection
+            </button>
+            <button type="button" className="btn" onClick={() => void saveWorkspace()}>
+              Save everything
+            </button>
+          </div>
+        </header>
+
+        <div className="dash-metrics">
+          <div className="dash-metric">
+            <span>Collections</span>
+            <strong>{collections.length}</strong>
+          </div>
+          <div className="dash-metric">
+            <span>Saved projects</span>
+            <strong>{pastPlans.length}</strong>
+          </div>
+          <div className="dash-metric">
+            <span>Remix profiles</span>
+            <strong>{remixProfiles.length}</strong>
+          </div>
+          <div className="dash-metric">
+            <span>Active reels</span>
+            <strong>{library.length}</strong>
+          </div>
+        </div>
+
+        <div className="dashboard-grid">
+          <section className="dash-panel dash-panel-wide">
+            <div className="dash-panel-head">
+              <div>
+                <div className="dash-kicker">Now editing</div>
+                <h2>Current project</h2>
+              </div>
+              <button
+                type="button"
+                className="btn btn-sm"
+                disabled={!plan}
+                onClick={() => void saveWorkspace()}
+              >
+                Save
+              </button>
+            </div>
+            {plan ? (
+              <div className="dash-current">
+                <div>
+                  <strong>{plan.shots.length} shots</strong>
+                  <p>{plan.structure_sections[0]?.target_fill || plan.style_summary}</p>
+                </div>
+                <div className="dash-current-actions">
+                  <button type="button" className="btn" onClick={() => setStage('plan')}>
+                    Open plan
+                  </button>
+                  <button type="button" className="btn" onClick={() => setStage('review')}>
+                    Preview
+                  </button>
+                  <button
+                    type="button"
+                    className="btn"
+                    onClick={() => void saveCurrentRemixProfile()}
+                  >
+                    Save profile
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="dash-empty">
+                No active project. Start from a target, or open a saved plan.
+              </div>
+            )}
+          </section>
+
+          <section className="dash-panel">
+            <div className="dash-panel-head">
+              <div>
+                <div className="dash-kicker">Libraries</div>
+                <h2>Collections</h2>
+              </div>
+              <button
+                type="button"
+                className="btn btn-sm"
+                onClick={() => void createCollectionHandler()}
+              >
+                New
+              </button>
+            </div>
+            <div className="dash-list">
+              {collections.length === 0 ? (
+                <div className="dash-empty">No collections yet.</div>
+              ) : (
+                collections.map((collection) => (
+                  <button
+                    key={collection.id}
+                    type="button"
+                    className={`dash-row ${collection.id === activeCollectionId ? 'active' : ''}`}
+                    onClick={() => openCollectionFromDashboard(collection.id)}
+                  >
+                    <span>
+                      <strong>{collection.name}</strong>
+                      <small>{collection.reels.length} reels</small>
+                    </span>
+                    <b>Open</b>
+                  </button>
+                ))
+              )}
+            </div>
+          </section>
+
+          <section className="dash-panel">
+            <div className="dash-panel-head">
+              <div>
+                <div className="dash-kicker">Projects</div>
+                <h2>Saved plans</h2>
+              </div>
+              <button type="button" className="btn btn-sm" onClick={createNewProject}>
+                New
+              </button>
+            </div>
+            <div className="dash-list">
+              {pastPlans.length === 0 ? (
+                <div className="dash-empty">No saved plans yet.</div>
+              ) : (
+                pastPlans.slice(0, 8).map((project) => (
+                  <button
+                    key={project.key}
+                    type="button"
+                    className="dash-row"
+                    onClick={() => void openProjectFromDashboard(project.key)}
+                  >
+                    <span>
+                      <strong>{project.target_label}</strong>
+                      <small>
+                        {project.shot_count} shots ·{' '}
+                        {new Date(project.created_at).toLocaleDateString()}
+                      </small>
+                    </span>
+                    <b>Open</b>
+                  </button>
+                ))
+              )}
+            </div>
+          </section>
+
+          <section className="dash-panel">
+            <div className="dash-panel-head">
+              <div>
+                <div className="dash-kicker">Memory</div>
+                <h2>Remix profiles</h2>
+              </div>
+              <button
+                type="button"
+                className="btn btn-sm"
+                disabled={!plan}
+                onClick={() => void saveCurrentRemixProfile()}
+              >
+                Save
+              </button>
+            </div>
+            <div className="dash-list">
+              {remixProfiles.length === 0 ? (
+                <div className="dash-empty">No profiles saved yet.</div>
+              ) : (
+                remixProfiles.slice(0, 8).map((profile) => (
+                  <button
+                    key={profile.id}
+                    type="button"
+                    className={`dash-row ${profile.id === selectedRemixProfileId ? 'active' : ''}`}
+                    onClick={() => {
+                      setSelectedRemixProfileId(profile.id);
+                      setStage('target');
+                    }}
+                  >
+                    <span>
+                      <strong>{profile.name}</strong>
+                      <small>{profile.prompt_count} prompts</small>
+                    </span>
+                    <b>Use</b>
+                  </button>
+                ))
+              )}
+            </div>
+          </section>
+
+          <section className="dash-panel">
+            <div className="dash-panel-head">
+              <div>
+                <div className="dash-kicker">Pipeline</div>
+                <h2>Continue</h2>
+              </div>
+            </div>
+            <div className="dash-steps">
+              {STAGES.map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  className="dash-step"
+                  onClick={() => setStage(s.id)}
+                  disabled={(s.id === 'plan' || s.id === 'review') && !plan}
+                >
+                  <span>{s.num}</span>
+                  <strong>{s.title}</strong>
+                  <small>{s.sub}</small>
+                </button>
+              ))}
+            </div>
+          </section>
+        </div>
+      </section>
+      )}
 
       {/* ---------- 1 · Inspiration ---------- */}
       {stage === 'inspire' && (
@@ -1005,6 +4013,54 @@ function WorkflowView({
             can carry any combination.
           </p>
         </header>
+
+        {/* Collections: each is a separate set of inspiration reels,
+            fingerprinted independently at synthesis time. */}
+        <div className="coll-bar">
+          {collections.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              className={`coll-pill ${c.id === activeCollectionId ? 'on' : ''}`}
+              onClick={() => switchCollection(c.id)}
+            >
+              {c.name}
+              {c.id === activeCollectionId ? ` · ${library.length}` : ''}
+            </button>
+          ))}
+          <button
+            type="button"
+            className="coll-pill coll-new"
+            onClick={() => void createCollectionHandler()}
+          >
+            + New collection
+          </button>
+        </div>
+        {activeCollectionId && (
+          <div className="coll-actions">
+            <input
+              className="coll-rename"
+              value={renameDraft}
+              onChange={(e) => setRenameDraft(e.target.value)}
+              onBlur={commitRename}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+              }}
+              spellCheck={false}
+              aria-label="Collection name"
+            />
+            {collections.length > 1 && (
+              <button
+                type="button"
+                className="coll-del"
+                onClick={() => void deleteCollectionHandler()}
+                title="Delete this collection"
+              >
+                Delete collection
+              </button>
+            )}
+          </div>
+        )}
 
         <div className="row">
           <input
@@ -1079,7 +4135,16 @@ function WorkflowView({
                           : '⚠'}
                   </span>
                   <ReelThumb url={r.url} size="sm" />
-                  <div className="library-url">{r.url}</div>
+                  <button
+                    type="button"
+                    className="library-url"
+                    title={`Open ${r.url} in your browser`}
+                    onClick={() => {
+                      void window.api.openExternal(r.url);
+                    }}
+                  >
+                    {r.url}
+                  </button>
                   <div className="library-tags">
                     <TagChip
                       tag="content_reference"
@@ -1111,6 +4176,16 @@ function WorkflowView({
                   {r.status === 'error' && (
                     <span className="library-stat library-err">{r.error}</span>
                   )}
+                  {(r.status === 'ready' || r.status === 'error') && (
+                    <button
+                      className="btn btn-mini"
+                      title="Re-analyze (bypass cache)"
+                      disabled={busy !== null}
+                      onClick={() => reanalyzeReel(r.url)}
+                    >
+                      ⟳
+                    </button>
+                  )}
                   <button
                     className="btn btn-mini"
                     onClick={() => removeReel(r.url)}
@@ -1127,6 +4202,14 @@ function WorkflowView({
             >
               {busy === 'hydrating' ? 'Hydrating…' : 'Hydrate library'}
             </button>
+            <button
+              className="btn"
+              onClick={reanalyzeAllReels}
+              disabled={busy !== null || library.length === 0}
+            >
+              {busy === 'hydrating' ? 'Regenerating…' : 'Regenerate edit analysis'}
+            </button>
+            <InspirationAnalysisPanel library={library} />
           </>
         )}
 
@@ -1153,9 +4236,9 @@ function WorkflowView({
             Your <em>video</em>
           </h1>
           <p className="stage-desc">
-            What you're editing. Pick one input mode — paste a reel link to
-            transcribe, write the script yourself, or upload footage you've
-            already shot.
+            What you're editing. Upload one video for the active tab, or batch
+            upload several videos and Clipnosis will create an edit plan for
+            each one using the same taste profile.
           </p>
         </header>
         <div className="target-modes">
@@ -1225,12 +4308,16 @@ function WorkflowView({
         {targetMode === 'local_video' && (
           <>
             <p className="section-hint section-hint-sub">
-              Pick a local video or audio file. We extract its audio via
-              ffmpeg and transcribe with Whisper.
+              Pick one file for this tab, or batch upload multiple videos.
+              Each file becomes its own project tab and can be edited in the
+              same batch run.
             </p>
             <div className="row">
               <button className="btn" onClick={pickFile}>
                 Pick file…
+              </button>
+              <button className="btn" onClick={() => void pickBatchFiles()}>
+                Batch upload…
               </button>
               <div className="target-file">
                 {targetFile ?? <span className="text-muted">no file selected</span>}
@@ -1238,12 +4325,39 @@ function WorkflowView({
               {targetFile && (
                 <button
                   className="btn btn-mini"
-                  onClick={() => setTargetFile(null)}
+                  onClick={() => {
+                    setTargetFile(null);
+                    setTargetVideoUrl(null);
+                    setTargetPreviewVideoPath(null);
+                  }}
                 >
                   ✕
                 </button>
               )}
             </div>
+            {projects.length > 1 && (
+              <div className="batch-summary">
+                <div>
+                  <div className="batch-summary-title">
+                    {batchReadyCount} uploaded {batchReadyCount === 1 ? 'video' : 'videos'} ready for an edit plan
+                  </div>
+                  <div className="batch-summary-sub">
+                    Batch edit uses the same inspiration library, copyright
+                    setting, remix profile, and instructions for every video.
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  disabled={!canBatchBuildPlans}
+                  onClick={() => void batchBuildPlans()}
+                >
+                  {busy === 'batch_synthesizing'
+                    ? 'Editing batch…'
+                    : `✦ Edit all uploaded (${batchReadyCount})`}
+                </button>
+              </div>
+            )}
           </>
         )}
 
@@ -1287,12 +4401,49 @@ function WorkflowView({
             </select>
           </div>
         )}
+        {remixProfiles.length > 0 && (
+          <div className="past-plans">
+            <label className="past-plans-label" htmlFor="remix-profile-select">
+              Remix profile
+            </label>
+            <select
+              id="remix-profile-select"
+              className="past-plans-select"
+              value={selectedRemixProfileId}
+              disabled={busy === 'synthesizing'}
+              onChange={(e) => setSelectedRemixProfileId(e.target.value)}
+            >
+              <option value="">No saved profile</option>
+              {remixProfiles.map((profile) => {
+                const when = new Date(profile.updated_at).toLocaleString(
+                  undefined,
+                  {
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  },
+                );
+                return (
+                  <option key={profile.id} value={profile.id}>
+                    {profile.name} · {profile.prompt_count} prompts · {when}
+                  </option>
+                );
+              })}
+            </select>
+            {selectedRemixProfile && (
+              <div className="instructions-hint">
+                Remix will reuse preferences from: {selectedRemixProfile.source_summary}
+              </div>
+            )}
+          </div>
+        )}
         <label className="copyright-toggle">
           <input
             type="checkbox"
             checked={allowCopyrightedMedia}
             onChange={(e) => setAllowCopyrightedMedia(e.target.checked)}
-            disabled={busy === 'synthesizing'}
+            disabled={busy === 'synthesizing' || busy === 'batch_synthesizing'}
           />
           <span className="copyright-toggle-text">
             Allow copyrighted media (YouTube clips, news / TV footage, branded
@@ -1309,13 +4460,24 @@ function WorkflowView({
           placeholder='e.g. "use stock footage for cityscape shots", "focus on close-ups", "avoid talking-head"…  Stock search is DISABLED by default — mention "stock" / "pexels" / "archival footage" here to enable it.'
           value={userInstructions}
           onChange={(e) => setUserInstructions(e.target.value)}
-          disabled={busy === 'synthesizing'}
+          disabled={busy === 'synthesizing' || busy === 'batch_synthesizing'}
         />
         <div className="instructions-hint">
           {/\b(stock|pexels|pond5|getty|shutterstock|archival\s*footage)\b/i.test(userInstructions)
             ? '✓ stock_search ENABLED (detected in instructions). Default: web_capture.'
             : 'Methods allowed: web_capture only (plus library_search when library present). Stock, manual, and generative AI all disabled.'}
         </div>
+
+        {busy === 'batch_synthesizing' && batchProgress && (
+          <div className="synth-progress">
+            <div className="synth-stage">
+              batch edit {batchProgress.current}/{batchProgress.total}
+            </div>
+            <div className="synth-msg">
+              Building edit plan for {batchProgress.title}
+            </div>
+          </div>
+        )}
 
         {busy === 'synthesizing' && synthProgress && (
           <div className="synth-progress">
@@ -1342,9 +4504,13 @@ function WorkflowView({
             type="button"
             className="btn btn-primary"
             disabled={!canBuildPlan}
-            onClick={buildPlan}
+            onClick={() => void buildPlan()}
           >
-            {busy === 'synthesizing' ? 'Synthesizing…' : '✦ Synthesize edit plan'}
+            {busy === 'synthesizing' || busy === 'batch_synthesizing'
+              ? 'Synthesizing…'
+              : selectedRemixProfile
+                ? '↻ Remix with profile'
+                : '✦ Synthesize edit plan'}
           </button>
         </div>
       </section>
@@ -1378,25 +4544,22 @@ function WorkflowView({
 
         {plan && (
           <>
-          {busy === 'curating' && (
-            <div className="curate-actions" style={{ marginBottom: 14 }}>
-              <button
-                className="btn btn-stop"
-                onClick={stopCurate}
-                title="Cancel the in-flight curator agents"
-              >
-                ■ Stop curating
-              </button>
-              {progress?.latest && (
-                <span className="progress-latest">
-                  shot {progress.latest.shot_idx}:{' '}
-                  {progress.latest.candidates.length} candidate(s) ·{' '}
-                  {progress.latest.research_notes}
-                </span>
-              )}
+          <div className="remix-profile-bar">
+            <div>
+              <div className="remix-profile-title">Remix profile</div>
+              <div className="remix-profile-sub">
+                Save this reel's edits and prompts, then reuse them on future targets.
+              </div>
             </div>
-          )}
-
+            <button
+              type="button"
+              className="btn"
+              disabled={!!busy}
+              onClick={() => void saveCurrentRemixProfile()}
+            >
+              {currentPlanProfile ? '↻ Update profile' : '↻ Save current as profile'}
+            </button>
+          </div>
           <PlanReview
             plan={plan}
             onPlanChange={async (next) => {
@@ -1406,12 +4569,22 @@ function WorkflowView({
               if (!result.ok && result.error) setError(result.error);
             }}
             curation={curation}
+            pastedMedia={pastedMedia}
+            recordPrompt={recordPrompt}
             onCurateShot={curateOneShot}
             onRegenerate={regenerateShot}
             onContinue={continueOneShot}
+            onAddClip={addClipToShot}
             topActions={{
               onCurateAll: approveCurate,
+              onFilterExistingScreenshots: filterExistingScreenshots,
+              onRegeneratePlan: regeneratePlan,
+              onRegenerateShotIdea: regenerateShotIdeaOnly,
+              onRegenerateAllShotIdeas: regenerateAllShotIdeas,
+              onStop: stopCurate,
               curating: busy === 'curating',
+              regeneratingPlan: busy === 'synthesizing',
+              canRegeneratePlan: plan !== null && !busy,
               curatingProgress: progress
                 ? { completed: progress.completed, total: progress.total }
                 : undefined,
@@ -1432,12 +4605,25 @@ function WorkflowView({
               setClarificationTyping,
               answerClarification,
             }}
+            targetVideoUrl={targetVideoUrl}
+            targetVideoPath={
+              targetPreviewVideoPath ?? targetFile ?? plan.target_video_path ?? null
+            }
+            narrationVideoPath={targetFile ?? plan.target_video_path ?? null}
           />
           </>
         )}
 
       </section>
       )}
+
+      <ClarificationModal
+        pending={pendingClarifications}
+        plan={plan}
+        clarificationTyping={clarificationTyping}
+        setClarificationTyping={setClarificationTyping}
+        answerClarification={answerClarification}
+      />
       </div>
     </div>
   );
@@ -1459,6 +4645,30 @@ function roleColor(role: string): string {
   return 'var(--ink-3)';
 }
 
+/** Upsert one shot's curation into the (possibly null) curation state.
+ *  Used by the streaming progress / partial events so each shot's clips
+ *  appear the moment they're collected; the awaited bulk result still
+ *  replaces the whole state at the end as the authoritative version. */
+function upsertShotCuration(
+  prev: CurationResult | null,
+  shot: ShotCuration,
+): CurationResult {
+  const base: CurationResult = prev ?? {
+    shots: [],
+    traces: [],
+    usage: { input_tokens: 0, output_tokens: 0, total_tokens: 0 },
+    duration_ms: 0,
+  };
+  const i = base.shots.findIndex(
+    (s) => s != null && s.shot_idx === shot.shot_idx,
+  );
+  const shots =
+    i >= 0
+      ? base.shots.map((s, j) => (j === i ? shot : s))
+      : [...base.shots, shot];
+  return { ...base, shots };
+}
+
 /** Distill a shot's curation state into one of four UI states for
  *  the timeline segment's status pip. */
 function curationStatus(
@@ -1466,7 +4676,7 @@ function curationStatus(
 ): 'idle' | 'working' | 'ready' | 'fail' {
   if (!sc) return 'idle';
   if (sc.failure_reason && sc.candidates.length === 0) return 'fail';
-  if (sc.candidates.length > 0) return 'ready';
+  if (sc.candidates.length > 0 || sc.library_fulfilled) return 'ready';
   return 'working';
 }
 
@@ -1618,29 +4828,633 @@ function HSeg({
   );
 }
 
+/** Vertical timeline segment — a fixed-height shot row. The rail scrolls
+ *  when the shots overflow the column (the rail is the only scroller in
+ *  the plan view). */
+/** Reads the audio clip's length off its metadata for the hover popup. SFX
+ *  events are point onsets, so the "duration" is the clip's own play length. */
+function SfxDuration({ url }: { url?: string }): React.JSX.Element | null {
+  const [secs, setSecs] = useState<number | null>(null);
+  useEffect(() => {
+    setSecs(null);
+    if (!url) return;
+    const audio = new Audio();
+    audio.preload = 'metadata';
+    const onLoaded = (): void => {
+      if (Number.isFinite(audio.duration)) setSecs(audio.duration);
+    };
+    audio.addEventListener('loadedmetadata', onLoaded);
+    audio.src = url;
+    return () => {
+      audio.removeEventListener('loadedmetadata', onLoaded);
+      audio.src = '';
+    };
+  }, [url]);
+  if (secs === null) return null;
+  return <span> · {secs.toFixed(2)}s long</span>;
+}
+
+/** Horizontal, duration-proportional timeline with draggable boundaries.
+ *  Dragging the handle between two shots moves their SHARED edge — shot i's
+ *  end and shot i+1's start move together — so the total reel length and all
+ *  other shots stay put. Commits on release (live drag is local-only so the
+ *  plan/curation don't thrash mid-drag). */
+function ShotTimelineBar({
+  shots,
+  totalDurationMs,
+  selectedShotIdx,
+  onSelectShot,
+  onCommitBoundary,
+  onSnapBoundary,
+  sfxEvents = [],
+  onMoveSfx,
+  onRemoveSfx,
+}: {
+  shots: ShotPlan[];
+  totalDurationMs: number;
+  selectedShotIdx: number | null;
+  onSelectShot: (shotIdx: number) => void;
+  /** boundaryIdx = array index of the LEFT shot of the dragged edge. */
+  onCommitBoundary: (boundaryIdx: number, newMs: number) => void;
+  /** Snap a boundary back to its original position (double-click). */
+  onSnapBoundary: (boundaryIdx: number) => void;
+  /** SFX markers to show on a lane above the bar, by reel-time ms. */
+  sfxEvents?: { ms: number; type: string; sound?: string; url?: string }[];
+  /** Commit a dragged SFX marker to a new reel-time ms. */
+  onMoveSfx?: (index: number, newMs: number) => void;
+  /** Delete an SFX onset (from the hover popup). */
+  onRemoveSfx?: (index: number) => void;
+}): React.JSX.Element {
+  const barRef = useRef<HTMLDivElement | null>(null);
+  const [drag, setDrag] = useState<{ idx: number; ms: number } | null>(null);
+  const [sfxDrag, setSfxDrag] = useState<{ idx: number; ms: number } | null>(
+    null,
+  );
+  // Index of the SFX marker whose hover popup is open. A short close-delay
+  // (cleared when the cursor enters the popup) lets the user move from the
+  // marker onto the popup to click delete without it vanishing.
+  const [sfxHover, setSfxHover] = useState<number | null>(null);
+  const hoverCloseRef = useRef<number | null>(null);
+  const openSfxHover = (i: number): void => {
+    if (hoverCloseRef.current !== null) {
+      window.clearTimeout(hoverCloseRef.current);
+      hoverCloseRef.current = null;
+    }
+    setSfxHover(i);
+  };
+  const closeSfxHoverSoon = (): void => {
+    if (hoverCloseRef.current !== null)
+      window.clearTimeout(hoverCloseRef.current);
+    hoverCloseRef.current = window.setTimeout(() => setSfxHover(null), 140);
+  };
+  const total = Math.max(1, totalDurationMs);
+
+  // Apply the active drag to a local view so the bar updates live.
+  const bounds = shots.map((s) => ({ start: s.start_ms, end: s.end_ms }));
+  if (drag && bounds[drag.idx] && bounds[drag.idx + 1]) {
+    bounds[drag.idx] = { ...bounds[drag.idx], end: drag.ms };
+    bounds[drag.idx + 1] = { ...bounds[drag.idx + 1], start: drag.ms };
+  }
+
+  const clampBoundary = (idx: number, ms: number): number => {
+    return snapBoundaryToTranscript(shots[idx], shots[idx + 1], ms);
+  };
+  const msFromX = (clientX: number): number => {
+    const rect = barRef.current?.getBoundingClientRect();
+    if (!rect || rect.width === 0) return 0;
+    return Math.round(((clientX - rect.left) / rect.width) * total);
+  };
+
+  const onMove = (e: React.PointerEvent): void => {
+    if (sfxDrag) {
+      setSfxDrag({
+        idx: sfxDrag.idx,
+        ms: Math.max(0, Math.min(total, msFromX(e.clientX))),
+      });
+      return;
+    }
+    if (!drag) return;
+    setDrag({ idx: drag.idx, ms: clampBoundary(drag.idx, msFromX(e.clientX)) });
+  };
+  const onUp = (): void => {
+    if (sfxDrag) {
+      onMoveSfx?.(sfxDrag.idx, sfxDrag.ms);
+      setSfxDrag(null);
+      return;
+    }
+    if (drag) onCommitBoundary(drag.idx, drag.ms);
+    setDrag(null);
+  };
+
+  return (
+    <div className="shot-tl">
+      <div
+        className="shot-tl-bar"
+        ref={barRef}
+        onPointerMove={onMove}
+        onPointerUp={onUp}
+        onPointerLeave={() => drag && onUp()}
+      >
+        {shots.map((s, i) => {
+          const b = bounds[i];
+          const w = ((b.end - b.start) / total) * 100;
+          return (
+            <button
+              type="button"
+              key={s.shot_idx}
+              className={`shot-tl-seg${s.shot_idx === selectedShotIdx ? ' sel' : ''}`}
+              style={{
+                width: `${w}%`,
+                ['--seg-color' as string]: roleColor(s.structure_role),
+              }}
+              onClick={() => onSelectShot(s.shot_idx)}
+              title={`Shot ${s.shot_idx + 1} · ${(b.start / 1000).toFixed(1)}s – ${(b.end / 1000).toFixed(1)}s (${((b.end - b.start) / 1000).toFixed(1)}s)`}
+            >
+              <span className="shot-tl-seg-num">{s.shot_idx + 1}</span>
+            </button>
+          );
+        })}
+        {shots.slice(0, -1).map((s, i) => (
+          <div
+            key={`h-${s.shot_idx}`}
+            className={`shot-tl-handle${drag?.idx === i ? ' drag' : ''}`}
+            style={{ left: `${(bounds[i].end / total) * 100}%` }}
+            onPointerDown={(e) => {
+              e.preventDefault();
+              (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+              setDrag({ idx: i, ms: shots[i].end_ms });
+            }}
+            onDoubleClick={(e) => {
+              e.preventDefault();
+              setDrag(null);
+              onSnapBoundary(i);
+            }}
+            title="Drag to move the cut · double-click to snap back"
+          />
+        ))}
+        {sfxEvents.map((ev, i) => {
+          const ms = sfxDrag?.idx === i ? sfxDrag.ms : ev.ms;
+          return (
+            <button
+              type="button"
+              key={`sfx-${i}`}
+              className={`shot-tl-sfx${sfxDrag?.idx === i ? ' drag' : ''}`}
+              style={{
+                left: `${(ms / total) * 100}%`,
+                background: colorForSfx(ev),
+              }}
+              onPointerDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+                setSfxDrag({ idx: i, ms: ev.ms });
+              }}
+              onMouseEnter={() => {
+                if (!sfxDrag) openSfxHover(i);
+              }}
+              onMouseLeave={closeSfxHoverSoon}
+            />
+          );
+        })}
+      </div>
+      {sfxHover !== null && sfxEvents[sfxHover] && !sfxDrag && (
+        <div
+          className="shot-tl-sfx-pop"
+          style={{ left: `${(sfxEvents[sfxHover].ms / total) * 100}%` }}
+          onMouseEnter={() => openSfxHover(sfxHover)}
+          onMouseLeave={closeSfxHoverSoon}
+        >
+          <span
+            className="shot-tl-sfx-pop-dot"
+            style={{ background: colorForSfx(sfxEvents[sfxHover]) }}
+          />
+          <div className="shot-tl-sfx-pop-body">
+            <div className="shot-tl-sfx-pop-name">
+              {sfxEvents[sfxHover].sound ??
+                SFX_TYPE_LABELS[sfxEvents[sfxHover].type] ??
+                sfxEvents[sfxHover].type}
+            </div>
+            <div className="shot-tl-sfx-pop-meta">
+              {(sfxEvents[sfxHover].ms / 1000).toFixed(2)}s
+              <SfxDuration url={sfxEvents[sfxHover].url} />
+            </div>
+          </div>
+          <button
+            type="button"
+            className="shot-tl-sfx-pop-del"
+            title="Delete this sound effect"
+            onClick={() => {
+              const idx = sfxHover;
+              setSfxHover(null);
+              onRemoveSfx?.(idx);
+            }}
+          >
+            Delete
+          </button>
+        </div>
+      )}
+      <div className="shot-tl-scale">
+        <span>0s</span>
+        <span>
+          {drag
+            ? `cut @ ${(drag.ms / 1000).toFixed(2)}s`
+            : 'drag a divider to move a cut'}
+        </span>
+        <span>{(total / 1000).toFixed(1)}s</span>
+      </div>
+    </div>
+  );
+}
+
+function VSeg({
+  shot,
+  selected,
+  status,
+  onSelect,
+  draggingPick = false,
+  onPickDrop,
+  copiedPickCount = 0,
+  onPastePicks,
+}: {
+  shot: ShotPlan;
+  selected: boolean;
+  status: 'idle' | 'working' | 'ready' | 'fail';
+  onSelect: () => void;
+  draggingPick?: boolean;
+  onPickDrop?: () => void;
+  copiedPickCount?: number;
+  onPastePicks?: () => void;
+}): React.JSX.Element {
+  const start = shot.start_ms / 1000;
+  const dur = shot.duration_ms / 1000;
+  return (
+    <button
+      type="button"
+      className={`vseg ${selected ? 'sel' : ''}${draggingPick ? ' vseg-drop' : ''}`}
+      style={{ ['--seg-color' as string]: roleColor(shot.structure_role) }}
+      onClick={onSelect}
+      onDragOver={(e) => {
+        if (!onPickDrop) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+      }}
+      onDrop={(e) => {
+        if (!onPickDrop) return;
+        e.preventDefault();
+        onPickDrop();
+        onSelect();
+      }}
+      onContextMenu={(e) => {
+        if (!onPastePicks || copiedPickCount <= 0) return;
+        e.preventDefault();
+        onPastePicks();
+        onSelect();
+      }}
+      title={
+        copiedPickCount > 0
+          ? `Right-click to paste ${copiedPickCount} copied pick${copiedPickCount === 1 ? '' : 's'}`
+          : undefined
+      }
+    >
+      <span className="vseg-bar" />
+      <span className="vseg-num">
+        {String(shot.shot_idx + 1).padStart(2, '0')}
+      </span>
+      <span className="vseg-mid">
+        <span className="vseg-beat">{shot.structure_role}</span>
+        <span className="vseg-time">
+          {start.toFixed(1)}s +{dur.toFixed(1)}s
+        </span>
+      </span>
+      <span className={`vseg-dot ${status}`} />
+    </button>
+  );
+}
+
+/** "Export video" action: renders the current plan into a real mp4 via the
+ *  deterministic frame-capture pipeline in main, showing live progress and a
+ *  playable result. Self-contained so it can sit in the review toolbar. */
+function ExportReelButton({
+  plan,
+  curation,
+  targetVideoUrl = null,
+  targetVideoPath = null,
+}: {
+  plan: SuggestedEdit;
+  curation: CurationResult | null;
+  /** The resolved creator/narration video the preview uses — needed so the
+   *  export's narration bed + creator-shot video match the preview (the plan's
+   *  own target_video_path is often null for non-local targets). */
+  targetVideoUrl?: string | null;
+  targetVideoPath?: string | null;
+}): React.JSX.Element {
+  const [status, setStatus] = useState<'idle' | 'running' | 'done' | 'error'>(
+    'idle',
+  );
+  const [progress, setProgress] = useState<ExportProgressEvent | null>(null);
+  const [result, setResult] = useState<{
+    url: string | null;
+    outPath: string;
+    hasAudio: boolean;
+  } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const reqRef = useRef<string | null>(null);
+
+  const phaseLabel = (p: ExportProgressEvent | null): string => {
+    if (!p) return 'Preparing…';
+    if (p.phase === 'frames') {
+      const pct = p.total > 0 ? Math.round((p.done / p.total) * 100) : 0;
+      return `Rendering frames ${p.done}/${p.total} (${pct}%)`;
+    }
+    if (p.phase === 'audio') return 'Building audio…';
+    if (p.phase === 'mux') return 'Muxing…';
+    if (p.phase === 'done') return 'Done';
+    return 'Error';
+  };
+
+  const run = async (): Promise<void> => {
+    if (typeof window.api?.exportReel !== 'function') {
+      setError('exportReel not available — restart the dev server.');
+      setStatus('error');
+      return;
+    }
+    const request_id =
+      typeof crypto !== 'undefined' && 'randomUUID' in crypto
+        ? crypto.randomUUID()
+        : `exp-${Date.now()}`;
+    reqRef.current = request_id;
+    setStatus('running');
+    setProgress(null);
+    setError(null);
+    setResult(null);
+    const unsub = window.api.onExportProgress(({ request_id: id, event }) => {
+      if (id !== request_id) return;
+      setProgress(event);
+    });
+    try {
+      const res = (await window.api.exportReel({
+        request_id,
+        plan,
+        curation,
+        fps: 30,
+        target_video_url: targetVideoUrl,
+        target_video_path: targetVideoPath,
+      })) as ExportReelResponse;
+      if (res.ok) {
+        setResult({
+          url: res.url,
+          outPath: res.out_path,
+          hasAudio: res.has_audio,
+        });
+        setStatus('done');
+      } else {
+        setError(res.error);
+        setStatus('error');
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+      setStatus('error');
+    } finally {
+      unsub();
+      reqRef.current = null;
+    }
+  };
+
+  const cancel = (): void => {
+    if (reqRef.current) void window.api.stopExport(reqRef.current);
+  };
+
+  return (
+    <>
+      <button
+        type="button"
+        className="btn btn-primary"
+        onClick={() => void run()}
+        disabled={status === 'running' || !(plan.shots ?? []).length}
+        title="Render this plan into a vertical mp4"
+      >
+        {status === 'running' ? phaseLabel(progress) : '⬇ Export video'}
+      </button>
+      {status === 'running' && (
+        <button type="button" className="btn btn-ghost" onClick={cancel}>
+          Cancel
+        </button>
+      )}
+      {status === 'error' && error && (
+        <span className="export-error" title={error}>
+          ⚠ {error.length > 80 ? error.slice(0, 80) + '…' : error}
+        </span>
+      )}
+      {status === 'done' && result && (
+        <div
+          className="preview-modal-backdrop"
+          onClick={() => setStatus('idle')}
+        >
+          <div
+            className="export-result-modal"
+            role="dialog"
+            aria-modal="true"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="preview-modal-head">
+              <div className="preview-modal-head-text">
+                <span className="preview-modal-eyebrow">Exported reel</span>
+                <span className="preview-modal-title">
+                  {result.hasAudio ? 'With audio' : 'No audio track'}
+                </span>
+              </div>
+              <button
+                type="button"
+                className="preview-modal-close"
+                onClick={() => setStatus('idle')}
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="export-result-media">
+              {result.url ? (
+                <video src={result.url} controls autoPlay playsInline />
+              ) : (
+                <div className="export-result-path">{result.outPath}</div>
+              )}
+            </div>
+            <div className="export-result-actions">
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => void window.api.showItemInFolder(result.outPath)}
+              >
+                Reveal in Finder
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => setStatus('idle')}
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 function PlanReview({
   plan,
   onPlanChange,
   curation,
+  pastedMedia,
+  recordPrompt,
   onCurateShot,
   onRegenerate,
   onContinue,
+  onAddClip,
   topActions,
   stageNav,
   agentActivity,
+  targetVideoUrl = null,
+  targetVideoPath = null,
+  narrationVideoPath = null,
 }: {
   plan: SuggestedEdit;
   onPlanChange: (next: SuggestedEdit) => void;
   curation: CurationResult | null;
+  pastedMedia: PastedMediaEntry[];
+  recordPrompt?: (source: string, text: string, shotIdx?: number | null) => void;
   onCurateShot: (shotIdx: number, userPrompt?: string) => Promise<void>;
   onRegenerate: (shotIdx: number, userPrompt: string) => Promise<void>;
   onContinue: (shotIdx: number, userPrompt: string) => Promise<void>;
+  onAddClip: (shotIdx: number, description: string) => Promise<AddClipResult>;
   topActions?: PlanTopActions;
   stageNav?: StageNav;
   agentActivity?: AgentActivity;
+  targetVideoUrl?: string | null;
+  targetVideoPath?: string | null;
+  /** Original target file (with audio) for narration — distinct from the
+   *  -an-stripped preview video used for visuals. */
+  narrationVideoPath?: string | null;
 }): React.JSX.Element {
   const totalCandidates =
     curation?.shots.reduce((n, s) => n + (s?.candidates?.length ?? 0), 0) ?? 0;
+  // Pasted clipboard media leads the library (most recent first), then
+  // the curated candidates.
+  const mediaLibrary = useMemo(
+    () => [...pastedMediaToLibrary(pastedMedia), ...buildMediaLibrary(curation)],
+    [curation, pastedMedia],
+  );
+  const devtools = React.useContext(DevtoolsContext);
+
+  // SFX timeline shown (and dragged) on the top timeline bar. Resolved by
+  // main from hand-edited events if present, else the transcript+inspiration
+  // cadence. Dragging a marker materializes plan.sfx_events.
+  const [sfxTimeline, setSfxTimeline] = useState<
+    { ms: number; type: string; sound?: string; url?: string; volume?: number }[]
+  >([]);
+  const sfxKey =
+    `${narrationVideoPath ?? ''}#` +
+    `${(plan.sfx_events ?? []).map((e) => `${e.ms}:${e.type}:${e.sound ?? ''}:${e.volume ?? ''}`).join(',')}#` +
+    `${plan.sfx_override?.cadence ?? ''}:${plan.sfx_override?.type ?? ''}:${plan.sfx_override?.sound ?? ''}#` +
+    `${plan.sfx_plan?.signals.sfx_per_word.toFixed(2) ?? ''}`;
+  useEffect(() => {
+    if (typeof window.api?.getSfxTimeline !== 'function') {
+      setSfxTimeline([]);
+      return;
+    }
+    if (!narrationVideoPath && !(plan.sfx_events?.length)) {
+      setSfxTimeline([]);
+      return;
+    }
+    let cancelled = false;
+    void window.api
+      .getSfxTimeline({
+        narrationPath: narrationVideoPath ?? '',
+        shots: plan.shots.map((s) => ({
+          sfx_cue: s.sfx_cue ?? null,
+          start_ms: s.start_ms,
+          duration_ms: s.duration_ms,
+        })),
+        sfxPlan: plan.sfx_plan ?? null,
+        override: plan.sfx_override ?? null,
+        events: plan.sfx_events ?? null,
+      })
+      .then((tl) => {
+        if (!cancelled) {
+          setSfxTimeline(
+            (tl ?? []).map((e) => ({
+              ms: e.ms,
+              type: e.type,
+              sound: e.sound,
+              url: e.url,
+              volume: e.volume,
+            })),
+          );
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setSfxTimeline([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sfxKey]);
+
+  // Drag a marker -> materialize the displayed timeline into editable
+  // plan.sfx_events with that one moved. From then on, sfx_events is the
+  // source of truth for preview + export.
+  const materializeTimeline = (): {
+    ms: number;
+    type: SfxType;
+    sound?: string;
+    volume?: number;
+  }[] =>
+    sfxTimeline.map((e) => ({
+      ms: e.ms,
+      type: e.type as SfxType,
+      ...(e.sound ? { sound: e.sound } : {}),
+      ...(typeof e.volume === 'number' ? { volume: e.volume } : {}),
+    }));
+  const moveSfxEvent = (index: number, newMs: number): void => {
+    const base = materializeTimeline();
+    if (!base[index]) return;
+    base[index] = { ...base[index], ms: Math.max(0, Math.round(newMs)) };
+    base.sort((a, b) => a.ms - b.ms);
+    onPlanChange({ ...plan, sfx_events: base });
+  };
+  // Delete one SFX onset (from the hover popup). Materializes the displayed
+  // timeline minus that event so sfx_events becomes the source of truth.
+  const removeSfxEvent = (index: number): void => {
+    const base = materializeTimeline().filter((_, i) => i !== index);
+    onPlanChange({ ...plan, sfx_events: base });
+  };
+
+  useEffect(() => {
+    const seen = new Set<string>();
+    const nextShots: ShotPlan[] = [];
+    let removed = false;
+    for (const shot of plan.shots) {
+      const key = shotDuplicateKey(shot);
+      if (seen.has(key)) {
+        removed = true;
+        continue;
+      }
+      seen.add(key);
+      nextShots.push(shot);
+    }
+    if (!removed) return;
+    let cursor = 0;
+    const reflowed = nextShots.map((shot, i) => {
+      const duration = Math.max(1, shot.duration_ms || shot.end_ms - shot.start_ms);
+      const start_ms = cursor;
+      const end_ms = start_ms + duration;
+      cursor = end_ms;
+      return { ...shot, shot_idx: i, start_ms, end_ms, duration_ms: duration };
+    });
+    onPlanChange({ ...plan, total_duration_ms: cursor, shots: reflowed });
+  }, [plan, onPlanChange]);
 
   // Per-shot concept selection: shot_idx → chosen index into
   // shot.options. Absent = the synthesizer's primary (index 0). Held in
@@ -1650,12 +5464,45 @@ function PlanReview({
     () => new Map(),
   );
   const [storyboardOpen, setStoryboardOpen] = useState(false);
+  const [repromptOpen, setRepromptOpen] = useState(false);
+  const [repromptMode, setRepromptMode] = useState<'plan' | 'shot' | 'all_shots'>('plan');
+  const [repromptText, setRepromptText] = useState('');
+  const [repromptBusy, setRepromptBusy] = useState(false);
+  const [regenerateAllOpen, setRegenerateAllOpen] = useState(false);
+  const [regenerateAllText, setRegenerateAllText] = useState('');
+  const [regenerateAllBusy, setRegenerateAllBusy] = useState(false);
+  const [filterExistingBusy, setFilterExistingBusy] = useState(false);
+  const [autoAssignBusy, setAutoAssignBusy] = useState(false);
+  const [draggedPick, setDraggedPick] = useState<{
+    sourceShotIdx: number;
+    sourcePickIdx: number;
+  } | null>(null);
+  const [pickClipboard, setPickClipboard] = useState<PickClipboard>(null);
+  const transcriptRef = useRef<HTMLTextAreaElement | null>(null);
   const selectOption = (shotIdx: number, optionIdx: number): void => {
     setSelections((prev) => {
       const next = new Map(prev);
       next.set(shotIdx, optionIdx);
       return next;
     });
+  };
+  const autoAssignLibraryMedia = async (): Promise<void> => {
+    if (mediaLibrary.length === 0 || !curation) return;
+    if (typeof window.api?.autoAssignMedia !== 'function') {
+      alert('autoAssignMedia not available yet — restart the desktop app so the new preload bundle loads.');
+      return;
+    }
+    setAutoAssignBusy(true);
+    try {
+      const result = await window.api.autoAssignMedia({ plan, curation });
+      if ('error' in result) {
+        alert(result.error);
+        return;
+      }
+      await onPlanChange(result);
+    } finally {
+      setAutoAssignBusy(false);
+    }
   };
   const pendingSelections = Array.from(selections.entries()).filter(
     ([shotIdx, idx]) => {
@@ -1710,11 +5557,249 @@ function PlanReview({
     });
     onPlanChange({ ...plan, shots: nextShots });
   };
-  const deleteShot = (shotIdx: number): void => {
-    onPlanChange({
-      ...plan,
-      shots: plan.shots.filter((s) => s.shot_idx !== shotIdx),
+  // Move the shared cut between shots[boundaryIdx] and shots[boundaryIdx+1] to
+  // newMs: the left shot's end and the right shot's start move together, so the
+  // total reel length and every other shot are untouched. Clamped so neither
+  // side drops below MIN_SHOT_MS.
+  const adjustShotBoundary = (boundaryIdx: number, newMs: number): void => {
+    const shots = plan.shots;
+    if (boundaryIdx < 0 || boundaryIdx >= shots.length - 1) return;
+    const left = shots[boundaryIdx];
+    const right = shots[boundaryIdx + 1];
+    const lo = left.start_ms + MIN_SHOT_MS;
+    const hi = right.end_ms - MIN_SHOT_MS;
+    const edge = snapBoundaryToTranscript(
+      left,
+      right,
+      Math.max(lo, Math.min(hi, Math.round(newMs))),
+    );
+    if (edge === left.end_ms) return;
+    const split = splitAdjacentShotsAtTranscriptBoundary(left, right, edge);
+    const nextShots = shots.map((s, i) => {
+      if (i === boundaryIdx) {
+        return split.left;
+      }
+      if (i === boundaryIdx + 1) {
+        return split.right;
+      }
+      return s;
     });
+    setTimingUndo((prev) => [...prev, shots].slice(-50));
+    onPlanChange({ ...plan, shots: nextShots });
+  };
+  // Snap one boundary back to its original (as-loaded) position.
+  const snapBoundary = (boundaryIdx: number): void => {
+    const orig = originalBoundsRef.current.get(
+      plan.shots[boundaryIdx]?.shot_idx,
+    );
+    if (orig) adjustShotBoundary(boundaryIdx, orig.end_ms);
+  };
+  // Undo the most recent timing edit by restoring only the timing fields from
+  // the snapshot (so unrelated edits made since aren't clobbered).
+  const undoTiming = (): void => {
+    if (!timingUndo.length) return;
+    const snap = timingUndo[timingUndo.length - 1];
+    const byIdx = new Map(snap.map((s) => [s.shot_idx, s]));
+    const nextShots = plan.shots.map((s) => {
+      const o = byIdx.get(s.shot_idx);
+      return o
+        ? { ...s, start_ms: o.start_ms, end_ms: o.end_ms, duration_ms: o.duration_ms }
+        : s;
+    });
+    setTimingUndo((prev) => prev.slice(0, -1));
+    onPlanChange({ ...plan, shots: nextShots });
+  };
+  // Reset ALL boundaries to their original (as-loaded) positions.
+  const resetTiming = (): void => {
+    const orig = originalBoundsRef.current;
+    const changed = plan.shots.some((s) => {
+      const o = orig.get(s.shot_idx);
+      return o && (o.start_ms !== s.start_ms || o.end_ms !== s.end_ms);
+    });
+    if (!changed) return;
+    const nextShots = plan.shots.map((s) => {
+      const o = orig.get(s.shot_idx);
+      return o
+        ? { ...s, start_ms: o.start_ms, end_ms: o.end_ms, duration_ms: o.duration_ms }
+        : s;
+    });
+    setTimingUndo((prev) => [...prev, plan.shots].slice(-50));
+    onPlanChange({ ...plan, shots: nextShots });
+  };
+  const moveSelectedMediaPick = (
+    sourceShotIdx: number,
+    sourcePickIdx: number,
+    destShotIdx: number,
+    destPickIdx?: number,
+  ): void => {
+    const sourceShot = plan.shots.find((s) => s.shot_idx === sourceShotIdx);
+    const pick = sourceShot ? getSelections(sourceShot)[sourcePickIdx] : null;
+    if (!pick) return;
+
+    if (sourceShotIdx === destShotIdx) {
+      const sourcePicks = getSelections(sourceShot);
+      const nextPicks = sourcePicks.slice();
+      const [moved] = nextPicks.splice(sourcePickIdx, 1);
+      if (!moved) return;
+      const rawInsert = destPickIdx ?? nextPicks.length;
+      const insertIdx =
+        destPickIdx !== undefined && destPickIdx > sourcePickIdx
+          ? rawInsert - 1
+          : rawInsert;
+      nextPicks.splice(Math.max(0, Math.min(nextPicks.length, insertIdx)), 0, moved);
+      updateShot(sourceShotIdx, { selected_media: nextPicks });
+      return;
+    }
+
+    const nextShots = plan.shots.map((shot) => {
+      if (shot.shot_idx === sourceShotIdx) {
+        const nextPicks = getSelections(shot).filter((_, i) => i !== sourcePickIdx);
+        return { ...shot, selected_media: nextPicks };
+      }
+      if (shot.shot_idx === destShotIdx) {
+        const nextPicks = getSelections(shot).slice();
+        const insertIdx = Math.max(
+          0,
+          Math.min(nextPicks.length, destPickIdx ?? nextPicks.length),
+        );
+        nextPicks.splice(insertIdx, 0, pick);
+        return { ...shot, selected_media: nextPicks };
+      }
+      return shot;
+    });
+    onPlanChange({ ...plan, shots: nextShots });
+  };
+  const copySelectedMediaPicks = (
+    sourceShotIdx: number,
+    sourcePickIdx?: number,
+  ): void => {
+    const sourceShot = plan.shots.find((s) => s.shot_idx === sourceShotIdx);
+    const sourcePicks = getSelections(sourceShot);
+    const picksToCopy =
+      sourcePickIdx === undefined
+        ? sourcePicks
+        : sourcePicks[sourcePickIdx]
+          ? [sourcePicks[sourcePickIdx]]
+          : [];
+    if (picksToCopy.length === 0) return;
+    setPickClipboard({
+      sourceShotIdx,
+      picks: picksToCopy.map((pick) => ({ ...pick })),
+    });
+  };
+  const pasteSelectedMediaPicks = (
+    destShotIdx: number,
+    destPickIdx?: number,
+  ): void => {
+    if (!pickClipboard || pickClipboard.picks.length === 0) return;
+    const copied = pickClipboard.picks.map((pick) => ({ ...pick }));
+    const nextShots = plan.shots.map((shot) => {
+      if (shot.shot_idx !== destShotIdx) return shot;
+      const nextPicks = getSelections(shot).slice();
+      const insertIdx = Math.max(
+        0,
+        Math.min(nextPicks.length, destPickIdx ?? nextPicks.length),
+      );
+      nextPicks.splice(insertIdx, 0, ...copied);
+      return { ...shot, selected_media: nextPicks };
+    });
+    onPlanChange({ ...plan, shots: nextShots });
+  };
+  /** Patch the plan-level subtitle (caption) style and persist. Mirrors
+   *  updateShot but for the single top-level subtitle_spec the burned-in
+   *  captions read from. When the plan never had a detected caption style
+   *  (subtitle_spec === null), the patch is applied on top of a default so
+   *  the user can author one from scratch. */
+  const updateSubtitleSpec = (patch: Partial<SubtitleSpec>): void => {
+    const base = plan.subtitle_spec ?? defaultSubtitleSpec();
+    onPlanChange({ ...plan, subtitle_spec: { ...base, ...patch } });
+  };
+  const deleteShot = (shotIdx: number): void => {
+    const idx = plan.shots.findIndex((s) => s.shot_idx === shotIdx);
+    if (idx === -1) return;
+    const removed = plan.shots[idx];
+    const prev = idx > 0 ? plan.shots[idx - 1] : null;
+    const next = idx < plan.shots.length - 1 ? plan.shots[idx + 1] : null;
+
+    // Split the removed shot's time range AND its spoken script between
+    // both neighbors so the timeline stays contiguous (no silent gap,
+    // total duration unchanged) and no narration is dropped. The neighbors
+    // meet at the midpoint, and the spoken words split there too — head to
+    // the previous shot, tail to the next. With only one neighbor, it
+    // absorbs the whole range + script.
+    const hasBoth = !!prev && !!next;
+    const mid = hasBoth
+      ? Math.round((removed.start_ms + removed.end_ms) / 2)
+      : null;
+    const words = removed.spoken_during.trim().split(/\s+/).filter(Boolean);
+    const cut = mid !== null ? Math.round(words.length / 2) : 0;
+    const headScript = mid !== null ? words.slice(0, cut).join(' ') : '';
+    const tailScript = mid !== null ? words.slice(cut).join(' ') : '';
+    const removedWords = removed.spoken_words ?? [];
+    const headWords = mid !== null ? removedWords.slice(0, cut) : removedWords;
+    const tailWords = mid !== null ? removedWords.slice(cut) : removedWords;
+    const joinSpoken = (a: string, b: string): string =>
+      [a.trim(), b.trim()].filter(Boolean).join(' ');
+
+    const shots = plan.shots
+      .filter((s) => s.shot_idx !== shotIdx)
+      .map((s) => {
+        if (prev && s.shot_idx === prev.shot_idx) {
+          const end_ms = mid ?? removed.end_ms;
+          return {
+            ...s,
+            end_ms,
+            duration_ms: end_ms - s.start_ms,
+            spoken_during: joinSpoken(
+              s.spoken_during,
+              mid !== null ? headScript : removed.spoken_during,
+            ),
+            spoken_words: [...(s.spoken_words ?? []), ...headWords],
+          };
+        }
+        if (next && s.shot_idx === next.shot_idx) {
+          const start_ms = mid ?? removed.start_ms;
+          return {
+            ...s,
+            start_ms,
+            duration_ms: s.end_ms - start_ms,
+            spoken_during: joinSpoken(
+              mid !== null ? tailScript : removed.spoken_during,
+              s.spoken_during,
+            ),
+            spoken_words: [...tailWords, ...(s.spoken_words ?? [])],
+          };
+        }
+        return s;
+      });
+    onPlanChange({ ...plan, shots });
+  };
+  /** Override the layout (placement) of a shot's option. Persists to the
+   *  plan immediately so the phone preview reflects it; when the edited
+   *  option is the primary (index 0) the top-level mirror is updated too
+   *  so the curator + downstream consumers see the new placement. */
+  const setLayout = (
+    shotIdx: number,
+    optionIdx: number,
+    placement: BrollPlacement,
+  ): void => {
+    const nextShots = plan.shots.map((s) => {
+      if (s.shot_idx !== shotIdx) return s;
+      const options = s.options.map((o, i) =>
+        i === optionIdx ? { ...o, placement } : o,
+      );
+      return optionIdx === 0
+        ? { ...s, options, placement }
+        : { ...s, options };
+    });
+    onPlanChange({ ...plan, shots: nextShots });
+  };
+  /** Set the structured motion preset for a shot's base media. Lives at
+   *  the shot level (not per option) — it's a directorial choice for the
+   *  slot, applied to whatever media fills it. Persists immediately so
+   *  the phone preview animates. */
+  const setAnimation = (shotIdx: number, anim: SceneAnimation): void => {
+    updateShot(shotIdx, { scene_animation: anim });
   };
 
   // Selected shot for the detail box. Defaults to the first shot when
@@ -1723,6 +5808,27 @@ function PlanReview({
   const [selectedShotIdx, setSelectedShotIdx] = useState<number | null>(
     () => plan.shots[0]?.shot_idx ?? null,
   );
+  // Undo history for shot-timing edits (snapshots of the pre-edit shots),
+  // plus the per-shot "original" bounds so a boundary drag can snap back to
+  // where it started. Both reset when the shot SET changes (add/delete/merge).
+  type ShotBounds = { start_ms: number; end_ms: number; duration_ms: number };
+  const [timingUndo, setTimingUndo] = useState<ShotPlan[][]>([]);
+  const boundsOf = (ss: ShotPlan[]): Map<number, ShotBounds> =>
+    new Map(
+      ss.map((s) => [
+        s.shot_idx,
+        { start_ms: s.start_ms, end_ms: s.end_ms, duration_ms: s.duration_ms },
+      ]),
+    );
+  const originalBoundsRef = useRef<Map<number, ShotBounds>>(
+    boundsOf(plan.shots),
+  );
+  const shotSig = plan.shots.map((s) => s.shot_idx).join(',');
+  useEffect(() => {
+    originalBoundsRef.current = boundsOf(plan.shots);
+    setTimingUndo([]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shotSig]);
   useEffect(() => {
     if (
       selectedShotIdx !== null &&
@@ -1731,6 +5837,20 @@ function PlanReview({
       setSelectedShotIdx(plan.shots[0]?.shot_idx ?? null);
     }
   }, [plan.shots, selectedShotIdx]);
+  const transcriptBoundsSig = plan.shots
+    .map((s) => {
+      const words = s.spoken_words ?? [];
+      const last = words[words.length - 1];
+      return `${s.shot_idx}:${s.start_ms}:${s.end_ms}:${last?.end_ms ?? ''}`;
+    })
+    .join('|');
+  useEffect(() => {
+    const aligned = alignShotEndsToTranscript(plan.shots);
+    if (!aligned.changed) return;
+    setTimingUndo((prev) => [...prev, plan.shots].slice(-50));
+    onPlanChange({ ...plan, shots: aligned.shots });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [transcriptBoundsSig]);
 
   const selectedShot =
     selectedShotIdx !== null
@@ -1752,17 +5872,143 @@ function PlanReview({
       (s) => s != null && s.candidates.length > 0,
     ).length ?? 0;
   const shotsNeedingMedia = plan.shots.length - shotsWithMedia;
+  // Only ACTUAL curation counts as "curated" for the curate/recurate
+  // button — pasted media in the library shouldn't make a never-curated
+  // plan offer "Recurate".
+  const curatedLibraryCount = useMemo(
+    () => buildMediaLibrary(curation).length,
+    [curation],
+  );
+  const hasCuratedMedia = shotsWithMedia > 0 || curatedLibraryCount > 0;
+  const selectedScript = selectedShot?.spoken_during.trim() ?? '';
+  const updateSelectedScript = (value: string): void => {
+    if (!selectedShot) return;
+    updateShot(selectedShot.shot_idx, { spoken_during: value });
+  };
+  const findSelectedShotIndex = (): number =>
+    selectedShot
+      ? plan.shots.findIndex((s) => s.shot_idx === selectedShot.shot_idx)
+      : -1;
+  const splitSelectedShot = (): void => {
+    if (!selectedShot) return;
+    const text = selectedShot.spoken_during;
+    const cursor =
+      transcriptRef.current?.selectionStart ??
+      transcriptRef.current?.value.length ??
+      0;
+    let cut = cursor;
+    if (cut <= 0 || cut >= text.length) {
+      const words = text.trim().split(/\s+/).filter(Boolean);
+      if (words.length < 2) return;
+      const head = words.slice(0, Math.ceil(words.length / 2)).join(' ');
+      cut = head.length;
+    }
+    while (cut > 0 && /\S/.test(text[cut - 1] ?? '')) cut -= 1;
+    if (cut <= 0) {
+      cut = cursor;
+      while (cut < text.length && /\S/.test(text[cut] ?? '')) cut += 1;
+    }
+    const firstText = text.slice(0, cut).trim();
+    const secondText = text.slice(cut).trim();
+    if (!firstText || !secondText) return;
+
+    const idx = findSelectedShotIndex();
+    if (idx < 0) return;
+    const firstWords = firstText.split(/\s+/).filter(Boolean).length;
+    const secondWords = secondText.split(/\s+/).filter(Boolean).length;
+    const timedWords = selectedShot.spoken_words ?? [];
+    const ratio = firstWords / Math.max(1, firstWords + secondWords);
+    const minMs = Math.min(350, Math.floor(selectedShot.duration_ms / 2));
+    const splitMs = Math.max(
+      selectedShot.start_ms + minMs,
+      Math.min(
+        selectedShot.end_ms - minMs,
+        Math.round(selectedShot.start_ms + selectedShot.duration_ms * ratio),
+      ),
+    );
+    const nextShotIdx =
+      Math.max(...plan.shots.map((s) => s.shot_idx), selectedShot.shot_idx) + 1;
+    const first: ShotPlan = {
+      ...selectedShot,
+      end_ms: splitMs,
+      duration_ms: splitMs - selectedShot.start_ms,
+      spoken_during: firstText,
+      spoken_words: timedWords.slice(0, firstWords),
+    };
+    const second: ShotPlan = {
+      ...selectedShot,
+      shot_idx: nextShotIdx,
+      start_ms: splitMs,
+      duration_ms: selectedShot.end_ms - splitMs,
+      spoken_during: secondText,
+      spoken_words: timedWords.slice(firstWords),
+      selected_media: [],
+    };
+    const shots = [
+      ...plan.shots.slice(0, idx),
+      first,
+      second,
+      ...plan.shots.slice(idx + 1),
+    ];
+    onPlanChange({ ...plan, shots });
+    setSelectedShotIdx(second.shot_idx);
+  };
+  const combineSelectedShot = (direction: 'prev' | 'next'): void => {
+    const idx = findSelectedShotIndex();
+    if (!selectedShot || idx < 0) return;
+    const neighborIdx = direction === 'prev' ? idx - 1 : idx + 1;
+    const neighbor = plan.shots[neighborIdx];
+    if (!neighbor) return;
+    const first = direction === 'prev' ? neighbor : selectedShot;
+    const second = direction === 'prev' ? selectedShot : neighbor;
+    const merged: ShotPlan = {
+      ...first,
+      end_ms: second.end_ms,
+      duration_ms: second.end_ms - first.start_ms,
+      spoken_during: [first.spoken_during.trim(), second.spoken_during.trim()]
+        .filter(Boolean)
+        .join(' '),
+      spoken_words: [...(first.spoken_words ?? []), ...(second.spoken_words ?? [])],
+      text_overlay: selectedShot.text_overlay,
+      text_position: selectedShot.text_position,
+      selected_media: getSelections(first).length
+        ? getSelections(first)
+        : getSelections(second),
+    };
+    const start = Math.min(idx, neighborIdx);
+    const end = Math.max(idx, neighborIdx);
+    const shots = [
+      ...plan.shots.slice(0, start),
+      merged,
+      ...plan.shots.slice(end + 1),
+    ];
+    onPlanChange({ ...plan, shots });
+    setSelectedShotIdx(merged.shot_idx);
+  };
 
   return (
     <div className="plan-review">
+      <CommandBar
+        plan={plan}
+        onApply={onPlanChange}
+        narrationPath={narrationVideoPath ?? plan.target_video_path ?? null}
+        onPrompt={(text) => recordPrompt?.('command_bar', text)}
+        onFindClip={(query, shotIdx) => {
+          const target =
+            shotIdx != null
+              ? (plan.shots[shotIdx]?.shot_idx ??
+                plan.shots[0]?.shot_idx ??
+                0)
+              : (selectedShotIdx ?? plan.shots[0]?.shot_idx ?? 0);
+          void onCurateShot(target, `find a clip that's ${query}`);
+        }}
+      />
       {/* compact header — eyebrow on top, then stats + bulk actions */}
       <div className="plan2-top">
         <div className="plan2-eyebrow eyebrow">Step 3 · The plan</div>
         <div className="plan2-top-row">
           <div className="plan2-stats">
             <b>{(plan.total_duration_ms / 1000).toFixed(1)}s</b>
-            <span className="sep">·</span>
-            <b>{plan.shots.length}</b> shots
             {curation && (
               <>
                 <span className="sep">·</span>
@@ -1774,62 +6020,380 @@ function PlanReview({
               ✓ {plan.structure_confidence}
             </span>
           </div>
+          {selectedShot && (
+            <div className="plan2-script" title={selectedScript}>
+              <span className="plan2-script-label">
+                Shot {String(selectedShot.shot_idx + 1).padStart(2, '0')}
+              </span>
+              <textarea
+                ref={transcriptRef}
+                className="plan2-script-input plan2-script-textarea"
+                rows={2}
+                value={selectedShot.spoken_during}
+                onChange={(e) => updateSelectedScript(e.currentTarget.value)}
+                aria-label={`Edit shot ${selectedShot.shot_idx + 1} script`}
+                placeholder="Edit caption/script..."
+              />
+              <span className="plan2-script-actions">
+                <button
+                  type="button"
+                  className="plan2-script-btn"
+                  onClick={() => combineSelectedShot('prev')}
+                  disabled={findSelectedShotIndex() <= 0}
+                  title="Combine with previous shot"
+                >
+                  ←
+                </button>
+                <button
+                  type="button"
+                  className="plan2-script-btn"
+                  onClick={splitSelectedShot}
+                  disabled={selectedScript.split(/\s+/).filter(Boolean).length < 2}
+                  title="Split at cursor"
+                >
+                  Split
+                </button>
+                <button
+                  type="button"
+                  className="plan2-script-btn"
+                  onClick={() => combineSelectedShot('next')}
+                  disabled={findSelectedShotIndex() >= plan.shots.length - 1}
+                  title="Combine with next shot"
+                >
+                  →
+                </button>
+              </span>
+            </div>
+          )}
           {topActions && (
             <div className="plan2-top-actions">
               <button
                 type="button"
-                className="btn btn-ai"
-                onClick={topActions.onCurateAll}
-                disabled={topActions.curating || shotsNeedingMedia === 0}
-                title={
-                  shotsNeedingMedia === 0
-                    ? 'All shots have media'
-                    : `Run the research agent for ${shotsNeedingMedia} shot(s) still needing media`
+                className="btn"
+                onClick={() => setRepromptOpen((open) => !open)}
+                disabled={
+                  topActions.curating || topActions.regeneratingPlan
                 }
+                title="Add details and regenerate the whole shot plan"
               >
-                {topActions.curating
-                  ? `Curating…${topActions.curatingProgress ? ` (${topActions.curatingProgress.completed}/${topActions.curatingProgress.total})` : ''}`
-                  : `✦ Find media for all ${shotsNeedingMedia || ''}`}
+                ↻ Reprompt plan
               </button>
+              {topActions.curating ? (
+                <button
+                  type="button"
+                  className="btn btn-stop btn-curating"
+                  onClick={topActions.onStop}
+                  title="Cancel the in-flight library curator agents"
+                >
+                  <span className="agent-status-spinner" aria-hidden="true" />
+                  Curating
+                  {topActions.curatingProgress
+                    ? ` ${topActions.curatingProgress.completed}/${topActions.curatingProgress.total}`
+                    : '…'}
+                  <span className="btn-curating-stop">■ stop</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="btn btn-ai"
+                  onClick={() => {
+                    if (hasCuratedMedia) {
+                      setRegenerateAllOpen(true);
+                    } else {
+                      topActions.onCurateAll(false);
+                    }
+                  }}
+                  disabled={!hasCuratedMedia && shotsNeedingMedia === 0}
+                  title={
+                    hasCuratedMedia
+                      ? 'Recurate the transcript media library from scratch'
+                      : shotsNeedingMedia === 0
+                        ? 'All shots have media'
+                        : `Curate at least ${shotsNeedingMedia} library clip(s) from the transcript`
+                  }
+                >
+                  {hasCuratedMedia
+                    ? '↻ Recurate library'
+                    : `✦ Curate library ${shotsNeedingMedia || ''}`}
+                </button>
+              )}
+              {devtools && curation && mediaLibrary.length > 0 && (
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  onClick={async () => {
+                    setFilterExistingBusy(true);
+                    try {
+                      await topActions.onFilterExistingScreenshots();
+                    } finally {
+                      setFilterExistingBusy(false);
+                    }
+                  }}
+                  disabled={filterExistingBusy || topActions.curating}
+                  title="Drop off-topic clips (relevance gate), then re-judge the screenshots of what survives"
+                >
+                  {filterExistingBusy ? 'Filtering…' : 'Filter off-topic'}
+                </button>
+              )}
+              {mediaLibrary.length > 0 && (
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  onClick={() => void autoAssignLibraryMedia()}
+                  disabled={autoAssignBusy}
+                  title="Pick the best library item and motion for each shot"
+                >
+                  {autoAssignBusy ? 'Assigning…' : 'Auto assign'}
+                </button>
+              )}
               <button
                 type="button"
                 className="btn btn-primary"
                 onClick={topActions.onPreview}
+                disabled={topActions.regeneratingPlan}
               >
                 ▶ Preview reel
               </button>
+              <ExportReelButton
+                plan={plan}
+                curation={curation}
+                targetVideoUrl={targetVideoUrl}
+                // Narration audio must come from the ORIGINAL file — the
+                // preview copy (target_video_path) is transcoded with -an
+                // (no audio). Fall back to the preview only for the visual.
+                targetVideoPath={
+                  narrationVideoPath ?? targetVideoPath ?? plan.target_video_path ?? null
+                }
+              />
             </div>
           )}
         </div>
-      </div>
-
-      {/* horizontal timeline rail — each shot as a clickable segment.
-          Width is proportional to duration_ms via flex-grow. */}
-      <div className="htimeline-wrap">
-        <div className="htimeline-rail">
-          {plan.shots.map((s) => {
-            const sc =
-              curation?.shots.find(
-                (c) => c != null && c.shot_idx === s.shot_idx,
-              ) ?? null;
-            const status = curationStatus(sc);
-            return (
-              <HSeg
-                key={s.shot_idx}
-                shot={s}
-                selected={s.shot_idx === selectedShotIdx}
-                status={status}
-                onSelect={() => setSelectedShotIdx(s.shot_idx)}
+        {/* Reel-level library curation activity. The library agent
+            researches ALL shots in one pass before per-shot capture
+            starts, emitting turn events under the synthetic shot_idx -1
+            — surface them here so the run isn't silent during phase 1. */}
+        {agentActivity && topActions?.curating && (
+          <ShotAgentActivity shotIdx={-1} activity={agentActivity} />
+        )}
+        {topActions && repromptOpen && (
+          <form
+            className="plan-reprompt"
+            onSubmit={async (e) => {
+              e.preventDefault();
+              setRepromptBusy(true);
+              try {
+                if (repromptMode === 'shot' && selectedShot) {
+                  await topActions.onRegenerateShotIdea(
+                    selectedShot.shot_idx,
+                    repromptText,
+                  );
+                } else if (repromptMode === 'all_shots') {
+                  await topActions.onRegenerateAllShotIdeas(repromptText);
+                } else {
+                  await topActions.onRegeneratePlan(repromptText);
+                }
+                setRepromptText('');
+                setRepromptOpen(false);
+              } finally {
+                setRepromptBusy(false);
+              }
+            }}
+          >
+            <div className="plan-reprompt-mode" role="radiogroup">
+              <button
+                type="button"
+                className={`plan-reprompt-mode-btn ${repromptMode === 'plan' ? 'on' : ''}`}
+                onClick={() => setRepromptMode('plan')}
+                aria-pressed={repromptMode === 'plan'}
+              >
+                Whole plan
+              </button>
+              <button
+                type="button"
+                className={`plan-reprompt-mode-btn ${repromptMode === 'shot' ? 'on' : ''}`}
+                onClick={() => setRepromptMode('shot')}
+                disabled={!selectedShot}
+                aria-pressed={repromptMode === 'shot'}
+              >
+                Selected shot idea
+              </button>
+              <button
+                type="button"
+                className={`plan-reprompt-mode-btn ${repromptMode === 'all_shots' ? 'on' : ''}`}
+                onClick={() => setRepromptMode('all_shots')}
+                aria-pressed={repromptMode === 'all_shots'}
+              >
+                All shot ideas
+              </button>
+            </div>
+            <textarea
+              className="plan-reprompt-textarea"
+              rows={3}
+              value={repromptText}
+              onChange={(e) => setRepromptText(e.currentTarget.value)}
+              placeholder={
+                repromptMode === 'shot'
+                  ? 'Describe the new visual idea for the selected shot, e.g. "use review/demo clips from YouTube instead of the company homepage."'
+                  : repromptMode === 'all_shots'
+                    ? 'Describe how to regenerate every shot idea, e.g. "use different sources for each shot and include review/demo reels where relevant."'
+                  : 'Add what should change, e.g. "make the first half faster, include more founder visuals, and avoid product screenshots."'
+              }
+              disabled={topActions.regeneratingPlan || repromptBusy}
+              aria-label="Plan regeneration details"
+            />
+            <div className="plan-reprompt-actions">
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => setRepromptOpen(false)}
+                disabled={topActions.regeneratingPlan || repromptBusy}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="btn btn-ai"
+                disabled={
+                  topActions.regeneratingPlan ||
+                  repromptBusy ||
+                  !topActions.canRegeneratePlan ||
+                  (repromptMode === 'shot' && !selectedShot) ||
+                  repromptText.trim().length === 0
+                }
+                title={
+                  topActions.canRegeneratePlan
+                    ? 'Regenerate the full plan with these details'
+                    : 'Wait for the current operation to finish'
+                }
+              >
+                {topActions.regeneratingPlan || repromptBusy
+                  ? 'Regenerating…'
+                  : repromptMode === 'shot'
+                    ? '✦ Regenerate shot idea'
+                    : repromptMode === 'all_shots'
+                      ? '✦ Regenerate all shot ideas'
+                    : '✦ Regenerate plan'}
+              </button>
+            </div>
+          </form>
+        )}
+        {topActions?.regeneratingPlan && (
+          <div className="plan-reprompt-status">
+            Regenerating plan with updated instructions…
+          </div>
+        )}
+        {repromptBusy && !topActions?.regeneratingPlan && (
+          <div className="plan-reprompt-status">
+            Regenerating shot ideas…
+          </div>
+        )}
+        {topActions && regenerateAllOpen && (
+          <div
+            className="regen-modal-backdrop"
+            onClick={() => setRegenerateAllOpen(false)}
+          >
+            <form
+              className="regen-modal"
+              onClick={(e) => e.stopPropagation()}
+              onSubmit={(e) => {
+                e.preventDefault();
+                setRegenerateAllBusy(true);
+                setRegenerateAllOpen(false);
+                void topActions
+                  .onCurateAll(
+                    true,
+                    regenerateAllText.trim() || undefined,
+                  )
+                  .finally(() => setRegenerateAllBusy(false));
+                setRegenerateAllText('');
+              }}
+            >
+              <div className="regen-modal-head">
+                <span className="regen-modal-title">Recurate library</span>
+                <button
+                  type="button"
+                  className="preview-modal-close"
+                  onClick={() => setRegenerateAllOpen(false)}
+                  aria-label="Close"
+                >
+                  ✕
+                </button>
+              </div>
+              <label className="regen-label" htmlFor="regen-all-media">
+                What do you want to see instead?
+              </label>
+              <textarea
+                id="regen-all-media"
+                className="regen-textarea"
+                rows={4}
+                value={regenerateAllText}
+                onChange={(e) => setRegenerateAllText(e.currentTarget.value)}
+                placeholder='e.g. "more product demo screenshots, fewer homepage hero shots"'
+                disabled={regenerateAllBusy}
+                autoFocus
               />
-            );
-          })}
-        </div>
+              <div className="regen-actions">
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  onClick={() => setRegenerateAllOpen(false)}
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-ai" disabled={regenerateAllBusy}>
+                  {regenerateAllBusy ? 'Recurating…' : '↻ Recurate library'}
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
       </div>
 
-      {/* detail box (left) + persistent phone preview sidebar (right).
-          The body row keeps the detail box scrollable and the phone
-          pinned next to it as the user navigates between shots. */}
-      <div className="plan-review-body">
+      {/* Draggable shot-boundary timeline — move a cut without shifting the
+          rest of the reel. Double-click a divider to snap it back; Undo /
+          Reset revert timing edits. */}
+      {plan.shots.length > 1 && (
+        <div className="shot-tl-wrap">
+          <div className="shot-tl-toolbar">
+            <span className="shot-tl-title">Shot timing</span>
+            <span className="shot-tl-toolbar-spacer" />
+            <button
+              type="button"
+              className="btn btn-mini"
+              onClick={undoTiming}
+              disabled={timingUndo.length === 0}
+              title="Undo the last timing change"
+            >
+              ↶ Undo{timingUndo.length ? ` (${timingUndo.length})` : ''}
+            </button>
+            <button
+              type="button"
+              className="btn btn-mini"
+              onClick={resetTiming}
+              title="Snap every cut back to its original position"
+            >
+              ⤺ Reset
+            </button>
+          </div>
+          <ShotTimelineBar
+            shots={plan.shots}
+            totalDurationMs={plan.total_duration_ms}
+            selectedShotIdx={selectedShotIdx}
+            onSelectShot={setSelectedShotIdx}
+            onCommitBoundary={adjustShotBoundary}
+            onSnapBoundary={snapBoundary}
+            sfxEvents={sfxTimeline}
+            onMoveSfx={moveSfxEvent}
+            onRemoveSfx={removeSfxEvent}
+          />
+        </div>
+      )}
+
+      {/* Main row: plan content. */}
+      <div className="plan-main-row">
+        <div className="plan-main">
+          {/* detail box (left) + persistent phone preview sidebar (right). */}
+          <div className="plan-review-body">
         {selectedShot ? (
           <div className="detail-box">
             <ShotRow
@@ -1838,14 +6402,47 @@ function PlanReview({
               onChange={(patch) => updateShot(selectedShot.shot_idx, patch)}
               onDelete={() => deleteShot(selectedShot.shot_idx)}
               curation={selectedCuration}
+              mediaLibrary={mediaLibrary}
               trace={selectedTrace}
               onCurateShot={onCurateShot}
               onRegenerate={onRegenerate}
               onContinue={onContinue}
+              onAddClip={onAddClip}
               selectedOptionIdx={selections.get(selectedShot.shot_idx) ?? 0}
               onSelectOption={selectOption}
+              onSetLayout={setLayout}
+              onSetAnimation={setAnimation}
+              subtitleSpec={plan.subtitle_spec}
+              onSubtitleChange={updateSubtitleSpec}
               stageNav={stageNav}
               agentActivity={agentActivity}
+              onPickDragStart={(sourcePickIdx) =>
+                setDraggedPick({
+                  sourceShotIdx: selectedShot.shot_idx,
+                  sourcePickIdx,
+                })
+              }
+              onPickDragEnd={() => setDraggedPick(null)}
+              onPickDrop={(destPickIdx) => {
+                if (!draggedPick) return;
+                moveSelectedMediaPick(
+                  draggedPick.sourceShotIdx,
+                  draggedPick.sourcePickIdx,
+                  selectedShot.shot_idx,
+                  destPickIdx,
+                );
+                setDraggedPick(null);
+              }}
+              copiedPickCount={pickClipboard?.picks.length ?? 0}
+              onCopyPick={(sourcePickIdx) =>
+                copySelectedMediaPicks(selectedShot.shot_idx, sourcePickIdx)
+              }
+              onCopyAllPicks={() =>
+                copySelectedMediaPicks(selectedShot.shot_idx)
+              }
+              onPastePicks={(destPickIdx) =>
+                pasteSelectedMediaPicks(selectedShot.shot_idx, destPickIdx)
+              }
             />
           </div>
         ) : (
@@ -1862,12 +6459,29 @@ function PlanReview({
         <PhoneSidebar
           shot={selectedShot}
           curation={selectedCuration}
+          allShots={plan.shots}
+          allCuration={curation}
           selectedOptionIdx={
             selectedShot
               ? (selections.get(selectedShot.shot_idx) ?? 0)
               : 0
           }
+          subtitleSpec={plan.subtitle_spec}
+          targetVideoUrl={targetVideoUrl}
+          targetVideoPath={targetVideoPath ?? plan.target_video_path ?? null}
+          narrationVideoPath={narrationVideoPath}
+          sfxPlan={plan.sfx_plan ?? null}
+          sfxOverride={plan.sfx_override ?? null}
+          sfxVolume={plan.sfx_volume}
+          sfxEvents={plan.sfx_events ?? null}
+          sfxLeadMs={plan.sfx_lead_ms ?? 0}
+          narrationVolume={plan.narration_volume ?? 1}
+          onNarrationVolumeChange={(v) =>
+            onPlanChange({ ...plan, narration_volume: v })
+          }
         />
+          </div>
+        </div>
       </div>
 
       {/* Structure + patterns metadata — tucked into a collapsed
@@ -1927,6 +6541,360 @@ function PlanReview({
 }
 
 // ============================================================
+//  SubtitleSpecCard — the resolved subtitle style the edit will apply
+// ============================================================
+
+/** A neutral caption style used when a plan has no detected captions, so
+ *  the user can still author one from scratch. Mirrors the fallbacks in
+ *  the main process's deriveSubtitleSpec (subtitle-spec.ts). */
+function defaultSubtitleSpec(): SubtitleSpec {
+  return {
+    enabled: true,
+    preset_id: '',
+    preset_label: '',
+    font_family: '',
+    font_family_name: '',
+    font_size: 'large',
+    position: 'bottom',
+    chunking: 'phrase',
+    words_per_chunk: 3,
+    casing: 'uppercase',
+    emphasis: 'none',
+    animation: 'pop',
+    text_treatment: 'bordered',
+    text_color: 'white',
+    treatment_color: 'black',
+    highlight_color: null,
+    has_emoji: false,
+    low_confidence: false,
+  };
+}
+
+function SubtitleSpecCard({
+  spec,
+  onChange,
+}: {
+  spec: SubtitleSpec;
+  /** When provided, the style fields render as editable controls and each
+   *  change patches the plan's subtitle_spec (persisted via onPlanChange).
+   *  Omitted → read-only display. */
+  onChange?: (patch: Partial<SubtitleSpec>) => void;
+}): React.JSX.Element {
+  // Render the preview in the actual matched font (same mechanism as the
+  // analysis panel).
+  const [fontFamily, setFontFamily] = useState<string | null>(null);
+  useEffect(() => {
+    setFontFamily(null);
+    if (!spec.font_family) return;
+    let cancelled = false;
+    void window.api.getFontDataUrl(spec.font_family).then((dataUrl) => {
+      if (cancelled || !dataUrl) return;
+      const fam = `cap-${spec.font_family}`;
+      injectFontFace(fam, dataUrl);
+      setFontFamily(fam);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [spec.font_family]);
+
+  const treatColor = namedColorToHex(spec.treatment_color) ?? '#000000';
+  const rows: [string, string][] = [
+    ['Preset', spec.preset_label || '(none)'],
+    ['Font', spec.font_family_name || '(unmatched)'],
+    ['Size', spec.font_size],
+    ['Position', spec.position],
+    ['Words/group', String(spec.words_per_chunk)],
+    ['Chunking', spec.chunking],
+    ['Casing', spec.casing],
+    ['Animation', spec.animation],
+    ['Emphasis', spec.emphasis],
+    ['Treatment', spec.text_treatment],
+    ['Text color', spec.text_color],
+    ['Border/BG', spec.treatment_color ?? '-'],
+  ];
+
+  // Editable enum control (rendered when `onChange` is provided). Each
+  // change patches the plan's subtitle_spec immediately.
+  const enumSelect = (
+    key: keyof SubtitleSpec,
+    opts: readonly string[],
+  ): React.JSX.Element => (
+    <select
+      className="select"
+      value={String(spec[key])}
+      onChange={(e) =>
+        onChange?.({ [key]: e.target.value } as Partial<SubtitleSpec>)
+      }
+    >
+      {opts.map((o) => (
+        <option key={o} value={o}>
+          {o.replace(/_/g, ' ')}
+        </option>
+      ))}
+    </select>
+  );
+  // Genuinely-dynamic preview styling (depends on the spec's font + colors);
+  // static layout lives in CSS (.subspec-preview-text + .treat-* modifiers).
+  // Live "People" sample reflects both the size preset and the fine
+  // multiplier (preview base is scaled up for legibility in the box).
+  const previewBase =
+    spec.font_size === 'small' ? 20 : spec.font_size === 'medium' ? 26 : 34;
+  const previewTextStyle: React.CSSProperties = {
+    fontFamily: fontFamily ?? undefined,
+    fontSize: `${previewBase * subtitleFontScale(spec)}px`,
+    textTransform: spec.casing === 'uppercase' ? 'uppercase' : 'none',
+    color: namedColorToHex(spec.text_color) ?? '#ffffff',
+    ...(spec.text_treatment === 'bordered'
+      ? { WebkitTextStroke: `${subtitleBorderWidth(spec)}px ${treatColor}` }
+      : spec.text_treatment === 'backgrounded'
+        ? { background: treatColor }
+        : { textShadow: '0 2px 6px rgba(0,0,0,0.6)' }),
+  };
+
+  // One labelled field cell, matching the app's .label + control rhythm.
+  const field = (
+    label: string,
+    control: React.ReactNode,
+  ): React.JSX.Element => (
+    <div className="subspec-field">
+      <span className="subspec-field-label">{label}</span>
+      {control}
+    </div>
+  );
+
+  return (
+    <div className="subspec-card">
+      <div className="subspec-head">
+        <span className="label">Captions · subtitle style</span>
+        <span className="subspec-status">
+          {spec.enabled ? 'on' : 'off'}
+          {spec.preset_label ? ` · ${spec.preset_label}` : ''}
+          {spec.low_confidence ? ' · low confidence' : ''}
+        </span>
+      </div>
+      <div className="subspec-body">
+        {/* Live preview */}
+        <div className="subspec-preview">
+          <span
+            className={`subspec-preview-text treat-${spec.text_treatment}`}
+            style={previewTextStyle}
+          >
+            People
+          </span>
+        </div>
+
+        {/* Fields */}
+        {onChange ? (
+          <div className="subspec-grid">
+            <label className="subspec-toggle">
+              <input
+                type="checkbox"
+                checked={spec.enabled}
+                onChange={(e) => onChange({ enabled: e.target.checked })}
+              />
+              <span>Captions enabled</span>
+            </label>
+
+            {field(
+              'Preset',
+              <span className="subspec-static">
+                {spec.preset_label || '(none)'}
+              </span>,
+            )}
+            {field(
+              'Font',
+              <span className="subspec-static">
+                {spec.font_family_name || '(unmatched)'}
+              </span>,
+            )}
+            {field('Size', enumSelect('font_size', ['small', 'medium', 'large']))}
+            {field(
+              'Fine size',
+              <div className="subspec-size-fine">
+                <input
+                  type="range"
+                  className="scale-range"
+                  min={0.5}
+                  max={3}
+                  step={0.05}
+                  value={subtitleFontScale(spec)}
+                  aria-label="Subtitle fine size"
+                  onChange={(e) =>
+                    onChange?.({ font_scale: Number(e.target.value) })
+                  }
+                />
+                <span className="scale-row-num">
+                  <input
+                    type="number"
+                    className="scale-num-input"
+                    min={50}
+                    max={300}
+                    step={5}
+                    value={Math.round(subtitleFontScale(spec) * 100)}
+                    aria-label="Subtitle size percent"
+                    onChange={(e) => {
+                      const v = Number(e.target.value);
+                      if (Number.isNaN(v)) return;
+                      onChange?.({
+                        font_scale: Math.max(0.5, Math.min(3, v / 100)),
+                      });
+                    }}
+                  />
+                  <span className="scale-num-suffix">%</span>
+                </span>
+              </div>,
+            )}
+            {field(
+              'Position',
+              enumSelect('position', [
+                'center',
+                'lower_third',
+                'bottom',
+                'top',
+                'varies',
+              ]),
+            )}
+            {field(
+              'Words/group',
+              <input
+                className="input subspec-num"
+                type="number"
+                min={1}
+                value={spec.words_per_chunk}
+                onChange={(e) =>
+                  onChange({
+                    words_per_chunk: Math.max(
+                      1,
+                      Math.round(Number(e.target.value) || 1),
+                    ),
+                  })
+                }
+              />,
+            )}
+            {field(
+              'Chunking',
+              enumSelect('chunking', [
+                'word_by_word',
+                'phrase',
+                'sentence',
+                'mixed',
+              ]),
+            )}
+            {field(
+              'Casing',
+              enumSelect('casing', [
+                'uppercase',
+                'title_case',
+                'sentence_case',
+                'mixed',
+              ]),
+            )}
+            {field(
+              'Animation',
+              enumSelect('animation', [
+                'pop',
+                'karaoke_fill',
+                'fade',
+                'typewriter',
+                'static',
+                'none',
+              ]),
+            )}
+            {field(
+              'Emphasis',
+              enumSelect('emphasis', [
+                'active_word_highlight',
+                'keyword_highlight',
+                'none',
+              ]),
+            )}
+            {field(
+              'Treatment',
+              enumSelect('text_treatment', [
+                'bordered',
+                'backgrounded',
+                'clear',
+              ]),
+            )}
+            {field(
+              'Text color',
+              <input
+                className="subspec-color"
+                type="color"
+                value={namedColorToHex(spec.text_color) ?? '#ffffff'}
+                onChange={(e) => onChange({ text_color: e.target.value })}
+              />,
+            )}
+            {field(
+              'Border / BG',
+              spec.text_treatment === 'clear' ? (
+                <span className="subspec-static">— (none)</span>
+              ) : (
+                <input
+                  className="subspec-color"
+                  type="color"
+                  value={namedColorToHex(spec.treatment_color) ?? '#000000'}
+                  onChange={(e) => onChange({ treatment_color: e.target.value })}
+                />
+              ),
+            )}
+            {spec.text_treatment === 'bordered' &&
+              field(
+                'Border width',
+                <div className="subspec-size-fine">
+                  <input
+                    type="range"
+                    className="scale-range"
+                    min={0}
+                    max={8}
+                    step={0.5}
+                    value={spec.border_width ?? 2}
+                    aria-label="Subtitle border width"
+                    onChange={(e) =>
+                      onChange?.({ border_width: Number(e.target.value) })
+                    }
+                  />
+                  <span className="scale-row-num">
+                    <input
+                      type="number"
+                      className="scale-num-input"
+                      min={0}
+                      max={8}
+                      step={0.5}
+                      value={spec.border_width ?? 2}
+                      aria-label="Subtitle border width px"
+                      onChange={(e) => {
+                        const v = Number(e.target.value);
+                        if (Number.isNaN(v)) return;
+                        onChange?.({
+                          border_width: Math.max(0, Math.min(8, v)),
+                        });
+                      }}
+                    />
+                    <span className="scale-num-suffix">px</span>
+                  </span>
+                </div>,
+              )}
+          </div>
+        ) : (
+          <dl className="subspec-readonly">
+            {rows
+              .filter(([, v]) => v && v.length > 0)
+              .map(([k, v]) => (
+                <div className="subspec-readonly-row" key={k}>
+                  <dt>{k}</dt>
+                  <dd>{v.replace(/_/g, ' ')}</dd>
+                </div>
+              ))}
+          </dl>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
 //  Storyboard — confirmed shots laid out as a 9:16 mockup strip
 // ============================================================
 
@@ -1959,7 +6927,11 @@ function Storyboard({
               <div className="storyboard-frame-num">
                 {String(s.shot_idx).padStart(2, '0')}
               </div>
-              <ReelMockup shot={s} previewImageUrl={previewImageUrl} />
+              <ReelMockup
+                shot={s}
+                previewImageUrl={previewImageUrl}
+                subtitleSpec={plan.subtitle_spec}
+              />
               {s.spoken_during && (
                 <div className="storyboard-frame-vo">"{s.spoken_during}"</div>
               )}
@@ -1972,6 +6944,20 @@ function Storyboard({
 }
 
 function SectionRow({ section }: { section: StructureSection }): React.JSX.Element {
+  const signature = section.visual_signature;
+  const signatureRows: [string, string | undefined][] = [
+    ['shots', signature.shot_type_pattern || signature.dominant_clip_type],
+    ['layout', signature.placement_pattern],
+    ['captions', signature.text_overlay_pattern],
+    ['motion', signature.motion_pattern],
+    ['sfx', signature.sfx_pattern],
+    [
+      'overlays',
+      signature.scene_elements.length > 0
+        ? signature.scene_elements.join(', ')
+        : 'none',
+    ],
+  ];
   return (
     <div className="section-row">
       <div className="section-row-head">
@@ -1988,6 +6974,107 @@ function SectionRow({ section }: { section: StructureSection }): React.JSX.Eleme
       {section.target_fill && (
         <div className="section-fill">fill: "{section.target_fill}"</div>
       )}
+      <div className="section-signature">
+        {signatureRows
+          .filter(([, value]) => value && value !== 'unspecified')
+          .map(([label, value]) => (
+            <div key={label}>
+              <span>{label}</span>
+              {value}
+            </div>
+          ))}
+      </div>
+    </div>
+  );
+}
+
+function VideoClipTrimEditor({
+  media,
+  onChange,
+}: {
+  media: SelectedMedia;
+  onChange: (patch: Partial<SelectedMedia>) => void;
+}): React.JSX.Element {
+  const [durationMs, setDurationMs] = useState<number | null>(null);
+  useEffect(() => setDurationMs(null), [media.url]);
+  const duration = durationMs ?? Math.max(media.playback_end_ms ?? 0, 1000);
+  const startMs = Math.max(0, Math.min(duration, media.playback_start_ms ?? 0));
+  const endMs = Math.max(
+    startMs + 100,
+    Math.min(duration, media.playback_end_ms ?? duration),
+  );
+  const durationSec = Math.max(0.1, duration / 1000);
+  const patchRange = (nextStartMs: number, nextEndMs: number): void => {
+    const clampedStart = Math.max(0, Math.min(duration, Math.round(nextStartMs)));
+    const clampedEnd = Math.max(
+      clampedStart + 100,
+      Math.min(duration, Math.round(nextEndMs)),
+    );
+    onChange({
+      playback_start_ms: clampedStart > 0 ? clampedStart : null,
+      playback_end_ms:
+        durationMs !== null && clampedEnd >= durationMs - 50
+          ? null
+          : clampedEnd,
+    });
+  };
+  return (
+    <div className="clip-trim-editor">
+      <video
+        src={media.url}
+        preload="metadata"
+        muted
+        playsInline
+        style={{ display: 'none' }}
+        onLoadedMetadata={(e) => {
+          const sec = e.currentTarget.duration;
+          if (Number.isFinite(sec) && sec > 0) {
+            setDurationMs(Math.round(sec * 1000));
+          }
+        }}
+      />
+      <div className="clip-trim-head">
+        <span>Clip range</span>
+        <button
+          type="button"
+          className="btn btn-mini btn-ghost"
+          onClick={() =>
+            onChange({ playback_start_ms: null, playback_end_ms: null })
+          }
+        >
+          reset
+        </button>
+      </div>
+      <div className="scale-row">
+        <span className="scale-row-label">Start</span>
+        <input
+          type="range"
+          className="scale-range"
+          min={0}
+          max={durationSec}
+          step={0.05}
+          value={Math.min(startMs / 1000, durationSec)}
+          onChange={(e) =>
+            patchRange(Number(e.currentTarget.value) * 1000, endMs)
+          }
+        />
+        <span className="scale-row-val">{(startMs / 1000).toFixed(2)}s</span>
+      </div>
+      <div className="scale-row">
+        <span className="scale-row-label">End</span>
+        <input
+          type="range"
+          className="scale-range"
+          min={0}
+          max={durationSec}
+          step={0.05}
+          value={Math.min(endMs / 1000, durationSec)}
+          onChange={(e) =>
+            patchRange(startMs, Number(e.currentTarget.value) * 1000)
+          }
+        />
+        <span className="scale-row-val">{(endMs / 1000).toFixed(2)}s</span>
+      </div>
     </div>
   );
 }
@@ -2016,54 +7103,100 @@ function ShotRow({
   onChange,
   onDelete,
   curation,
+  mediaLibrary,
   trace,
   onCurateShot,
   onRegenerate,
   onContinue,
+  onAddClip,
   selectedOptionIdx,
   onSelectOption,
+  onSetLayout,
+  onSetAnimation,
+  subtitleSpec,
+  onSubtitleChange,
   stageNav,
   agentActivity,
+  onPickDragStart,
+  onPickDragEnd,
+  onPickDrop,
+  copiedPickCount,
+  onCopyPick,
+  onCopyAllPicks,
+  onPastePicks,
 }: {
   shot: ShotPlan;
   onChange: (patch: Partial<ShotPlan>) => void;
   onDelete: () => void;
   curation: ShotCuration | null;
+  mediaLibrary: LibraryCandidate[];
   trace?: AgentTrace;
   onCurateShot: (shotIdx: number, userPrompt?: string) => Promise<void>;
   onRegenerate: (shotIdx: number, userPrompt: string) => Promise<void>;
   onContinue: (shotIdx: number, userPrompt: string) => Promise<void>;
+  onAddClip: (shotIdx: number, description: string) => Promise<AddClipResult>;
   /** Index into shot.options of the concept the user has picked. */
   selectedOptionIdx: number;
   onSelectOption: (shotIdx: number, optionIdx: number) => void;
+  /** Override the placement (layout) of the currently selected option. */
+  onSetLayout: (
+    shotIdx: number,
+    optionIdx: number,
+    placement: BrollPlacement,
+  ) => void;
+  /** Set the shot's structured motion preset (zoom/pan/Ken Burns). */
+  onSetAnimation: (shotIdx: number, anim: SceneAnimation) => void;
+  /** Reel-global caption style (null when none was detected) + its setter,
+   *  so the caption editor can sit under the layout picker in this shot's
+   *  left column. */
+  subtitleSpec: SubtitleSpec | null;
+  onSubtitleChange: (patch: Partial<SubtitleSpec>) => void;
   /** Stage back/next surfaced inside the media header. */
   stageNav?: StageNav;
   /** Live curator agent activity scoped to this shot. */
   agentActivity?: AgentActivity;
+  onPickDragStart: (sourcePickIdx: number) => void;
+  onPickDragEnd: () => void;
+  onPickDrop: (destPickIdx?: number) => void;
+  copiedPickCount: number;
+  onCopyPick: (sourcePickIdx: number) => void;
+  onCopyAllPicks: () => void;
+  onPastePicks: (destPickIdx?: number) => void;
 }): React.JSX.Element {
-  const [fallbackOpen, setFallbackOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchPrompt, setSearchPrompt] = useState('');
   const [curateBusy, setCurateBusy] = useState(false);
-  // Pair each option with its original index so selection survives the
-  // ideal/fallback split below.
-  const withIdx = shot.options.map((opt, idx) => ({ opt, idx }));
-  // The primary slot (index 0) is always shown as a top-line idea even
-  // if it isn't tagged 'ideal' — it's what drives the mockup + curator.
-  const ideaList = withIdx.filter(
-    ({ opt, idx }) => idx === 0 || opt.tier === 'ideal',
-  );
-  const fallbackList = withIdx.filter(
-    ({ opt, idx }) => idx !== 0 && opt.tier !== 'ideal',
-  );
+  const [selectedPickIdx, setSelectedPickIdx] = useState<number | null>(null);
+  const [pickMenu, setPickMenu] = useState<{
+    x: number;
+    y: number;
+    pickIdx: number | null;
+  } | null>(null);
+  useEffect(() => {
+    if (!pickMenu) return;
+    const close = (): void => setPickMenu(null);
+    window.addEventListener('click', close);
+    window.addEventListener('keydown', close);
+    return () => {
+      window.removeEventListener('click', close);
+      window.removeEventListener('keydown', close);
+    };
+  }, [pickMenu]);
 
   // (The phone mockup used to live here as well; it now renders in the
   // persistent `.phone-sidebar` on the right side of the plan-review,
   // sourced from PlanReview's selectedShot + selections.)
 
   const picks = getSelections(shot);
+  const selectedPick =
+    selectedPickIdx !== null ? (picks[selectedPickIdx] ?? null) : null;
+  const patchPick = (index: number, patch: Partial<SelectedMedia>): void => {
+    const next = picks.map((p, i) => (i === index ? { ...p, ...patch } : p));
+    onChange({ selected_media: next });
+  };
   const candidateCount = curation?.candidates?.length ?? 0;
+  const libraryCount = mediaLibrary.length;
   const status = curationStatus(curation);
 
   // Search again opens a prompt panel so the user can optionally steer the
@@ -2095,41 +7228,221 @@ function ShotRow({
             {status}
           </span>
         </div>
-        {shot.spoken_during && (
-          <div className="shot-spoken-quote">"{shot.spoken_during}"</div>
+        {/* Editing controls — layout, then the reel-global caption style,
+            then the text overlay. The shot's visual idea + scores moved up
+            under the timeline (ShotIdeas). */}
+        <LayoutPicker
+          placement={
+            (shot.options[selectedOptionIdx] ?? shot.options[0])?.placement ??
+            shot.placement
+          }
+          clipType={shot.clip_type}
+          containBackgroundMode={shot.contain_background_mode ?? 'autofill'}
+          originalVideoPosition={shot.original_video_position ?? 'middle_center'}
+          splitMediaFit={shot.split_media_fit ?? 'fill'}
+          overlayStackMode={shot.overlay_stack_mode ?? 'accumulate'}
+          onPick={(p) => onSetLayout(shot.shot_idx, selectedOptionIdx, p)}
+          onContainBackgroundMode={(mode) =>
+            onChange({ contain_background_mode: mode })
+          }
+          onBrollPosition={(position) => {
+            const current =
+              (shot.options[selectedOptionIdx] ?? shot.options[0])?.placement ??
+              shot.placement;
+            onSetLayout(shot.shot_idx, selectedOptionIdx, {
+              ...current,
+              position,
+            });
+          }}
+          onOriginalVideoPosition={(position) =>
+            onChange({ original_video_position: position })
+          }
+          onSplitMediaFit={(mode) => onChange({ split_media_fit: mode })}
+          onOverlayStackMode={(mode) => onChange({ overlay_stack_mode: mode })}
+        />
+
+        <AnimationPicker
+          animation={shot.scene_animation ?? 'none'}
+          onPick={(a) => onSetAnimation(shot.shot_idx, a)}
+          intensity={shot.animation_scale ?? 1}
+          onIntensity={(n) => onChange({ animation_scale: n })}
+          startZoom={shot.media_start_zoom ?? 1}
+          onStartZoom={(n) => onChange({ media_start_zoom: n })}
+          durationMs={shot.animation_duration_ms ?? shot.duration_ms}
+          onDurationMs={(n) => onChange({ animation_duration_ms: n })}
+          shotDurationMs={shot.duration_ms}
+          easing={shot.animation_easing ?? 'ease-in-out'}
+          onEasing={(e) => onChange({ animation_easing: e })}
+          origin={shot.animation_origin ?? 'middle_center'}
+          onOrigin={(r) => onChange({ animation_origin: r })}
+          x={shot.animation_x}
+          y={shot.animation_y}
+          onPoint={({ x, y }) =>
+            onChange({
+              animation_x: Math.max(0, Math.min(1, x)),
+              animation_y: Math.max(0, Math.min(1, y)),
+            })
+          }
+        />
+
+        {/* In a split layout the original/creator video gets its own
+            half — let the user animate it independently of the b-roll. */}
+        {(
+          (shot.options[selectedOptionIdx] ?? shot.options[0])?.placement ??
+          shot.placement
+        ).fit.startsWith('split') && (
+          <AnimationPicker
+            title="Original video · how it moves"
+            animation={shot.original_scene_animation ?? 'none'}
+            onPick={(a) => onChange({ original_scene_animation: a })}
+            intensity={shot.original_animation_scale ?? 1}
+            onIntensity={(n) => onChange({ original_animation_scale: n })}
+            startZoom={shot.original_media_start_zoom ?? 1}
+            onStartZoom={(n) => onChange({ original_media_start_zoom: n })}
+            durationMs={
+              shot.original_animation_duration_ms ?? shot.duration_ms
+            }
+            onDurationMs={(n) =>
+              onChange({ original_animation_duration_ms: n })
+            }
+            shotDurationMs={shot.duration_ms}
+            easing={shot.original_animation_easing ?? 'ease-in-out'}
+            onEasing={(e) => onChange({ original_animation_easing: e })}
+            origin={shot.original_animation_origin ?? 'middle_center'}
+            onOrigin={(r) => onChange({ original_animation_origin: r })}
+            x={shot.original_animation_x}
+            y={shot.original_animation_y}
+            onPoint={({ x, y }) =>
+              onChange({
+                original_animation_x: Math.max(0, Math.min(1, x)),
+                original_animation_y: Math.max(0, Math.min(1, y)),
+              })
+            }
+          />
         )}
 
-        <div className="mp-actions">
-          <button
-            type="button"
-            className={`mp-action${searchOpen ? ' mp-action-on' : ''}`}
-            onClick={() => setSearchOpen((v) => !v)}
-            disabled={curateBusy}
-            title="Search again with optional guidance"
-            aria-label="Search again"
-          >
-            <RefreshGlyph />
-          </button>
-          <button
-            type="button"
-            className={`mp-action${editing ? ' mp-action-on' : ''}`}
-            onClick={() => setEditing((v) => !v)}
-            title="Edit this shot's idea, asset URL, text overlay, etc."
-            aria-label={editing ? 'Done editing' : 'Edit shot'}
-          >
-            <PencilGlyph />
-          </button>
-          <button
-            type="button"
-            className="mp-trash"
-            onClick={() => {
-              if (confirm(`Delete shot ${shot.shot_idx}?`)) onDelete();
-            }}
-            title="Delete shot"
-            aria-label="Delete shot"
-          >
-            <TrashGlyph />
-          </button>
+        <ZoomPointPicker
+          region={shot.zoom_region ?? shot.animation_origin ?? 'middle_center'}
+          onRegion={(r) => onChange({ zoom_region: r })}
+          x={shot.zoom_x}
+          y={shot.zoom_y}
+          onPoint={({ x, y }) =>
+            onChange({
+              zoom_x: Math.max(0, Math.min(1, x)),
+              zoom_y: Math.max(0, Math.min(1, y)),
+            })
+          }
+          scale={shot.zoom_scale ?? 1}
+          onScale={(n) => onChange({ zoom_scale: n })}
+        />
+
+        <SubtitleSpecCard
+          spec={subtitleSpec ?? defaultSubtitleSpec()}
+          onChange={onSubtitleChange}
+        />
+
+        {/* Per-shot caption position override — captions can sit in a
+            different spot on this shot than the reel-wide default. */}
+        {(subtitleSpec ?? defaultSubtitleSpec()).enabled && (
+          <div className="shot-subpos">
+            <span className="shot-subpos-label">Caption position · this shot</span>
+            <select
+              className="input shot-subpos-select"
+              value={shot.subtitle_position ?? ''}
+              onChange={(e) =>
+                onChange({
+                  subtitle_position: e.target.value
+                    ? (e.target.value as SubtitleSpec['position'])
+                    : undefined,
+                })
+              }
+            >
+              <option value="">
+                Default ({(subtitleSpec ?? defaultSubtitleSpec()).position})
+              </option>
+              <option value="top">Top</option>
+              <option value="center">Center</option>
+              <option value="lower_third">Lower third</option>
+              <option value="bottom">Bottom</option>
+            </select>
+          </div>
+        )}
+
+        {shot.text_overlay && (
+          <div className="shot-text-overlay">
+            <span className="shot-text-overlay-label">text overlay</span>
+            "{shot.text_overlay}"
+            <span className="shot-text-overlay-pos"> @ {shot.text_position}</span>
+          </div>
+        )}
+
+      </div>
+
+      {/* RIGHT — media: header (with stage back/next) + curation + candidates */}
+      <div className="mp-right">
+        <div className="mp-media-head">
+          <div className="mp-media-head-title">
+            <span className="mp-media-title">Media</span>
+            <span className="mp-media-sub">
+              {libraryCount > 0
+                ? `${libraryCount} library item${libraryCount === 1 ? '' : 's'} · assign anything to this shot`
+                : 'library empty · run agent below'}
+            </span>
+          </div>
+          <div className="mp-media-head-right">
+            <div className="mp-actions">
+              <button
+                type="button"
+                className={`mp-action${searchOpen ? ' mp-action-on' : ''}`}
+                onClick={() => setSearchOpen((v) => !v)}
+                disabled={curateBusy}
+                title="Search again with optional guidance"
+                aria-label="Search again"
+              >
+                <RefreshGlyph />
+              </button>
+              <button
+                type="button"
+                className={`mp-action${editing ? ' mp-action-on' : ''}`}
+                onClick={() => setEditing((v) => !v)}
+                title="Edit this shot's idea, asset URL, text overlay, etc."
+                aria-label={editing ? 'Done editing' : 'Edit shot'}
+              >
+                <PencilGlyph />
+              </button>
+              <button
+                type="button"
+                className="mp-trash"
+                onClick={() => {
+                  if (confirm(`Delete shot ${shot.shot_idx}?`)) onDelete();
+                }}
+                title="Delete shot"
+                aria-label="Delete shot"
+              >
+                <TrashGlyph />
+              </button>
+            </div>
+            {stageNav && (
+              <div className="mp-media-nav">
+                <button
+                  type="button"
+                  className="btn btn-sm btn-ghost"
+                  onClick={stageNav.onBack}
+                >
+                  {stageNav.backLabel}
+                </button>
+                {stageNav.onNext && stageNav.nextLabel && (
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-primary"
+                    onClick={stageNav.onNext}
+                  >
+                    {stageNav.nextLabel}
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         {searchOpen && (
@@ -2176,90 +7489,6 @@ function ShotRow({
 
         {editing && <ShotEditor shot={shot} onChange={onChange} />}
 
-        <div className="ideas-header">
-          {ideaList.length} idea{ideaList.length === 1 ? '' : 's'} · pick the one
-          you like
-        </div>
-        <div className="option-grid" role="radiogroup">
-          {ideaList.map(({ opt, idx }, i) => (
-            <OptionCard
-              key={idx}
-              label={`idea ${i + 1}`}
-              opt={opt}
-              primary={idx === 0}
-              selected={selectedOptionIdx === idx}
-              onSelect={() => onSelectOption(shot.shot_idx, idx)}
-            />
-          ))}
-        </div>
-
-        {shot.text_overlay && (
-          <div className="shot-text-overlay">
-            <span className="shot-text-overlay-label">text overlay</span>
-            "{shot.text_overlay}"
-            <span className="shot-text-overlay-pos"> @ {shot.text_position}</span>
-          </div>
-        )}
-
-        {fallbackList.length > 0 && (
-          <>
-            <button
-              className="ladder-toggle"
-              onClick={() => setFallbackOpen((v) => !v)}
-            >
-              {fallbackOpen ? '▾' : '▸'} {fallbackList.length} fallback option
-              {fallbackList.length === 1 ? '' : 's'}
-            </button>
-            {fallbackOpen && (
-              <div className="option-grid" role="radiogroup">
-                {fallbackList.map(({ opt, idx }) => (
-                  <OptionCard
-                    key={idx}
-                    label={opt.tier}
-                    opt={opt}
-                    selected={selectedOptionIdx === idx}
-                    onSelect={() => onSelectOption(shot.shot_idx, idx)}
-                  />
-                ))}
-              </div>
-            )}
-          </>
-        )}
-
-      </div>
-
-      {/* RIGHT — media: header (with stage back/next) + curation + candidates */}
-      <div className="mp-right">
-        <div className="mp-media-head">
-          <div className="mp-media-head-title">
-            <span className="mp-media-title">Media</span>
-            <span className="mp-media-sub">
-              {candidateCount > 0
-                ? `${candidateCount} option${candidateCount === 1 ? '' : 's'} · click to choose`
-                : 'no options yet · run agent below'}
-            </span>
-          </div>
-          {stageNav && (
-            <div className="mp-media-nav">
-              <button
-                type="button"
-                className="btn btn-sm btn-ghost"
-                onClick={stageNav.onBack}
-              >
-                {stageNav.backLabel}
-              </button>
-              {stageNav.onNext && stageNav.nextLabel && (
-                <button
-                  type="button"
-                  className="btn btn-sm btn-primary"
-                  onClick={stageNav.onNext}
-                >
-                  {stageNav.nextLabel}
-                </button>
-              )}
-            </div>
-          )}
-        </div>
         {candidateCount > 0 && (
           <div className="mp-media-bar">
             <i style={{ width: `${Math.min(100, candidateCount * 20)}%` }} />
@@ -2272,9 +7501,68 @@ function ShotRow({
               {picks.length} pick{picks.length === 1 ? '' : 's'} ·{' '}
               {(((shot.end_ms - shot.start_ms) / picks.length) / 1000).toFixed(1)}s each
             </span>
-            <div className="shot-selected-media-list">
+            <div
+              className="shot-selected-media-list"
+              onContextMenu={(e) => {
+                e.preventDefault();
+                setPickMenu({ x: e.clientX, y: e.clientY, pickIdx: null });
+              }}
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                onPickDrop();
+                setSelectedPickIdx(null);
+              }}
+            >
               {picks.map((p, i) => (
-                <span key={i} className="shot-selected-media-chip">
+                <span
+                  key={i}
+                  role="button"
+                  tabIndex={0}
+                  draggable
+                  className={`shot-selected-media-chip${selectedPickIdx === i ? ' shot-selected-media-chip-on' : ''}`}
+                  onDragStart={(e) => {
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData(
+                      'application/x-onetake-pick',
+                      JSON.stringify({ shot_idx: shot.shot_idx, pick_idx: i }),
+                    );
+                    onPickDragStart(i);
+                    setSelectedPickIdx(i);
+                  }}
+                  onDragEnd={onPickDragEnd}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.dataTransfer.dropEffect = 'move';
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onPickDrop(i);
+                    setSelectedPickIdx(i);
+                  }}
+                  onClick={() =>
+                    setSelectedPickIdx((current) => (current === i ? null : i))
+                  }
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setSelectedPickIdx(i);
+                    setPickMenu({ x: e.clientX, y: e.clientY, pickIdx: i });
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setSelectedPickIdx((current) => (current === i ? null : i));
+                    }
+                  }}
+                  aria-pressed={selectedPickIdx === i}
+                >
+                  <SelectedMediaPreview media={p} />
                   <span className="shot-selected-media-chip-idx">#{i + 1}</span>
                   <span className="shot-selected-media-chip-kind">
                     {p.kind} · {p.origin.replace(/_/g, ' ')}
@@ -2283,10 +7571,16 @@ function ShotRow({
                     type="button"
                     className="shot-selected-media-chip-remove"
                     title="Remove this pick"
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation();
                       const next = picks.slice();
                       next.splice(i, 1);
                       onChange({ selected_media: next });
+                      setSelectedPickIdx((current) => {
+                        if (current === null) return null;
+                        if (current === i) return null;
+                        return current > i ? current - 1 : current;
+                      });
                     }}
                   >
                     ✕
@@ -2294,15 +7588,157 @@ function ShotRow({
                 </span>
               ))}
             </div>
+            {pickMenu && (
+              <div
+                className="pick-context-menu"
+                style={{ left: pickMenu.x, top: pickMenu.y }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                {pickMenu.pickIdx !== null && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onCopyPick(pickMenu.pickIdx!);
+                      setPickMenu(null);
+                    }}
+                  >
+                    Copy this pick
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    onCopyAllPicks();
+                    setPickMenu(null);
+                  }}
+                  disabled={picks.length === 0}
+                >
+                  Copy all picks
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onPastePicks(
+                      pickMenu.pickIdx === null
+                        ? undefined
+                        : pickMenu.pickIdx + 1,
+                    );
+                    setPickMenu(null);
+                  }}
+                  disabled={copiedPickCount === 0}
+                >
+                  Paste {copiedPickCount > 1 ? `${copiedPickCount} picks` : 'pick'}
+                  {pickMenu.pickIdx === null ? '' : ' after this'}
+                </button>
+              </div>
+            )}
+            {selectedPickIdx !== null && selectedPick && (
+              <div className="shot-selected-media-editor">
+                <div className="shot-selected-media-editor-head">
+                  Pick #{selectedPickIdx + 1}
+                </div>
+                {selectedPick.kind === 'video' && (
+                  <VideoClipTrimEditor
+                    media={selectedPick}
+                    onChange={(patch) => patchPick(selectedPickIdx, patch)}
+                  />
+                )}
+                <AnimationPicker
+                  animation={
+                    selectedPick.scene_animation ?? shot.scene_animation ?? 'none'
+                  }
+                  onPick={(a) =>
+                    patchPick(selectedPickIdx, { scene_animation: a })
+                  }
+                  intensity={selectedPick.animation_scale ?? shot.animation_scale ?? 1}
+                  onIntensity={(n) =>
+                    patchPick(selectedPickIdx, { animation_scale: n })
+                  }
+                  startZoom={
+                    selectedPick.media_start_zoom ?? shot.media_start_zoom ?? 1
+                  }
+                  onStartZoom={(n) =>
+                    patchPick(selectedPickIdx, { media_start_zoom: n })
+                  }
+                  durationMs={
+                    selectedPick.animation_duration_ms ?? shot.animation_duration_ms ?? shot.duration_ms
+                  }
+                  onDurationMs={(n) =>
+                    patchPick(selectedPickIdx, { animation_duration_ms: n })
+                  }
+                  shotDurationMs={shot.duration_ms}
+                  easing={
+                    selectedPick.animation_easing ??
+                    shot.animation_easing ??
+                    'ease-in-out'
+                  }
+                  onEasing={(e) =>
+                    patchPick(selectedPickIdx, { animation_easing: e })
+                  }
+                  origin={
+                    selectedPick.animation_origin ??
+                    shot.animation_origin ??
+                    'middle_center'
+                  }
+                  onOrigin={(r) =>
+                    patchPick(selectedPickIdx, { animation_origin: r })
+                  }
+                  x={selectedPick.animation_x ?? shot.animation_x}
+                  y={selectedPick.animation_y ?? shot.animation_y}
+                  onPoint={({ x, y }) =>
+                    patchPick(selectedPickIdx, {
+                      animation_x: Math.max(0, Math.min(1, x)),
+                      animation_y: Math.max(0, Math.min(1, y)),
+                    })
+                  }
+                />
+                <ZoomPointPicker
+                  region={
+                    selectedPick.zoom_region ??
+                    shot.zoom_region ??
+                    shot.animation_origin ??
+                    'middle_center'
+                  }
+                  onRegion={(r) => patchPick(selectedPickIdx, { zoom_region: r })}
+                  x={selectedPick.zoom_x ?? shot.zoom_x}
+                  y={selectedPick.zoom_y ?? shot.zoom_y}
+                  onPoint={({ x, y }) =>
+                    patchPick(selectedPickIdx, {
+                      zoom_x: Math.max(0, Math.min(1, x)),
+                      zoom_y: Math.max(0, Math.min(1, y)),
+                    })
+                  }
+                  scale={selectedPick.zoom_scale ?? shot.zoom_scale ?? 1}
+                  onScale={(n) => patchPick(selectedPickIdx, { zoom_scale: n })}
+                />
+              </div>
+            )}
             <button
               type="button"
               className="btn btn-mini btn-ghost"
-              onClick={() => onChange({ selected_media: [] })}
+              onClick={() => {
+                onChange({ selected_media: [] });
+                setSelectedPickIdx(null);
+              }}
               title="Clear all picks"
             >
               clear all
             </button>
           </div>
+        )}
+
+        {libraryCount > 0 && (
+          <SharedMediaLibrary
+            items={mediaLibrary}
+            shot={shot}
+            onRegenerateMedia={onCurateShot}
+            onToggleMedia={(media) => {
+              const next = media
+                ? toggleSelection(getSelections(shot), media)
+                : [];
+              onChange({ selected_media: next });
+            }}
+          />
         )}
 
         <ShotCurationRow
@@ -2314,6 +7750,8 @@ function ShotRow({
           onCurateShot={onCurateShot}
           onRegenerate={onRegenerate}
           onContinue={onContinue}
+          onAddClip={onAddClip}
+          hideCandidates={libraryCount > 0}
           onToggleMedia={(media) => {
             const next = media
               ? toggleSelection(getSelections(shot), media)
@@ -2483,9 +7921,773 @@ function ShotEditor({
  *  portion isn't blank. */
 function complementaryLabel(clipType: string): string {
   if (clipType === 'talking_head' || clipType === 'broll_talking_head') {
-    return 'Creator talking';
+    return '';
   }
-  return 'Creator talking';
+  return '';
+}
+
+function isCreatorSpeakingClip(clipType: string): boolean {
+  return (
+    clipType === 'talking_head' ||
+    clipType === 'broll_talking_head' ||
+    clipType === 'talking_head_unknown'
+  );
+}
+
+type MockupRect = { top: string; left: string; width: string; height: string };
+
+/** Given a placement (fit / position / scale) compute the CSS rects for
+ *  the b-roll block and the background block inside the 9:16 canvas.
+ *  Shared by ReelMockup (the live preview) and LayoutTile (the picker
+ *  thumbnails) so both render identical schematics. */
+function computePlacementRects(
+  placement: BrollPlacement,
+  clipType: string,
+): {
+  brollRect: MockupRect | null;
+  backgroundRect: MockupRect | null;
+  backgroundLabel: string | null;
+} {
+  let brollRect: MockupRect | null = null;
+  let backgroundLabel: string | null = null;
+  let backgroundRect: MockupRect | null = null;
+
+  switch (placement.fit) {
+    case 'fill':
+      brollRect = { top: '0', left: '0', width: '100%', height: '100%' };
+      break;
+    case 'contain': {
+      const pad = '8%';
+      brollRect = { top: pad, left: '0', width: '100%', height: '84%' };
+      break;
+    }
+    case 'split_top':
+      brollRect = { top: '0', left: '0', width: '100%', height: '50%' };
+      backgroundRect = { top: '50%', left: '0', width: '100%', height: '50%' };
+      backgroundLabel = complementaryLabel(clipType);
+      break;
+    case 'split_bottom':
+      brollRect = { top: '50%', left: '0', width: '100%', height: '50%' };
+      backgroundRect = { top: '0', left: '0', width: '100%', height: '50%' };
+      backgroundLabel = complementaryLabel(clipType);
+      break;
+    case 'split_left':
+      brollRect = { top: '0', left: '0', width: '50%', height: '100%' };
+      backgroundRect = { top: '0', left: '50%', width: '50%', height: '100%' };
+      backgroundLabel = complementaryLabel(clipType);
+      break;
+    case 'split_right':
+      brollRect = { top: '0', left: '50%', width: '50%', height: '100%' };
+      backgroundRect = { top: '0', left: '0', width: '50%', height: '100%' };
+      backgroundLabel = complementaryLabel(clipType);
+      break;
+    case 'pip': {
+      // Full-bleed background, small inset on top. Inset position
+      // derived from placement.position (3x3 grid).
+      backgroundRect = { top: '0', left: '0', width: '100%', height: '100%' };
+      backgroundLabel = complementaryLabel(clipType);
+      const sizePct = Math.max(0.2, Math.min(0.45, placement.scale || 0.3));
+      const w = `${(sizePct * 100).toFixed(0)}%`;
+      const h = `${(sizePct * 100 * (16 / 9)).toFixed(0) /* keep visible */}%`;
+      const padding = 6;
+      const [vRegion, hRegion] = placement.position.split('_');
+      const top =
+        vRegion === 'top'
+          ? `${padding}%`
+          : vRegion === 'bottom'
+            ? `calc(100% - ${h} - ${padding}%)`
+            : `calc(50% - ${parseFloat(h) / 2}%)`;
+      const left =
+        hRegion === 'left'
+          ? `${padding}%`
+          : hRegion === 'right'
+            ? `calc(100% - ${w} - ${padding}%)`
+            : `calc(50% - ${parseFloat(w) / 2}%)`;
+      brollRect = { top, left, width: w, height: h };
+      break;
+    }
+  }
+
+  return { brollRect, backgroundRect, backgroundLabel };
+}
+
+/** Canonical layout presets the user can pick between for any shot. A
+ *  "layout" is just the fit / position / scale of the b-roll on the
+ *  9:16 canvas — the asset's native `aspect` is preserved when a preset
+ *  is applied (it's a property of the media, not the composition). */
+const LAYOUT_PRESETS: { id: string; label: string; placement: BrollPlacement }[] =
+  [
+    {
+      id: 'fill',
+      label: 'Fit frame',
+      placement: { aspect: 'original', fit: 'fill', position: 'middle_center', scale: 1 },
+    },
+    {
+      id: 'contain',
+      label: 'Actual size',
+      placement: { aspect: 'original', fit: 'contain', position: 'middle_center', scale: 1 },
+    },
+    {
+      id: 'split_top',
+      label: 'Split up',
+      placement: { aspect: 'original', fit: 'split_top', position: 'top_center', scale: 0.5 },
+    },
+    {
+      id: 'split_bottom',
+      label: 'Split down',
+      placement: { aspect: 'original', fit: 'split_bottom', position: 'bottom_center', scale: 0.5 },
+    },
+    {
+      id: 'overlay',
+      label: 'Overlay',
+      placement: { aspect: 'original', fit: 'pip', position: 'middle_center', scale: 0.42 },
+    },
+  ];
+
+/** A preset is the active layout when the fit matches; for Overlay the
+ *  inset position/scale must match too. Splits encode their side in the
+ *  fit itself. */
+function layoutPresetActive(
+  current: BrollPlacement,
+  preset: BrollPlacement,
+): boolean {
+  if (current.fit !== preset.fit) return false;
+  if (preset.fit === 'pip') {
+    return current.position === preset.position && current.scale === preset.scale;
+  }
+  return true;
+}
+
+/** A single layout thumbnail — a miniature 9:16 canvas rendering the
+ *  same schematic ReelMockup uses, so the picker previews exactly how
+ *  the shot will be composited. */
+function LayoutTile({
+  placement,
+  clipType,
+  label,
+  selected,
+  onPick,
+}: {
+  placement: BrollPlacement;
+  clipType: string;
+  label: string;
+  selected: boolean;
+  onPick: () => void;
+}): React.JSX.Element {
+  const { brollRect, backgroundRect } = computePlacementRects(placement, clipType);
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={selected}
+      aria-label={label}
+      title={label}
+      className={`layout-tile${selected ? ' layout-tile-on' : ''}`}
+      onClick={onPick}
+    >
+      <span className="layout-tile-canvas">
+        {backgroundRect && (
+          <span className="layout-tile-bg" style={backgroundRect} />
+        )}
+        {brollRect && <span className="layout-tile-broll" style={brollRect} />}
+      </span>
+      <span className="layout-tile-label">{label}</span>
+    </button>
+  );
+}
+
+/** Row of layout presets for the currently selected shot option. Picking
+ *  one overrides that option's placement (fit / position / scale) while
+ *  keeping its native aspect. */
+function LayoutPicker({
+  placement,
+  clipType,
+  containBackgroundMode,
+  originalVideoPosition,
+  splitMediaFit,
+  overlayStackMode,
+  onPick,
+  onContainBackgroundMode,
+  onBrollPosition,
+  onOriginalVideoPosition,
+  onSplitMediaFit,
+  onOverlayStackMode,
+}: {
+  placement: BrollPlacement;
+  clipType: string;
+  containBackgroundMode: 'autofill' | 'show_background';
+  originalVideoPosition: FrameRegion;
+  splitMediaFit: 'fill' | 'contain';
+  overlayStackMode: 'accumulate' | 'replace';
+  onPick: (next: BrollPlacement) => void;
+  onContainBackgroundMode: (mode: 'autofill' | 'show_background') => void;
+  onBrollPosition: (position: FrameRegion) => void;
+  onOriginalVideoPosition: (position: FrameRegion) => void;
+  onSplitMediaFit: (mode: 'fill' | 'contain') => void;
+  onOverlayStackMode: (mode: 'accumulate' | 'replace') => void;
+}): React.JSX.Element {
+  const isSplit = placement.fit.startsWith('split');
+  return (
+    <div className="layout-picker">
+      <div className="ideas-header">Layout · how the media sits on screen</div>
+      <div className="layout-tile-row" role="radiogroup">
+        {LAYOUT_PRESETS.map((preset) => {
+          const next: BrollPlacement = {
+            ...preset.placement,
+            aspect: placement.aspect,
+          };
+          return (
+            <LayoutTile
+              key={preset.id}
+              label={preset.label}
+              clipType={clipType}
+              placement={next}
+              selected={layoutPresetActive(placement, preset.placement)}
+              onPick={() => onPick(next)}
+            />
+          );
+        })}
+      </div>
+      {placement.fit === 'contain' && (
+        <div className="contain-bg-toggle" role="radiogroup" aria-label="Actual size background">
+          <button
+            type="button"
+            role="radio"
+            aria-checked={containBackgroundMode === 'autofill'}
+            className={`contain-bg-btn${containBackgroundMode === 'autofill' ? ' on' : ''}`}
+            onClick={() => onContainBackgroundMode('autofill')}
+          >
+            Autofill
+          </button>
+          <button
+            type="button"
+            role="radio"
+            aria-checked={containBackgroundMode === 'show_background'}
+            className={`contain-bg-btn${containBackgroundMode === 'show_background' ? ' on' : ''}`}
+            onClick={() => onContainBackgroundMode('show_background')}
+          >
+            Show background
+          </button>
+        </div>
+      )}
+      {placement.fit === 'pip' && (
+        <div className="contain-bg-toggle" role="radiogroup" aria-label="Overlay stack mode">
+          <button
+            type="button"
+            role="radio"
+            aria-checked={overlayStackMode === 'accumulate'}
+            className={`contain-bg-btn${overlayStackMode === 'accumulate' ? ' on' : ''}`}
+            onClick={() => onOverlayStackMode('accumulate')}
+          >
+            Show previous
+          </button>
+          <button
+            type="button"
+            role="radio"
+            aria-checked={overlayStackMode === 'replace'}
+            className={`contain-bg-btn${overlayStackMode === 'replace' ? ' on' : ''}`}
+            onClick={() => onOverlayStackMode('replace')}
+          >
+            Hide previous
+          </button>
+        </div>
+      )}
+      {isSplit && (
+        <div className="split-controls">
+          <div className="contain-bg-toggle" role="radiogroup" aria-label="Split media fit">
+            <button
+              type="button"
+              role="radio"
+              aria-checked={splitMediaFit === 'fill'}
+              className={`contain-bg-btn${splitMediaFit === 'fill' ? ' on' : ''}`}
+              onClick={() => onSplitMediaFit('fill')}
+            >
+              Fill
+            </button>
+            <button
+              type="button"
+              role="radio"
+              aria-checked={splitMediaFit === 'contain'}
+              className={`contain-bg-btn${splitMediaFit === 'contain' ? ' on' : ''}`}
+              onClick={() => onSplitMediaFit('contain')}
+            >
+              Original size
+            </button>
+          </div>
+          <div className="focus-row">
+            <span className="scale-row-label">Clip position</span>
+            <FocusGrid origin={placement.position} onPick={onBrollPosition} />
+          </div>
+          <div className="focus-row">
+            <span className="scale-row-label">Original position</span>
+            <FocusGrid origin={originalVideoPosition} onPick={onOriginalVideoPosition} />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================================
+//  Animation picker — per-shot motion preset (zoom / pan / etc.)
+// ============================================================
+
+/** Canonical motion presets the user can apply to a shot's base media.
+ *  Mirrors the SceneAnimation enum the synthesizer emits from the
+ *  inspiration's motion treatment, so the picker reflects what was
+ *  detected and lets the user override it. */
+const ANIMATION_PRESETS: { id: SceneAnimation; label: string }[] = [
+  { id: 'none', label: 'Static' },
+  { id: 'zoom_in', label: 'Zoom in' },
+  { id: 'zoom_out', label: 'Zoom out' },
+  { id: 'pan_left', label: 'Pan ◀' },
+  { id: 'pan_right', label: 'Pan ▶' },
+  { id: 'ken_burns', label: 'Ken Burns' },
+  { id: 'punch_in', label: 'Punch in' },
+];
+
+/** CSS class that drives the matching keyframe animation. Shared by the
+ *  picker tiles (live motion preview) and the phone mockup (applied to
+ *  the actual shot media), so the preview is exactly what renders. */
+function sceneAnimationClass(anim: SceneAnimation | null | undefined): string {
+  return anim && anim !== 'none' ? `anim-${anim.replace(/_/g, '-')}` : '';
+}
+
+/** A single animation thumbnail — a mini 9:16 canvas whose inner block
+ *  continuously runs the preset's motion so the user can see it. */
+function AnimationTile({
+  id,
+  label,
+  selected,
+  onPick,
+}: {
+  id: SceneAnimation;
+  label: string;
+  selected: boolean;
+  onPick: () => void;
+}): React.JSX.Element {
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={selected}
+      aria-label={label}
+      title={label}
+      className={`layout-tile anim-tile${selected ? ' layout-tile-on' : ''}`}
+      onClick={onPick}
+    >
+      <span className="layout-tile-canvas">
+        <span className={`anim-tile-box ${sceneAnimationClass(id)}`} />
+      </span>
+      <span className="layout-tile-label">{label}</span>
+    </button>
+  );
+}
+
+const EASING_OPTIONS: { id: AnimationEasing; label: string }[] = [
+  { id: 'ease-in-out', label: 'Smooth' },
+  { id: 'linear', label: 'Linear' },
+  { id: 'ease-out', label: 'Ease out' },
+  { id: 'ease-in', label: 'Ease in' },
+];
+
+/** Compact 3x3 grid for picking a focal point (transform-origin) — the
+ *  point the zoom/Ken Burns motion pivots toward, e.g. a subject's face. */
+function FocusGrid({
+  origin,
+  onPick,
+  disabled,
+}: {
+  origin: FrameRegion;
+  onPick: (next: FrameRegion) => void;
+  disabled?: boolean;
+}): React.JSX.Element {
+  return (
+    <div className="focus-grid" role="radiogroup" aria-label="Focal point">
+      {FRAME_REGIONS.map((r) => (
+        <button
+          key={r}
+          type="button"
+          role="radio"
+          aria-checked={origin === r}
+          aria-label={r.replace(/_/g, ' ')}
+          title={r.replace(/_/g, ' ')}
+          disabled={disabled}
+          className={`focus-cell${origin === r ? ' focus-cell-on' : ''}`}
+          onClick={() => onPick(r)}
+        />
+      ))}
+    </div>
+  );
+}
+
+/** Row of motion presets for the selected shot plus the per-shot motion
+ *  variables: intensity (magnitude), speed (duration), easing (curve),
+ *  and focal point (transform-origin). Each maps to a CSS var / property
+ *  the phone preview animates live and the compositor applies at render. */
+function AnimationPicker({
+  animation,
+  onPick,
+  intensity,
+  onIntensity,
+  startZoom,
+  onStartZoom,
+  durationMs,
+  onDurationMs,
+  shotDurationMs,
+  easing,
+  onEasing,
+  origin,
+  onOrigin,
+  x,
+  y,
+  onPoint,
+  title = 'Animation · how the shot moves',
+}: {
+  animation: SceneAnimation;
+  onPick: (next: SceneAnimation) => void;
+  /** Header label — lets a second instance (e.g. the original-video
+   *  animation in split layouts) distinguish itself. */
+  title?: string;
+  /** Current intensity multiplier (1 = preset default). */
+  intensity: number;
+  onIntensity: (next: number) => void;
+  startZoom: number;
+  onStartZoom: (next: number) => void;
+  /** How long the motion plays, in ms (runs once, then holds). */
+  durationMs: number;
+  onDurationMs: (next: number) => void;
+  /** The shot's own length, in ms — the default + max for the duration. */
+  shotDurationMs: number;
+  easing: AnimationEasing;
+  onEasing: (next: AnimationEasing) => void;
+  origin: FrameRegion;
+  onOrigin: (next: FrameRegion) => void;
+  x?: number;
+  y?: number;
+  onPoint: (next: { x: number; y: number }) => void;
+}): React.JSX.Element {
+  const hasMotion = animation !== 'none';
+  // Focal point only changes the look of scale-based moves.
+  const originMatters =
+    animation === 'zoom_in' ||
+    animation === 'zoom_out' ||
+    animation === 'ken_burns' ||
+    animation === 'punch_in';
+  // The focus picker drives the transform-origin of any scale toward a
+  // point — that's an origin-based animation OR a static start zoom
+  // (which scales the media even when animation = none). So focus is NOT
+  // gated by the animation: it's active whenever something is zoomed.
+  const focusActive = originMatters || startZoom > 1;
+  const originPoint = frameRegionPoint(origin);
+  const px = typeof x === 'number' ? Math.max(0, Math.min(1, x)) : originPoint.x;
+  const py = typeof y === 'number' ? Math.max(0, Math.min(1, y)) : originPoint.y;
+  const pickFromEvent = (target: HTMLDivElement, clientX: number, clientY: number): void => {
+    const rect = target.getBoundingClientRect();
+    onPoint({
+      x: Math.max(0, Math.min(1, (clientX - rect.left) / rect.width)),
+      y: Math.max(0, Math.min(1, (clientY - rect.top) / rect.height)),
+    });
+  };
+  const pickPreset = (next: FrameRegion): void => {
+    onOrigin(next);
+    onPoint(frameRegionPoint(next));
+  };
+  return (
+    <div className="layout-picker">
+      <div className="ideas-header">{title}</div>
+      <div className="layout-tile-row" role="radiogroup">
+        {ANIMATION_PRESETS.map((p) => (
+          <AnimationTile
+            key={p.id}
+            id={p.id}
+            label={p.label}
+            selected={animation === p.id}
+            onPick={() => onPick(p.id)}
+          />
+        ))}
+      </div>
+      <div className={`scale-row${hasMotion ? '' : ' scale-row-off'}`}>
+        <span className="scale-row-label">Intensity</span>
+        <input
+          type="range"
+          className="scale-range"
+          min={0}
+          max={2}
+          step={0.05}
+          value={Math.min(intensity, 2)}
+          disabled={!hasMotion}
+          aria-label="Animation intensity"
+          onChange={(e) => onIntensity(Number(e.target.value))}
+        />
+        <span className="scale-row-num">
+          <input
+            type="number"
+            className="scale-num-input"
+            min={0}
+            max={1000}
+            step={5}
+            value={Math.round(intensity * 100)}
+            disabled={!hasMotion}
+            aria-label="Animation intensity percent"
+            onChange={(e) => {
+              const v = Number(e.target.value);
+              if (Number.isNaN(v)) return;
+              // Allow typed values well beyond the slider's 200% range.
+              onIntensity(Math.max(0, Math.min(10, v / 100)));
+            }}
+          />
+          <span className="scale-num-suffix">%</span>
+        </span>
+      </div>
+      {/* Start zoom is a STATIC base zoom on the shot's media — it is NOT
+          gated by the animation (it applies even when animation = none),
+          and when an animation does play it sets the motion's starting
+          scale. Always editable. */}
+      <div className="scale-row">
+        <span className="scale-row-label">Start zoom</span>
+        <input
+          type="range"
+          className="scale-range"
+          min={1}
+          max={1.6}
+          step={0.01}
+          value={Math.min(Math.max(startZoom, 1), 1.6)}
+          aria-label="Starting zoom"
+          onChange={(e) => onStartZoom(Number(e.target.value))}
+        />
+        <span className="scale-row-num">
+          <input
+            type="number"
+            className="scale-num-input"
+            min={1}
+            max={5}
+            step={0.05}
+            value={Number(startZoom.toFixed(2))}
+            aria-label="Starting zoom multiplier"
+            onChange={(e) => {
+              const v = Number(e.target.value);
+              if (Number.isNaN(v)) return;
+              // Allow typed values beyond the slider's 1.6x range.
+              onStartZoom(Math.max(1, Math.min(5, v)));
+            }}
+          />
+          <span className="scale-num-suffix">×</span>
+        </span>
+      </div>
+      <div className={`scale-row${hasMotion ? '' : ' scale-row-off'}`}>
+        <span className="scale-row-label">Duration</span>
+        <input
+          type="range"
+          className="scale-range"
+          min={0.2}
+          max={Math.max(0.2, shotDurationMs / 1000)}
+          step={0.1}
+          value={Math.min(durationMs, shotDurationMs) / 1000}
+          disabled={!hasMotion}
+          aria-label="Animation duration"
+          onChange={(e) => onDurationMs(Math.round(Number(e.target.value) * 1000))}
+        />
+        <span className="scale-row-val">{(durationMs / 1000).toFixed(1)}s</span>
+      </div>
+      <div className={`scale-row${hasMotion ? '' : ' scale-row-off'}`}>
+        <span className="scale-row-label">Curve</span>
+        <div className="ease-row" role="radiogroup" aria-label="Easing curve">
+          {EASING_OPTIONS.map((e) => (
+            <button
+              key={e.id}
+              type="button"
+              role="radio"
+              aria-checked={easing === e.id}
+              disabled={!hasMotion}
+              className={`ease-chip${easing === e.id ? ' ease-chip-on' : ''}`}
+              onClick={() => onEasing(e.id)}
+            >
+              {e.label}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div
+        className={`scale-row focus-row${focusActive ? '' : ' scale-row-off'}`}
+      >
+        <span className="scale-row-label">Focus</span>
+        <div className="free-point-wrap">
+          <div
+            className="free-point-pad"
+            role="slider"
+            aria-label="Focal point"
+            aria-valuetext={`${Math.round(px * 100)}% x, ${Math.round(py * 100)}% y`}
+            tabIndex={focusActive ? 0 : -1}
+            onPointerDown={(e) => {
+              if (!focusActive) return;
+              e.currentTarget.setPointerCapture(e.pointerId);
+              pickFromEvent(e.currentTarget, e.clientX, e.clientY);
+            }}
+            onPointerMove={(e) => {
+              if (!focusActive) return;
+              if (!e.currentTarget.hasPointerCapture(e.pointerId)) return;
+              pickFromEvent(e.currentTarget, e.clientX, e.clientY);
+            }}
+            onKeyDown={(e) => {
+              if (!focusActive) return;
+              const step = e.shiftKey ? 0.1 : 0.025;
+              if (e.key === 'ArrowLeft') onPoint({ x: px - step, y: py });
+              else if (e.key === 'ArrowRight') onPoint({ x: px + step, y: py });
+              else if (e.key === 'ArrowUp') onPoint({ x: px, y: py - step });
+              else if (e.key === 'ArrowDown') onPoint({ x: px, y: py + step });
+              else return;
+              e.preventDefault();
+            }}
+          >
+            <span
+              className="free-point-dot"
+              style={{ left: `${px * 100}%`, top: `${py * 100}%` }}
+            />
+          </div>
+          <FocusGrid
+            origin={origin}
+            onPick={pickPreset}
+            disabled={!focusActive}
+          />
+          <span className="scale-row-val free-point-val">
+            {Math.round(px * 100)},{Math.round(py * 100)}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ZoomPointPicker({
+  region,
+  onRegion,
+  x,
+  y,
+  onPoint,
+  scale,
+  onScale,
+}: {
+  region: FrameRegion;
+  onRegion: (next: FrameRegion) => void;
+  x?: number;
+  y?: number;
+  onPoint: (next: { x: number; y: number }) => void;
+  scale: number;
+  onScale: (next: number) => void;
+}): React.JSX.Element {
+  const clamped = Math.max(1, Math.min(3, scale || 1));
+  const regionPoint = frameRegionPoint(region);
+  const px = typeof x === 'number' ? Math.max(0, Math.min(1, x)) : regionPoint.x;
+  const py = typeof y === 'number' ? Math.max(0, Math.min(1, y)) : regionPoint.y;
+  const pickFromEvent = (target: HTMLDivElement, clientX: number, clientY: number): void => {
+    const rect = target.getBoundingClientRect();
+    const nextX = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    const nextY = Math.max(0, Math.min(1, (clientY - rect.top) / rect.height));
+    onPoint({ x: nextX, y: nextY });
+  };
+  const pickPreset = (next: FrameRegion): void => {
+    const p = frameRegionPoint(next);
+    onRegion(next);
+    onPoint(p);
+  };
+  return (
+    <div className="layout-picker">
+      <div className="ideas-header">Zoom point · interesting area</div>
+      <div className="scale-row focus-row">
+        <span className="scale-row-label">Point</span>
+        <div className="free-point-wrap">
+          <div
+            className="free-point-pad"
+            role="slider"
+            aria-label="Zoom focal point"
+            aria-valuetext={`${Math.round(px * 100)}% x, ${Math.round(py * 100)}% y`}
+            tabIndex={0}
+            onPointerDown={(e) => {
+              e.currentTarget.setPointerCapture(e.pointerId);
+              pickFromEvent(e.currentTarget, e.clientX, e.clientY);
+            }}
+            onPointerMove={(e) => {
+              if (!e.currentTarget.hasPointerCapture(e.pointerId)) return;
+              pickFromEvent(e.currentTarget, e.clientX, e.clientY);
+            }}
+            onKeyDown={(e) => {
+              const step = e.shiftKey ? 0.1 : 0.025;
+              if (e.key === 'ArrowLeft') onPoint({ x: px - step, y: py });
+              else if (e.key === 'ArrowRight') onPoint({ x: px + step, y: py });
+              else if (e.key === 'ArrowUp') onPoint({ x: px, y: py - step });
+              else if (e.key === 'ArrowDown') onPoint({ x: px, y: py + step });
+              else return;
+              e.preventDefault();
+            }}
+          >
+            <span
+              className="free-point-dot"
+              style={{ left: `${px * 100}%`, top: `${py * 100}%` }}
+            />
+          </div>
+          <FocusGrid origin={region} onPick={pickPreset} />
+          <span className="scale-row-val free-point-val">
+            {Math.round(px * 100)},{Math.round(py * 100)}
+          </span>
+        </div>
+      </div>
+      <div className="scale-row">
+        <span className="scale-row-label">Zoom</span>
+        <input
+          type="range"
+          className="scale-range"
+          min={1}
+          max={3}
+          step={0.05}
+          value={clamped}
+          aria-label="Media zoom scale"
+          onChange={(e) => onScale(Number(e.target.value))}
+        />
+        <span className="scale-row-num">
+          <input
+            type="number"
+            className="scale-num-input"
+            min={100}
+            max={300}
+            step={5}
+            value={Math.round(clamped * 100)}
+            aria-label="Media zoom percent"
+            onChange={(e) => {
+              const v = Number(e.target.value);
+              if (Number.isNaN(v)) return;
+              onScale(Math.max(1, Math.min(3, v / 100)));
+            }}
+          />
+          <span className="scale-num-suffix">%</span>
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/** Map a 3x3 FrameRegion to a CSS transform-origin string, so a zoom can
+ *  pivot toward the chosen focal point (e.g. 'top_right' → 'right top'). */
+function frameRegionOrigin(region: FrameRegion): string {
+  const [v, h] = (region || 'middle_center').split('_');
+  const x = h === 'left' ? 'left' : h === 'right' ? 'right' : 'center';
+  const y = v === 'top' ? 'top' : v === 'bottom' ? 'bottom' : 'center';
+  return `${x} ${y}`;
+}
+
+function frameRegionPoint(region: FrameRegion): { x: number; y: number } {
+  const [v, h] = (region || 'middle_center').split('_');
+  return {
+    x: h === 'left' ? 0 : h === 'right' ? 1 : 0.5,
+    y: v === 'top' ? 0 : v === 'bottom' ? 1 : 0.5,
+  };
+}
+
+function pointOrigin(x: number | undefined, y: number | undefined, fallback: FrameRegion): string {
+  if (typeof x !== 'number' || typeof y !== 'number') return frameRegionOrigin(fallback);
+  const cx = Math.max(0, Math.min(1, x));
+  const cy = Math.max(0, Math.min(1, y));
+  return `${(cx * 100).toFixed(1)}% ${(cy * 100).toFixed(1)}%`;
 }
 
 /** Live curator agent activity scoped to a single shot. Renders the
@@ -2499,19 +8701,33 @@ function ShotAgentActivity({
   activity: AgentActivity;
 }): React.JSX.Element | null {
   const history = activity.turnsByShot.get(shotIdx) ?? [];
-  const pending = activity.pendingClarifications.get(shotIdx);
-  if (history.length === 0 && !pending) return null;
+  // Clarification questions are surfaced globally via <ClarificationModal>
+  // (so they're never missed during bulk curate-all), not inline here.
+  if (history.length === 0) return null;
 
   const latest = history[history.length - 1];
   const isExpanded = activity.expandedShots.has(shotIdx);
   const visible = isExpanded ? history : latest ? [latest] : [];
+  const running = !!latest && !latest.finished;
 
   return (
-    <div className="mp-agent-activity">
+    <div
+      className={`mp-agent-activity${running ? ' mp-agent-activity-running' : ' mp-agent-activity-done'}`}
+    >
       <div className="mp-agent-activity-head">
-        <span className="mp-agent-activity-title">live agent activity</span>
-        {latest?.finished && (
-          <span className="agent-turn-done">done</span>
+        <span className="mp-agent-activity-title">agent activity</span>
+        {running ? (
+          <span className="agent-status agent-status-running">
+            <span className="agent-status-spinner" aria-hidden="true" />
+            agent running…
+          </span>
+        ) : (
+          <span className="agent-status agent-status-done">
+            <span className="agent-status-check" aria-hidden="true">
+              ✓
+            </span>
+            agent done
+          </span>
         )}
         {history.length > 1 && (
           <button
@@ -2562,14 +8778,6 @@ function ShotAgentActivity({
           </span>
         </div>
       ))}
-      {pending && (
-        <ShotClarification
-          req={pending}
-          typedText={activity.clarificationTyping.get(pending.request_id)}
-          setClarificationTyping={activity.setClarificationTyping}
-          answerClarification={activity.answerClarification}
-        />
-      )}
     </div>
   );
 }
@@ -2660,29 +8868,158 @@ function ShotClarification({
         <div className="agent-clarification-options">
           {req.options.map((opt, i) => {
             const isNo = /^\s*no\b/i.test(opt);
+            const url = extractClarifyUrl(opt);
             return (
-              <button
-                key={i}
-                type="button"
-                className="agent-clarification-option"
-                onClick={() => {
-                  if (isNo) {
-                    setClarificationTyping((prev) => {
-                      const next = new Map(prev);
-                      next.set(req.request_id, '');
-                      return next;
-                    });
-                  } else {
-                    answerClarification(req, opt);
-                  }
-                }}
-              >
-                {opt}
-              </button>
+              <span key={i} className="agent-clarification-option-row">
+                <button
+                  type="button"
+                  className="agent-clarification-option"
+                  onClick={() => {
+                    if (isNo) {
+                      setClarificationTyping((prev) => {
+                        const next = new Map(prev);
+                        next.set(req.request_id, '');
+                        return next;
+                      });
+                    } else {
+                      answerClarification(req, opt);
+                    }
+                  }}
+                >
+                  {opt}
+                </button>
+                {url && (
+                  <button
+                    type="button"
+                    className="agent-clarification-visit"
+                    title={`Open ${url} in your browser`}
+                    onClick={() => {
+                      void window.api.openExternal(url);
+                    }}
+                  >
+                    ↗ visit
+                  </button>
+                )}
+              </span>
             );
           })}
+          {/* Always offer a free-text escape hatch — e.g. when the
+              question lists several sources and the user wants a
+              different one, or to give the agent custom instructions. */}
+          <button
+            type="button"
+            className="agent-clarification-option agent-clarification-other"
+            onClick={() =>
+              setClarificationTyping((prev) => {
+                const next = new Map(prev);
+                next.set(req.request_id, '');
+                return next;
+              })
+            }
+          >
+            Other…
+          </button>
         </div>
       )}
+    </div>
+  );
+}
+
+const CLARIFY_URL_RE = /((?:https?:\/\/|www\.)[^\s)]+)/i;
+/** Pull the first URL out of a clarification option so we can offer a
+ *  "visit" link next to it. Trims trailing punctuation and upgrades a
+ *  bare www. host to https so shell.openExternal accepts it. */
+function extractClarifyUrl(text: string): string | null {
+  const m = text.match(CLARIFY_URL_RE);
+  if (!m) return null;
+  let u = m[0].replace(/[).,]+$/, '');
+  if (u.toLowerCase().startsWith('www.')) u = `https://${u}`;
+  return u;
+}
+
+/** Blocking popup that surfaces curator clarification questions. The
+ *  per-shot agent panel used to render these inline, which meant a
+ *  question for a shot the user wasn't looking at — common during bulk
+ *  "Curate library", where 4 transcript beats research in parallel — went
+ *  unseen and the agent stalled waiting for an answer. This lifts them
+ *  to a single global modal. Pending requests form a FIFO queue keyed
+ *  by shot_idx; we show the oldest and reveal the next once answered. */
+function ClarificationModal({
+  pending,
+  plan,
+  clarificationTyping,
+  setClarificationTyping,
+  answerClarification,
+}: {
+  pending: Map<number, CuratorClarificationRequest>;
+  plan: SuggestedEdit | null;
+  clarificationTyping: Map<string, string>;
+  setClarificationTyping: React.Dispatch<
+    React.SetStateAction<Map<string, string>>
+  >;
+  answerClarification: (
+    req: CuratorClarificationRequest,
+    answer: string,
+  ) => Promise<void>;
+}): React.JSX.Element | null {
+  const queue = Array.from(pending.values());
+  if (queue.length === 0) return null;
+  const req = queue[0];
+  // Look up the shot so the popup can show what it's actually for —
+  // its role, timing, the line being spoken over it, and the b-roll
+  // the curator is trying to source — instead of just a bare question.
+  const shot = plan?.shots.find((s) => s.shot_idx === req.shot_idx) ?? null;
+  const broll = shot?.options[0]?.broll_description || shot?.broll_description;
+  return (
+    <div
+      className="clarify-modal-backdrop"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Curator needs your input"
+    >
+      <div className="clarify-modal">
+        <div className="clarify-modal-head">
+          <span className="clarify-modal-shot">
+            {req.shot_idx < 0 ? 'Library curation' : `Shot ${req.shot_idx}`}
+          </span>
+          {shot && (
+            <span className="clarify-modal-role">{shot.structure_role}</span>
+          )}
+          {shot && (
+            <span className="clarify-modal-time">
+              {(shot.start_ms / 1000).toFixed(1)}s–
+              {(shot.end_ms / 1000).toFixed(1)}s
+            </span>
+          )}
+          {queue.length > 1 && (
+            <span className="clarify-modal-queue">
+              +{queue.length - 1} more question
+              {queue.length - 1 === 1 ? '' : 's'} waiting
+            </span>
+          )}
+        </div>
+        {shot && (shot.spoken_during || broll) && (
+          <div className="clarify-shot-detail">
+            {shot.spoken_during && (
+              <div className="clarify-shot-line">"{shot.spoken_during}"</div>
+            )}
+            {broll && (
+              <div className="clarify-shot-broll">
+                <span className="clarify-shot-broll-label">
+                  what this shot is for
+                </span>
+                {broll}
+              </div>
+            )}
+          </div>
+        )}
+        <ShotClarification
+          req={req}
+          typedText={clarificationTyping.get(req.request_id)}
+          setClarificationTyping={setClarificationTyping}
+          answerClarification={answerClarification}
+        />
+      </div>
     </div>
   );
 }
@@ -2695,14 +9032,157 @@ function ShotClarification({
 function PhoneSidebar({
   shot,
   curation,
+  allShots = [],
+  allCuration = null,
   selectedOptionIdx,
+  subtitleSpec = null,
+  targetVideoUrl = null,
+  targetVideoPath = null,
+  narrationVideoPath = null,
+  sfxPlan = null,
+  sfxOverride = null,
+  sfxVolume,
+  sfxEvents = null,
+  sfxLeadMs = 0,
+  narrationVolume = 1,
+  onNarrationVolumeChange,
 }: {
   shot: ShotPlan | null;
   curation: ShotCuration | null;
+  allShots?: ShotPlan[];
+  allCuration?: CurationResult | null;
   selectedOptionIdx: number;
+  subtitleSpec?: SubtitleSpec | null;
+  targetVideoUrl?: string | null;
+  targetVideoPath?: string | null;
+  /** Original target file (with audio) for narration playback — the visual
+   *  target (targetVideoPath) is the preview copy, which is audio-stripped. */
+  narrationVideoPath?: string | null;
+  /** Inspiration-derived SFX placement pattern (from the fingerprint).
+   *  Determines the live preview's SFX cadence/type, mirroring export. */
+  sfxPlan?: SfxCollectionPattern | null;
+  /** Command-bar SFX override (cadence/type), overrides the pattern. */
+  sfxOverride?: import('./global').SfxOverride | null;
+  /** SFX playback gain for the preview (0-1). */
+  sfxVolume?: number;
+  /** Hand-edited SFX events; when set they drive the preview verbatim. */
+  sfxEvents?:
+    | { ms: number; type: SfxType; sound?: string; volume?: number }[]
+    | null;
+  /** Fire each SFX this many ms before its word (default 0). */
+  sfxLeadMs?: number;
+  /** Original video audio gain for preview playback, 0-1 (default 1). */
+  narrationVolume?: number;
+  /** Persist a new original-video audio gain to the plan. */
+  onNarrationVolumeChange?: (volume: number) => void;
 }): React.JSX.Element {
-  const picks = getSelections(shot ?? undefined);
   const [pickIdx, setPickIdx] = useState(0);
+  const [reelMode, setReelMode] = useState(false);
+  const [reelShotIdx, setReelShotIdx] = useState(0);
+  const activeShot = reelMode ? (allShots[reelShotIdx] ?? shot) : shot;
+  const activeCuration =
+    reelMode && activeShot && allCuration
+      ? (allCuration.shots.find(
+          (c) => c != null && c.shot_idx === activeShot.shot_idx,
+        ) ?? null)
+      : curation;
+  const picks = getSelections(activeShot ?? undefined);
+  const pickDurationMs =
+    activeShot && picks.length > 0
+      ? Math.max(250, Math.round(activeShot.duration_ms / picks.length))
+      : 0;
+  const [resolvedTargetVideoUrl, setResolvedTargetVideoUrl] = useState<string | null>(
+    targetVideoUrl,
+  );
+  // Reel-mode narration: the target video's audio plays as the master clock
+  // so the preview is audible AND shot advancement stays in sync with the
+  // voiceover (instead of drifting timers). Falls back to timers only if the
+  // browser blocks autoplay.
+  const narrationRef = useRef<HTMLVideoElement | null>(null);
+  const [narrationBlocked, setNarrationBlocked] = useState(false);
+  const [narrationStatus, setNarrationStatus] = useState<string>('idle');
+  // Web Audio graph on the narration <video> so its volume can exceed 100%.
+  // HTML media element .volume is clamped to [0,1] (and throws above it), so a
+  // GainNode is the only way to boost the original audio up to 400%.
+  const narrationAudioCtxRef = useRef<AudioContext | null>(null);
+  const narrationGainRef = useRef<GainNode | null>(null);
+  // Lazily build the gain graph. Must run inside a user gesture — an
+  // AudioContext starts suspended, and createMediaElementSource reroutes the
+  // element's audio through the graph (silent until the context resumes).
+  const ensureNarrationGain = React.useCallback((): GainNode | null => {
+    const el = narrationRef.current;
+    if (!el) return null;
+    if (!narrationGainRef.current) {
+      try {
+        const Ctx =
+          window.AudioContext ||
+          (window as unknown as { webkitAudioContext: typeof AudioContext })
+            .webkitAudioContext;
+        const ctx = new Ctx();
+        const source = ctx.createMediaElementSource(el);
+        const gain = ctx.createGain();
+        source.connect(gain).connect(ctx.destination);
+        narrationAudioCtxRef.current = ctx;
+        narrationGainRef.current = gain;
+      } catch {
+        return null;
+      }
+    }
+    void narrationAudioCtxRef.current?.resume().catch(() => {});
+    return narrationGainRef.current;
+  }, []);
+  // Apply the narration gain. Only routes through Web Audio when boosting above
+  // 100% (the GainNode is the only way past the element's 0-1 clamp); at or
+  // below 100% it uses native element volume so default playback is untouched.
+  const applyNarrationVolume = React.useCallback(
+    (vol: number): void => {
+      const el = narrationRef.current;
+      if (!el) return;
+      const gain = vol > 1 ? ensureNarrationGain() : narrationGainRef.current;
+      if (gain) {
+        gain.gain.value = Math.max(0, vol);
+        el.volume = 1;
+      } else {
+        el.volume = Math.min(1, Math.max(0, vol));
+      }
+    },
+    [ensureNarrationGain],
+  );
+  // The narration source is the ORIGINAL target file (has audio). The visual
+  // target (resolvedTargetVideoUrl) is the preview copy, transcoded with -an.
+  const [resolvedNarrationUrl, setResolvedNarrationUrl] = useState<string | null>(
+    null,
+  );
+  const audioDriven = reelMode && !!resolvedNarrationUrl && !narrationBlocked;
+
+  // SFX on their own transcript-driven timeline (shot-independent): main
+  // transcribes the narration + places SFX on word onsets per the learned
+  // cadence; the preview fires each as the playback clock crosses its ms.
+  const [sfxTimeline, setSfxTimeline] = useState<
+    {
+      ms: number;
+      url: string;
+      word: string;
+      type: string;
+      sound?: string;
+      volume?: number;
+    }[]
+  >([]);
+  const sfxFiredMsRef = useRef(-1);
+  const sfxCuesKey =
+    (allShots ?? []).map((s) => s.sfx_cue ?? '').join('|') +
+    '#' +
+    (sfxPlan
+      ? `${sfxPlan.signals.sfx_per_word.toFixed(2)}:${sfxPlan.signals.body_dominant_type ?? ''}:${sfxPlan.signals.hook_escalation.toFixed(2)}`
+      : 'none') +
+    '#' +
+    `${sfxOverride?.cadence ?? ''}:${sfxOverride?.type ?? ''}` +
+    '#' +
+    (sfxEvents
+      ? sfxEvents
+          .map((e) => `${e.ms}:${e.type}:${e.sound ?? ''}:${e.volume ?? ''}`)
+          .join(',')
+      : '');
 
   // Clamp/reset the pick index whenever the underlying picks change or
   // the user switches shots — otherwise stale indices point past the
@@ -2712,9 +9192,193 @@ function PhoneSidebar({
   }, [pickIdx, picks.length]);
   useEffect(() => {
     setPickIdx(0);
-  }, [shot?.shot_idx]);
+  }, [activeShot?.shot_idx]);
+  useEffect(() => {
+    if (!activeShot || picks.length <= 1 || reelMode) return;
+    const timeout = window.setTimeout(() => {
+      setPickIdx((idx) => (idx + 1) % picks.length);
+    }, pickDurationMs);
+    return () => window.clearTimeout(timeout);
+  }, [activeShot?.shot_idx, picks.length, pickIdx, pickDurationMs, reelMode]);
+  useEffect(() => {
+    if (reelShotIdx >= allShots.length) setReelShotIdx(0);
+  }, [allShots.length, reelShotIdx]);
+  useEffect(() => {
+    // Timer advancement is only the fallback for when there's no narration
+    // audio (or autoplay was blocked). When audio drives the reel, the
+    // <audio> onTimeUpdate handler advances shots instead.
+    if (!reelMode || audioDriven || !activeShot || allShots.length === 0) return;
+    const timeout = window.setTimeout(() => {
+      setReelShotIdx((idx) => (idx + 1) % allShots.length);
+    }, Math.max(250, activeShot.duration_ms));
+    const pickTimeout =
+      picks.length > 1
+        ? window.setInterval(() => {
+            setPickIdx((idx) => (idx + 1) % picks.length);
+          }, pickDurationMs)
+        : null;
+    return () => {
+      window.clearTimeout(timeout);
+      if (pickTimeout !== null) window.clearInterval(pickTimeout);
+    };
+  }, [
+    activeShot?.shot_idx,
+    activeShot?.duration_ms,
+    allShots.length,
+    reelMode,
+    audioDriven,
+    picks.length,
+    pickDurationMs,
+  ]);
+  // Playback is started from the Reel button's click (a user gesture, so
+  // autoplay-with-sound is allowed). Here we only stop narration when leaving
+  // reel mode.
+  useEffect(() => {
+    if (!reelMode) narrationRef.current?.pause();
+  }, [reelMode]);
 
-  if (!shot) {
+  // Keep the playing narration's gain in sync with the slider live.
+  useEffect(() => {
+    applyNarrationVolume(narrationVolume ?? 1);
+  }, [narrationVolume, applyNarrationVolume]);
+
+  // Build the transcript-driven SFX timeline (main transcribes narration +
+  // places per cadence). Keyed on the narration + cues so it refetches when
+  // the plan changes.
+  useEffect(() => {
+    if (
+      !narrationVideoPath ||
+      typeof window.api?.getSfxTimeline !== 'function'
+    ) {
+      setSfxTimeline([]);
+      return;
+    }
+    let cancelled = false;
+    void window.api
+      .getSfxTimeline({
+        narrationPath: narrationVideoPath,
+        shots: (allShots ?? []).map((s) => ({
+          sfx_cue: s.sfx_cue ?? null,
+          start_ms: s.start_ms,
+          duration_ms: s.duration_ms,
+        })),
+        sfxPlan,
+        override: sfxOverride ?? null,
+        events: sfxEvents ?? null,
+      })
+      .then((tl) => {
+        if (!cancelled) setSfxTimeline(tl ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setSfxTimeline([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [narrationVideoPath, sfxCuesKey]);
+
+  // Reset the playback cursor whenever reel mode (re)starts.
+  useEffect(() => {
+    sfxFiredMsRef.current = -1;
+  }, [reelMode]);
+  // Caption clock: while audio drives the reel, sample the narration's real
+  // currentTime so the karaoke caption tracks the voiceover. This REPLACES the
+  // ReelMockup wall-clock ticker, which loops every shot duration and — once
+  // it drifts from the audio — wraps the caption back to the first word
+  // mid-shot (the flicker). null when not audio-driven (mockup keeps its own
+  // ticker). 80ms = same cadence as the ticker it replaces.
+  const [captionAudioMs, setCaptionAudioMs] = useState<number | null>(null);
+  useEffect(() => {
+    if (!audioDriven) {
+      setCaptionAudioMs(null);
+      return;
+    }
+    // Single audio-clock sampler driving shot + pick + caption together at
+    // 60ms, so they all track the narration tightly (the old onTimeUpdate
+    // path only fired ~4x/sec, lagging shot changes up to 250ms).
+    const id = window.setInterval(() => {
+      const v = narrationRef.current;
+      if (!v) return;
+      const t = v.currentTime * 1000;
+      setCaptionAudioMs(t);
+      // Fire SFX whose onset the playback clock just crossed. Reset on loop
+      // (t jumps backwards past the cursor).
+      if (t < sfxFiredMsRef.current) sfxFiredMsRef.current = -1;
+      for (const ev of sfxTimeline) {
+        const fireAt = ev.ms - sfxLeadMs; // lead = fire before the word
+        if (fireAt > sfxFiredMsRef.current && fireAt <= t) {
+          try {
+            const a = new Audio(ev.url);
+            // Per-event gain wins; else the plan-wide SFX level.
+            a.volume =
+              typeof ev.volume === 'number' ? ev.volume : (sfxVolume ?? 0.6);
+            void a.play().catch(() => {});
+          } catch {
+            /* ignore */
+          }
+        }
+      }
+      sfxFiredMsRef.current = t;
+      const idx = allShots.findIndex((s) => t >= s.start_ms && t < s.end_ms);
+      if (idx < 0) return;
+      setReelShotIdx((prev) => (idx !== prev ? idx : prev));
+      const s = allShots[idx];
+      const sPicks = getSelections(s);
+      if (sPicks.length > 1) {
+        const pd = Math.max(250, Math.round(s.duration_ms / sPicks.length));
+        const pi = Math.min(
+          Math.floor((t - s.start_ms) / pd),
+          sPicks.length - 1,
+        );
+        setPickIdx((prev) => (pi !== prev ? pi : prev));
+      }
+    }, 60);
+    return () => window.clearInterval(id);
+  }, [audioDriven, allShots, sfxTimeline, sfxVolume, sfxLeadMs]);
+  useEffect(() => {
+    let cancelled = false;
+    if (targetVideoUrl) {
+      setResolvedTargetVideoUrl(targetVideoUrl);
+      return;
+    }
+    if (!targetVideoPath) {
+      setResolvedTargetVideoUrl(null);
+      return;
+    }
+    window.api
+      .localVideoUrl(targetVideoPath)
+      .then((url) => {
+        if (!cancelled) setResolvedTargetVideoUrl(url);
+      })
+      .catch(() => {
+        if (!cancelled) setResolvedTargetVideoUrl(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [targetVideoPath, targetVideoUrl]);
+  // Resolve the narration source (original file, with audio) to a playable URL.
+  useEffect(() => {
+    let cancelled = false;
+    if (!narrationVideoPath) {
+      setResolvedNarrationUrl(null);
+      return;
+    }
+    window.api
+      .localVideoUrl(narrationVideoPath)
+      .then((url) => {
+        if (!cancelled) setResolvedNarrationUrl(url);
+      })
+      .catch(() => {
+        if (!cancelled) setResolvedNarrationUrl(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [narrationVideoPath]);
+
+  if (!activeShot) {
     return (
       <aside className="phone-sidebar phone-sidebar-empty">
         <div className="phone-sidebar-eyebrow">Preview</div>
@@ -2725,79 +9389,250 @@ function PhoneSidebar({
     );
   }
 
-  const selOpt = shot.options[selectedOptionIdx] ?? shot.options[0];
-  const previewShot: ShotPlan = selOpt
+  const selOpt =
+    activeShot.options[reelMode ? 0 : selectedOptionIdx] ??
+    activeShot.options[0];
+  const baseShot: ShotPlan = selOpt
     ? {
-        ...shot,
+        ...activeShot,
         broll_description: selOpt.broll_description,
         asset: selOpt.asset,
         placement: selOpt.placement,
         source_type: selOpt.source_type,
       }
-    : shot;
-
+    : activeShot;
+  const previewShot: ShotPlan = {
+    ...baseShot,
+    has_overlay: false,
+    additional_elements: [],
+  };
+  const isOverlayLayout = previewShot.placement.fit === 'pip';
+  const layeredPreviewMedia =
+    isOverlayLayout && picks.length > 1
+      ? picks
+          .map((pick, i) => previewLayerFromPick(pick, previewShot, i, picks.length))
+          .filter((layer): layer is PreviewMediaLayer => !!layer)
+      : [];
   // Source the on-screen media: a confirmed pick if one is highlighted,
   // otherwise the top curated candidate's thumbnail so the user always
   // sees *something* once research has run.
   const currentPick = picks[pickIdx] ?? null;
+  const mockupShot: ShotPlan = {
+    ...(picks.length > 1 && !isOverlayLayout
+      ? {
+          ...previewShot,
+          start_ms: 0,
+          end_ms: pickDurationMs,
+          duration_ms: pickDurationMs,
+        }
+      : previewShot),
+  };
+  const mediaShot = shotWithMediaOverrides(mockupShot, currentPick);
   let previewSrc: string | null = null;
   let previewKind: PreviewKind = 'image';
-  if (currentPick) {
-    if (currentPick.kind === 'image') {
-      previewSrc = currentPick.url;
-      previewKind = 'image';
-    } else if (isPlayableVideoUrl(currentPick.url)) {
-      // A local clip/recording or a real video file — play it inline.
-      previewSrc = currentPick.url;
-      previewKind = 'video';
-    } else {
-      // A platform/page URL (YouTube watch, IG permalink, marketing
-      // page). It can't decode in a <video>, so embed it when possible
-      // and otherwise show a proxied poster frame — never feed a
-      // non-playable URL to <video> or it blanks out.
-      const embed = videoEmbedUrl(currentPick.url);
-      if (embed) {
-        previewSrc = embed;
-        previewKind = 'embed';
-      } else {
-        // Don't trust the candidate's raw thumbnail_url here: for IG /
-        // TikTok it's a CDN URL the renderer can't hotlink (no Referer →
-        // 403 → broken-image glyph). Route through ReelThumb, which
-        // proxies the poster through the main process as a data: URL
-        // (and falls back to og:image scraping). Pass the reel PAGE url
-        // so it can resolve the poster.
-        previewSrc =
-          currentPick.from_candidate_url || currentPick.url;
-        previewKind = 'reelthumb';
-      }
-    }
+  let previewVideoMode: 'segment' | 'full' = 'segment';
+  let previewPlaybackStartMs: number | null = null;
+  let previewPlaybackEndMs: number | null = null;
+  if (currentPick && layeredPreviewMedia.length === 0) {
+    const preview = previewFromSelectedMedia(currentPick);
+    previewSrc = preview.src;
+    previewKind = preview.kind;
+    previewVideoMode = preview.kind === 'video' ? 'full' : 'segment';
+    previewPlaybackStartMs = currentPick.playback_start_ms ?? null;
+    previewPlaybackEndMs = currentPick.playback_end_ms ?? null;
   } else {
-    previewSrc = curation?.candidates?.[0]?.thumbnail_url ?? null;
+    previewSrc = activeCuration?.candidates?.[0]?.thumbnail_url ?? null;
     previewKind = 'image';
   }
+
+  // Audio-synced caption clock = the narration's real (global) time. The
+  // caption is timed against the REAL shot (passed as captionShotStart/EndMs
+  // below), NOT the per-pick mockupShot window, so a multi-media shot runs the
+  // caption once across the whole shot instead of replaying it per pick. null
+  // when not audio-driven, so the mockup falls back to its own wall ticker.
+  const captionTimeMs = captionAudioMs;
+  const canPreviewFullReel = allShots.length > 0;
 
   return (
     <aside className="phone-sidebar">
       <div className="phone-sidebar-head">
         <span className="phone-sidebar-eyebrow">Preview</span>
-        <span className="phone-sidebar-time">
-          {(shot.start_ms / 1000).toFixed(1)}s –{' '}
-          {(shot.end_ms / 1000).toFixed(1)}s
+        <span className="phone-sidebar-head-right">
+          {canPreviewFullReel && (
+            <span className="phone-preview-mode" role="group" aria-label="Preview mode">
+              <button
+                type="button"
+                className={`phone-preview-mode-btn${!reelMode ? ' on' : ''}`}
+                onClick={() => {
+                  narrationRef.current?.pause();
+                  setReelMode(false);
+                }}
+              >
+                Shot
+              </button>
+              <button
+                type="button"
+                className={`phone-preview-mode-btn${reelMode ? ' on' : ''}`}
+                onClick={() => {
+                  setReelShotIdx(0);
+                  setReelMode(true);
+                  // Start narration synchronously inside the click so the
+                  // browser's autoplay-with-sound gate is satisfied.
+                  const v = narrationRef.current;
+                  if (v) {
+                    setNarrationBlocked(false);
+                    applyNarrationVolume(narrationVolume ?? 1);
+                    try {
+                      v.currentTime = 0;
+                    } catch {
+                      /* not seekable yet */
+                    }
+                    void v.play().catch(() => setNarrationBlocked(true));
+                  }
+                }}
+              >
+                Reel
+              </button>
+            </span>
+          )}
+          <span className="phone-sidebar-time">
+            {reelMode
+              ? `${reelShotIdx + 1}/${allShots.length}`
+              : `${(activeShot.start_ms / 1000).toFixed(1)}s – ${(activeShot.end_ms / 1000).toFixed(1)}s`}
+          </span>
         </span>
       </div>
       <div className="phone-sidebar-stage">
         <ReelMockup
-          shot={previewShot}
+          shot={mediaShot}
           previewImageUrl={previewSrc}
           previewKind={previewKind}
+          previewVideoMode={previewVideoMode}
+          previewPlaybackStartMs={previewPlaybackStartMs}
+          previewPlaybackEndMs={previewPlaybackEndMs}
+          layeredPreviewMedia={layeredPreviewMedia}
+          subtitleSpec={subtitleSpec}
+          targetVideoUrl={resolvedTargetVideoUrl}
+          reelPlayback={reelMode}
+          captionTimeMs={captionTimeMs}
+          captionShotStartMs={activeShot.start_ms}
+          captionShotEndMs={activeShot.end_ms}
         />
+        {resolvedNarrationUrl && (
+          // Hidden narration track — the ORIGINAL target file's audio (the
+          // preview copy is transcoded with -an, no audio). Mounted
+          // persistently so the Reel button can call play() inside its click
+          // (autoplay-with-sound needs a user gesture). Drives shot + pick
+          // advancement off its real clock so the preview is audible and stays
+          // in sync with the voiceover. Per-shot b-roll videos inside
+          // ReelMockup stay muted, so this is the only sound. A <video> (not
+          // <audio>) reliably decodes the mp4 audio track.
+          <video
+            ref={narrationRef}
+            src={resolvedNarrationUrl}
+            // CORS-clean fetch so createMediaElementSource (used to boost the
+            // audio above 100%) doesn't taint the output to silence.
+            crossOrigin="anonymous"
+            loop
+            playsInline
+            preload="auto"
+            // Off-screen rather than display:none — a display:none <video> can
+            // get its playback suspended in Chromium; 1px offscreen keeps it
+            // "rendered" so audio keeps flowing.
+            style={{
+              position: 'absolute',
+              width: 1,
+              height: 1,
+              opacity: 0,
+              pointerEvents: 'none',
+              left: -9999,
+            }}
+            onError={() =>
+              setNarrationStatus(
+                `error ${narrationRef.current?.error?.code ?? '?'}`,
+              )
+            }
+            onLoadedMetadata={() => setNarrationStatus('ready')}
+            onPlay={() => setNarrationStatus('playing')}
+            onPlaying={() => setNarrationStatus('playing')}
+            onPause={() => setNarrationStatus('paused')}
+          />
+        )}
       </div>
-      <div className="phone-sidebar-caption">{shot.placement.fit}</div>
+      {reelMode && (
+        <div className="phone-sidebar-audio">
+          <button
+            type="button"
+            className="btn btn-mini"
+            onClick={() => {
+              const v = narrationRef.current;
+              if (!v) {
+                setNarrationStatus('no element');
+                return;
+              }
+              if (!v.paused) {
+                v.pause();
+                return;
+              }
+              v.muted = false;
+              applyNarrationVolume(narrationVolume ?? 1);
+              setNarrationBlocked(false);
+              void v
+                .play()
+                .then(() => setNarrationStatus('playing'))
+                .catch((err) => {
+                  setNarrationBlocked(true);
+                  setNarrationStatus(`play rejected: ${err?.name ?? err}`);
+                });
+            }}
+          >
+            {narrationStatus === 'playing' ? '⏸ Pause' : '🔊 Play sound'}
+          </button>
+          <span className="phone-sidebar-audio-status">
+            {resolvedNarrationUrl
+              ? `${narrationStatus} · ${
+                  (() => {
+                    try {
+                      return new URL(resolvedNarrationUrl).protocol.replace(
+                        ':',
+                        '',
+                      );
+                    } catch {
+                      return 'src';
+                    }
+                  })()
+                }`
+              : 'no audio source'}
+          </span>
+          {onNarrationVolumeChange && (
+            <label className="phone-sidebar-vol" title="Original video audio volume">
+              <span className="phone-sidebar-vol-ic">🎙</span>
+              <input
+                type="range"
+                min={0}
+                max={4}
+                step={0.05}
+                value={narrationVolume ?? 1}
+                onChange={(e) =>
+                  onNarrationVolumeChange(Number(e.target.value))
+                }
+              />
+              <span className="phone-sidebar-vol-val">
+                {Math.round((narrationVolume ?? 1) * 100)}%
+              </span>
+            </label>
+          )}
+        </div>
+      )}
+      <div className="phone-sidebar-caption">{previewShot.placement.fit}</div>
 
       {picks.length > 0 && (
         <div className="phone-sidebar-picks">
           <div className="phone-sidebar-picks-label">
             Showing pick {pickIdx + 1} of {picks.length}
+            {picks.length > 1
+              ? ` · ${(pickDurationMs / 1000).toFixed(1)}s each`
+              : ''}
           </div>
           <div className="phone-sidebar-picks-list" role="radiogroup">
             {picks.map((p, i) => {
@@ -2824,98 +9659,469 @@ function PhoneSidebar({
   );
 }
 
-function ReelMockup({
+function boundedVideoSegment(
+  durationSec: number,
+  startMs: number,
+  endMs: number,
+): { start: number; end: number } {
+  const duration = Number.isFinite(durationSec) ? Math.max(0, durationSec) : 0;
+  const shotLen = Math.max(0.1, (endMs - startMs) / 1000);
+  if (duration <= 0) return { start: 0, end: 0 };
+  const rawStart = Math.max(0, startMs / 1000);
+  const rawEnd = Math.max(rawStart + 0.1, endMs / 1000);
+  if (rawStart >= duration) {
+    const start = Math.max(0, duration - Math.min(shotLen, duration));
+    return { start, end: duration };
+  }
+  return {
+    start: Math.min(rawStart, duration),
+    end: Math.min(rawEnd, duration),
+  };
+}
+
+function sourcePlaybackSegment(
+  durationSec: number,
+  mode: 'segment' | 'full',
+  shot: ShotPlan,
+  sourceStartMs?: number | null,
+  sourceEndMs?: number | null,
+): { start: number; end: number; trimmed: boolean } {
+  const duration = Number.isFinite(durationSec) ? Math.max(0, durationSec) : 0;
+  const hasTrim =
+    typeof sourceStartMs === 'number' || typeof sourceEndMs === 'number';
+  if (duration <= 0) return { start: 0, end: 0, trimmed: hasTrim };
+  if (!hasTrim) {
+    return mode === 'full'
+      ? { start: 0, end: duration, trimmed: false }
+      : { ...boundedVideoSegment(duration, shot.start_ms, shot.end_ms), trimmed: false };
+  }
+  const start = Math.max(0, Math.min(duration, (sourceStartMs ?? 0) / 1000));
+  const rawEnd =
+    typeof sourceEndMs === 'number' ? sourceEndMs / 1000 : duration;
+  const end = Math.max(start + 0.05, Math.min(duration, rawEnd));
+  return { start, end, trimmed: true };
+}
+
+export function SegmentVideo({
+  src,
+  shot,
+  className,
+  mode = 'segment',
+  sourceStartMs = null,
+  sourceEndMs = null,
+  controls = false,
+  loopSegment = true,
+  renderTimeMs = null,
+  onPlaybackMs,
+  onSegmentEnd,
+  onError,
+  onMetadata,
+}: {
+  src: string;
+  shot: ShotPlan;
+  className: string;
+  mode?: 'segment' | 'full';
+  sourceStartMs?: number | null;
+  sourceEndMs?: number | null;
+  controls?: boolean;
+  loopSegment?: boolean;
+  /** Deterministic export mode: when set, the video does NOT autoplay or
+   *  loop. It seeks to the exact source frame for this timeline position
+   *  (mapped through the same boundedVideoSegment math the live preview
+   *  uses) and pauses, so a frame-grabber captures a settled image. */
+  renderTimeMs?: number | null;
+  onPlaybackMs?: (ms: number) => void;
+  onSegmentEnd?: () => void;
+  onError?: () => void;
+  onMetadata?: (width: number, height: number) => void;
+}): React.JSX.Element {
+  const ref = useRef<HTMLVideoElement | null>(null);
+  const segmentRef = useRef({ start: Math.max(0, shot.start_ms / 1000), end: 0 });
+  const deterministic = renderTimeMs != null;
+  const segmentKey =
+    mode === 'full'
+      ? `${src}:full:${sourceStartMs ?? ''}:${sourceEndMs ?? ''}`
+      : `${src}:${shot.shot_idx}:${shot.start_ms}:${shot.end_ms}:${sourceStartMs ?? ''}:${sourceEndMs ?? ''}`;
+
+  // Deterministic seek: map the timeline position to an exact source
+  // currentTime using the SAME segment math as live playback, then pause.
+  const seekDeterministic = React.useCallback((attempt = 0) => {
+    const video = ref.current;
+    if (!video) return;
+    if (!Number.isFinite(video.duration) || video.duration <= 0) {
+      if (attempt < 12) window.setTimeout(() => seekDeterministic(attempt + 1), 60);
+      return;
+    }
+    const seg = sourcePlaybackSegment(
+      video.duration,
+      mode,
+      shot,
+      sourceStartMs,
+      sourceEndMs,
+    );
+    const span = Math.max(0.05, seg.end - seg.start);
+    const localSec = Math.max(0, ((renderTimeMs ?? 0) - shot.start_ms) / 1000);
+    const t = seg.start + (localSec % span);
+    video.pause();
+    if (Math.abs(video.currentTime - t) > 0.005) video.currentTime = t;
+  }, [mode, renderTimeMs, shot, sourceEndMs, sourceStartMs]);
+
+  useEffect(() => {
+    if (deterministic) seekDeterministic();
+  }, [deterministic, seekDeterministic, segmentKey]);
+
+  const syncToSegment = React.useCallback((attempt = 0) => {
+    if (deterministic) return;
+    const hasTrim =
+      typeof sourceStartMs === 'number' || typeof sourceEndMs === 'number';
+    if (mode === 'full' && !hasTrim) return;
+    const video = ref.current;
+    if (!video) return;
+    if (!Number.isFinite(video.duration) || video.duration <= 0) {
+      if (attempt < 8) {
+        window.setTimeout(() => syncToSegment(attempt + 1), 80);
+      }
+      return;
+    }
+    const segment = sourcePlaybackSegment(
+      video.duration,
+      mode,
+      shot,
+      sourceStartMs,
+      sourceEndMs,
+    );
+    segmentRef.current = segment;
+    if (Math.abs(video.currentTime - segment.start) > 0.05) {
+      video.currentTime = segment.start;
+    }
+    onPlaybackMs?.(segment.start * 1000);
+    void video.play().catch(() => {
+      /* autoplay can be blocked until the user interacts; controls still work */
+    });
+  }, [mode, onPlaybackMs, shot, sourceEndMs, sourceStartMs]);
+
+  useEffect(() => {
+    if (deterministic) return;
+    const hasTrim =
+      typeof sourceStartMs === 'number' || typeof sourceEndMs === 'number';
+    if (mode === 'full' && !hasTrim) {
+      const video = ref.current;
+      if (video) void video.play().catch(() => {});
+      return;
+    }
+    segmentRef.current = {
+      start: Math.max(0, shot.start_ms / 1000),
+      end: Math.max(0, shot.end_ms / 1000),
+    };
+    syncToSegment();
+    const raf = window.requestAnimationFrame(() => syncToSegment());
+    return () => window.cancelAnimationFrame(raf);
+  }, [deterministic, mode, segmentKey, syncToSegment, shot.end_ms, shot.start_ms, sourceEndMs, sourceStartMs]);
+
+  return (
+    <video
+      key={segmentKey}
+      ref={ref}
+      className={className}
+      src={src}
+      autoPlay={!deterministic}
+      muted
+      playsInline
+      preload="metadata"
+      controls={controls}
+      onLoadedMetadata={(e) => {
+        onMetadata?.(e.currentTarget.videoWidth, e.currentTarget.videoHeight);
+        if (deterministic) seekDeterministic();
+        else syncToSegment();
+      }}
+      onLoadedData={() => (deterministic ? seekDeterministic() : syncToSegment())}
+      onCanPlay={() => (deterministic ? seekDeterministic() : syncToSegment())}
+      onTimeUpdate={(e) => {
+        if (deterministic) return;
+        const video = e.currentTarget;
+        onPlaybackMs?.(video.currentTime * 1000);
+        const hasTrim =
+          typeof sourceStartMs === 'number' || typeof sourceEndMs === 'number';
+        if (mode === 'full' && !hasTrim) return;
+        const segment = segmentRef.current;
+        if (segment.end > 0 && video.currentTime >= segment.end - 0.03) {
+          if (loopSegment) {
+            video.currentTime = segment.start;
+            void video.play().catch(() => {});
+          } else {
+            onSegmentEnd?.();
+          }
+        }
+      }}
+      onError={onError}
+    />
+  );
+}
+
+export function ReelMockup({
   shot,
   previewImageUrl,
   previewKind = 'image',
+  previewVideoMode = 'segment',
+  previewPlaybackStartMs = null,
+  previewPlaybackEndMs = null,
+  layeredPreviewMedia = [],
+  subtitleSpec = null,
+  targetVideoUrl = null,
+  reelPlayback = false,
+  renderTimeMs = null,
+  captionTimeMs = null,
+  captionShotStartMs = null,
+  captionShotEndMs = null,
+  onSegmentEnd,
 }: {
   shot: ShotPlan;
+  /** Caption clock (ms, on the REAL shot timeline). When set, the karaoke
+   *  caption tracks this instead of the internal wall-clock ticker — used to
+   *  sync captions to the narration audio (live) or the frame time (export). */
+  captionTimeMs?: number | null;
+  /** Real shot start/end for caption timing, independent of `shot` (which may
+   *  be remapped to a single media-pick window when a shot has multiple
+   *  medias). Keeps the caption running ONCE across the whole shot instead of
+   *  restarting per pick. Falls back to shot.start_ms/end_ms. */
+  captionShotStartMs?: number | null;
+  captionShotEndMs?: number | null;
+  /** Deterministic export mode. When set, all motion (scene animations,
+   *  overlay anims, captions, videos) is pinned to this timeline position
+   *  instead of running on the wall clock: CSS animations are paused and
+   *  scrubbed via a negative animation-delay, videos seek-and-pause, and
+   *  the caption is computed at exactly this ms. Lets a frame-grabber
+   *  capture an identical-to-preview still for any time T. */
+  renderTimeMs?: number | null;
+  /** When present + enabled, the shot's text overlay renders in this
+   *  detected subtitle style (font, treatment, color, casing) so the
+   *  mockup matches what the burned-in caption will look like. */
+  subtitleSpec?: SubtitleSpec | null;
   /** When present, render this real media inside the b-roll block
    *  instead of the schematic label — e.g. a curated candidate's
    *  thumbnail, so the mockup shows what the shot will actually look
    *  like once media is attached. */
   previewImageUrl?: string | null;
+  /** Multiple selected clips for the Overlay layout. Later layers sit on
+   *  top of earlier layers while staying offset so all remain visible. */
+  layeredPreviewMedia?: PreviewMediaLayer[];
   /** What kind of media `previewImageUrl` points to. `'image'` renders
    *  with <img>, `'video'` with an autoplay <video>, `'embed'` with an
    *  <iframe> (YouTube/Vimeo), `'reelthumb'` with <ReelThumb> (fetches a
    *  poster frame). Defaults to `'image'` so legacy callers (which
    *  always passed a thumbnail URL) keep working. */
   previewKind?: PreviewKind;
+  previewVideoMode?: 'segment' | 'full';
+  previewPlaybackStartMs?: number | null;
+  previewPlaybackEndMs?: number | null;
+  targetVideoUrl?: string | null;
+  reelPlayback?: boolean;
+  onSegmentEnd?: () => void;
 }): React.JSX.Element {
   // If a remote <video> source fails to decode (CORS, dead link, an mp4
   // the platform serves with the wrong content-type), drop back to the
   // schematic label rather than leaving Chromium's broken-media glyph.
   const [videoFailed, setVideoFailed] = useState(false);
+  const [targetVideoFailed, setTargetVideoFailed] = useState(false);
   const [imgFailed, setImgFailed] = useState(false);
+  const [wideLayerKeys, setWideLayerKeys] = useState<Set<string>>(() => new Set());
+  const deterministic = renderTimeMs != null;
+  const [playbackMs, setPlaybackMs] = useState(
+    deterministic ? (renderTimeMs as number) : shot.start_ms,
+  );
+  // In deterministic mode the video must not feed the clock back; the
+  // timeline drives everything top-down.
+  const reportPlayback = deterministic ? undefined : setPlaybackMs;
   useEffect(() => {
     setVideoFailed(false);
+    setTargetVideoFailed(false);
     setImgFailed(false);
-  }, [previewImageUrl]);
+    if (!deterministic) setPlaybackMs(shot.start_ms);
+  }, [previewImageUrl, targetVideoUrl, deterministic]);
+  useEffect(() => {
+    if (!deterministic) setPlaybackMs(shot.start_ms);
+  }, [shot.shot_idx, shot.start_ms, deterministic]);
+  useEffect(() => {
+    if (deterministic) setPlaybackMs(renderTimeMs as number);
+  }, [deterministic, renderTimeMs]);
   const { placement, broll_description, text_overlay, text_position } = shot;
+  // Scrub the (paused) CSS keyframe animations to the current timeline
+  // position via a negative animation-delay. animation-fill-mode: both
+  // holds the end state past the duration, matching the live "play once
+  // then hold" behaviour. Applied to every animated block + overlay.
+  const detLocalMs = deterministic
+    ? Math.max(0, (renderTimeMs as number) - shot.start_ms)
+    : 0;
+  const scrubStyle: React.CSSProperties = deterministic
+    ? { animationDelay: `-${detLocalMs}ms`, animationPlayState: 'paused' }
+    : {};
   const brollLabel = (broll_description || 'b-roll').replace(/\s+/g, ' ').trim();
+  // Structured motion preset → CSS animation class applied to the base
+  // media block.
+  const animClass = sceneAnimationClass(shot.scene_animation);
+  const animIntensity = shot.animation_scale ?? 1;
+  // Default the motion to the shot's own length so it plays exactly once
+  // across the shot; the user can shorten it. Never loops.
+  const animDurationMs = shot.animation_duration_ms ?? shot.duration_ms;
+  const animEasing = shot.animation_easing ?? 'ease-in-out';
+  const animRegion = shot.animation_origin ?? 'middle_center';
+  const animOrigin = pointOrigin(shot.animation_x, shot.animation_y, animRegion);
+  // Slider tops out at 1.6x but the typed field allows up to 5x — honor
+  // the larger ceiling here so typed values actually render.
+  const mediaStartZoom = Math.max(1, Math.min(5, shot.media_start_zoom ?? 1));
+  // Start zoom is independent of the animation. When a scene animation
+  // plays, its keyframes consume --anim-start-zoom as the motion's
+  // starting scale (so we only set the transform-origin here). When
+  // there's NO animation, apply it as a static container scale so the
+  // zoom still takes effect.
+  const startZoomStyle: React.CSSProperties = animClass
+    ? { transformOrigin: animOrigin }
+    : mediaStartZoom !== 1
+      ? { transform: `scale(${mediaStartZoom})`, transformOrigin: animOrigin }
+      : {};
+  const mediaZoom = Math.max(1, Math.min(3, shot.zoom_scale ?? 1));
+  const mediaZoomRegion =
+    shot.zoom_region ?? shot.animation_origin ?? 'middle_center';
+  const mediaZoomOrigin = pointOrigin(
+    shot.zoom_x,
+    shot.zoom_y,
+    mediaZoomRegion,
+  );
+  const mediaPosition = frameRegionOrigin(placement.position ?? 'middle_center');
+  const originalPosition = frameRegionOrigin(
+    shot.original_video_position ?? 'middle_center',
+  );
+  // The scene animation runs once and holds (animation-fill-mode: both),
+  // so changing a parameter wouldn't restart a finished animation. Re-fire
+  // it with the standard reset-reflow trick whenever the shot or any motion
+  // parameter changes, so the preview reflects edits without remounting the
+  // media element underneath.
+  const brollRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (deterministic) return;
+    const el = brollRef.current;
+    if (!el || !animClass) return;
+    el.style.animationName = 'none';
+    void el.offsetWidth; // force reflow so the cancel takes effect
+    el.style.animationName = '';
+  }, [
+    animClass,
+    animDurationMs,
+    animIntensity,
+    mediaStartZoom,
+    animEasing,
+    animOrigin,
+    shot.shot_idx,
+  ]);
+
+  // Original/creator video animation (split layouts only) — a parallel
+  // set of motion params targeting the original-video block.
+  const origAnimClass = sceneAnimationClass(shot.original_scene_animation);
+  const origAnimIntensity = shot.original_animation_scale ?? 1;
+  const origAnimDurationMs =
+    shot.original_animation_duration_ms ?? shot.duration_ms;
+  const origAnimEasing = shot.original_animation_easing ?? 'ease-in-out';
+  const origAnimRegion = shot.original_animation_origin ?? 'middle_center';
+  const origAnimOrigin = pointOrigin(
+    shot.original_animation_x,
+    shot.original_animation_y,
+    origAnimRegion,
+  );
+  const origMediaStartZoom = Math.max(
+    1,
+    Math.min(5, shot.original_media_start_zoom ?? 1),
+  );
+  const origStartZoomStyle: React.CSSProperties = origAnimClass
+    ? { transformOrigin: origAnimOrigin }
+    : origMediaStartZoom !== 1
+      ? {
+          transform: `scale(${origMediaStartZoom})`,
+          transformOrigin: origAnimOrigin,
+        }
+      : {};
+  const origVideoRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (deterministic) return;
+    const el = origVideoRef.current;
+    if (!el || !origAnimClass) return;
+    el.style.animationName = 'none';
+    void el.offsetWidth;
+    el.style.animationName = '';
+  }, [
+    origAnimClass,
+    origAnimDurationMs,
+    origAnimIntensity,
+    origMediaStartZoom,
+    origAnimEasing,
+    origAnimOrigin,
+    shot.shot_idx,
+  ]);
+  // Render the caption in the detected subtitle style when one applies.
+  const applySpec = subtitleSpec?.enabled ? subtitleSpec : null;
+  const capFont = useMatchedFont(applySpec?.font_family);
+  const capStyle = applySpec ? subtitleSpecCss(applySpec, capFont) : null;
+  // Stable flag (vs. the every-80ms captionTimeMs value) so the ticker effect
+  // doesn't re-run on every clock tick.
+  const hasExternalCaptionClock = captionTimeMs != null;
+  useEffect(() => {
+    if (deterministic) return;
+    // An external caption clock (audio-synced reel mode) supersedes the
+    // wall-clock ticker — running both makes the caption fight itself.
+    if (hasExternalCaptionClock) return;
+    if (!applySpec || !shot.spoken_during.trim()) return;
+    const startWall = performance.now();
+    const shotStart = shot.start_ms;
+    const duration = Math.max(250, shot.end_ms - shot.start_ms);
+    const tick = window.setInterval(() => {
+      const elapsed = (performance.now() - startWall) % duration;
+      setPlaybackMs(shotStart + elapsed);
+    }, 80);
+    return () => window.clearInterval(tick);
+  }, [
+    applySpec,
+    deterministic,
+    hasExternalCaptionClock,
+    shot.end_ms,
+    shot.shot_idx,
+    shot.spoken_during,
+    shot.start_ms,
+  ]);
+  // In deterministic mode read the timeline position straight off the
+  // prop so the karaoke caption is correct on the first paint (the
+  // playbackMs state only catches up one render later via effect).
+  // Caption clock: an explicit captionTimeMs (audio/frame time on the real
+  // shot timeline) wins; else deterministic frame time; else the wall ticker.
+  const effPlaybackMs =
+    captionTimeMs != null
+      ? captionTimeMs
+      : deterministic
+        ? (renderTimeMs as number)
+        : playbackMs;
+  // Time captions against the REAL shot, not the per-pick `shot` window, so a
+  // multi-media shot doesn't replay the caption once per media. Only when an
+  // external clock (captionTimeMs) drives — the wall-clock ticker produces
+  // playbackMs in `shot`'s own (possibly per-pick) frame, so it must keep
+  // using `shot`.
+  const captionShot: ShotPlan =
+    captionTimeMs != null &&
+    (captionShotStartMs != null || captionShotEndMs != null)
+      ? {
+          ...shot,
+          start_ms: captionShotStartMs ?? shot.start_ms,
+          end_ms: captionShotEndMs ?? shot.end_ms,
+        }
+      : shot;
+  const captionText = applySpec
+    ? subtitleTextForShot(shot.spoken_during, applySpec, captionShot, effPlaybackMs)
+    : text_overlay;
 
   // Per fit, compute the broll block's CSS rect inside the 9:16 canvas
-  // and what (if anything) sits behind / next to it.
-  type Rect = { top: string; left: string; width: string; height: string };
-  let brollRect: Rect | null = null;
-  let backgroundLabel: string | null = null;
-  let backgroundRect: Rect | null = null;
-
-  switch (placement.fit) {
-    case 'fill':
-      brollRect = { top: '0', left: '0', width: '100%', height: '100%' };
-      break;
-    case 'contain': {
-      const pad = '8%';
-      brollRect = { top: pad, left: '0', width: '100%', height: '84%' };
-      break;
-    }
-    case 'split_top':
-      brollRect = { top: '0', left: '0', width: '100%', height: '50%' };
-      backgroundRect = { top: '50%', left: '0', width: '100%', height: '50%' };
-      backgroundLabel = complementaryLabel(shot.clip_type);
-      break;
-    case 'split_bottom':
-      brollRect = { top: '50%', left: '0', width: '100%', height: '50%' };
-      backgroundRect = { top: '0', left: '0', width: '100%', height: '50%' };
-      backgroundLabel = complementaryLabel(shot.clip_type);
-      break;
-    case 'split_left':
-      brollRect = { top: '0', left: '0', width: '50%', height: '100%' };
-      backgroundRect = { top: '0', left: '50%', width: '50%', height: '100%' };
-      backgroundLabel = complementaryLabel(shot.clip_type);
-      break;
-    case 'split_right':
-      brollRect = { top: '0', left: '50%', width: '50%', height: '100%' };
-      backgroundRect = { top: '0', left: '0', width: '50%', height: '100%' };
-      backgroundLabel = complementaryLabel(shot.clip_type);
-      break;
-    case 'pip': {
-      // Full-bleed background, small inset on top. Inset position
-      // derived from placement.position (3x3 grid).
-      backgroundRect = { top: '0', left: '0', width: '100%', height: '100%' };
-      backgroundLabel = complementaryLabel(shot.clip_type);
-      const sizePct = Math.max(0.2, Math.min(0.45, placement.scale || 0.3));
-      const w = `${(sizePct * 100).toFixed(0)}%`;
-      const h = `${(sizePct * 100 * (16 / 9)).toFixed(0) /* keep visible */}%`;
-      const padding = 6;
-      const [vRegion, hRegion] = placement.position.split('_');
-      const top =
-        vRegion === 'top'
-          ? `${padding}%`
-          : vRegion === 'bottom'
-            ? `calc(100% - ${h} - ${padding}%)`
-            : `calc(50% - ${parseFloat(h) / 2}%)`;
-      const left =
-        hRegion === 'left'
-          ? `${padding}%`
-          : hRegion === 'right'
-            ? `calc(100% - ${w} - ${padding}%)`
-            : `calc(50% - ${parseFloat(w) / 2}%)`;
-      brollRect = { top, left, width: w, height: h };
-      break;
-    }
-  }
+  // and what (if anything) sits behind / next to it. Shared with the
+  // layout-picker tiles so both render identical schematics.
+  const { brollRect, backgroundRect, backgroundLabel } = computePlacementRects(
+    placement,
+    shot.clip_type,
+  );
 
   // Text overlay position: map the FrameRegion to CSS top/left + alignment.
   const overlayPosCss = ((): {
@@ -2925,6 +10131,9 @@ function ReelMockup({
     right?: string;
     transform?: string;
   } => {
+    // Per-shot subtitle position wins over the plan-wide spec position.
+    if (applySpec)
+      return subtitlePositionCss(shot.subtitle_position ?? applySpec.position);
     const [v, h] = (text_position || 'middle_center').split('_');
     const css: Record<string, string> = {};
     if (v === 'top') css.top = '8%';
@@ -2942,30 +10151,308 @@ function ReelMockup({
     return css;
   })();
 
+  // The foreground media renders fit-to-width (.reel-block-img is
+  // width:100% / height:auto, vertically centered), so any asset shorter
+  // than the tall 9:19.5 phone canvas leaves dead space above/below.
+  // Render a scaled-up, blurred copy of the same media as a full-bleed
+  // backdrop (TikTok/IG style) so those gaps read as intentional instead
+  // of black bars. Only the 'contain' fit ("Actual size") leaves gaps —
+  // 'fill' covers the whole frame, and pip/split fill the rest with the
+  // complementary clip (backgroundRect). Covers direct img/video sources
+  // AND proxied reel/page posters (reelthumb), which resolve to a data:
+  // URL we can blur. Embeds (iframes) can't be blurred, so they keep the
+  // plain backdrop.
+  const showBlurBackdrop =
+    !!previewImageUrl &&
+    !backgroundRect &&
+    placement.fit === 'contain' &&
+    (shot.contain_background_mode ?? 'autofill') === 'autofill' &&
+    ((previewKind === 'image' && !imgFailed) ||
+      (previewKind === 'video' && !videoFailed) ||
+      previewKind === 'reelthumb');
+
+  // Split + "Original size" (split_media_fit='contain') letterboxes the
+  // media inside its split half, leaving gaps. Fill those with the same
+  // blurred-media backdrop the full-screen "Actual size" mode uses,
+  // scoped to the broll's split rect so it reads as one frame instead of
+  // black bars.
+  const showSplitContainBlur =
+    !!previewImageUrl &&
+    placement.fit.startsWith('split') &&
+    (shot.split_media_fit ?? 'fill') === 'contain' &&
+    ((previewKind === 'image' && !imgFailed) ||
+      (previewKind === 'video' && !videoFailed) ||
+      previewKind === 'reelthumb');
+
+  // Whether the broll block actually shows media (vs the schematic label).
+  // When it does, the block drops its green-accent placeholder gradient so
+  // the media — and, in Actual-size mode, the blurred backdrop behind it —
+  // shows cleanly instead of a green wash.
+  const mediaShown =
+    !!previewImageUrl &&
+    layeredPreviewMedia.length === 0 &&
+    !(previewKind === 'video' && videoFailed) &&
+    !(previewKind === 'image' && imgFailed);
+  const layerSliceMs =
+    layeredPreviewMedia.length > 0
+      ? Math.max(250, Math.round(shot.duration_ms / layeredPreviewMedia.length))
+      : 0;
+  const layerElapsedMs = Math.max(0, effPlaybackMs - shot.start_ms);
+  const visibleLayerCount =
+    layeredPreviewMedia.length > 0
+      ? Math.max(
+          1,
+          Math.min(
+            layeredPreviewMedia.length,
+            Math.floor(layerElapsedMs / layerSliceMs) + 1,
+          ),
+        )
+      : 0;
+  const visibleLayeredPreviewMedia =
+    shot.overlay_stack_mode === 'replace'
+      ? layeredPreviewMedia.slice(Math.max(0, visibleLayerCount - 1), visibleLayerCount)
+      : layeredPreviewMedia.slice(0, visibleLayerCount);
+  const layeredMediaShown = visibleLayeredPreviewMedia.length > 0;
+  const foregroundMediaShown = mediaShown || layeredMediaShown;
+  const markLayerWide = (key: string, width: number, height: number): void => {
+    if (!(width > height)) return;
+    setWideLayerKeys((prev) => {
+      if (prev.has(key)) return prev;
+      const next = new Set(prev);
+      next.add(key);
+      return next;
+    });
+  };
+  const canShowCreatorVideo =
+    !!targetVideoUrl && isCreatorSpeakingClip(shot.clip_type);
+  const containMode = shot.contain_background_mode ?? 'autofill';
+  const showCreatorBehindContain =
+    !!targetVideoUrl && placement.fit === 'contain' && containMode === 'show_background';
+  const showCreatorInBackgroundRect =
+    !!targetVideoUrl && !!backgroundRect && (placement.fit === 'pip' || canShowCreatorVideo);
+  const showTargetVideoBase =
+    !!targetVideoUrl &&
+    !targetVideoFailed &&
+    (!foregroundMediaShown || showCreatorBehindContain);
+  const suppressEmptyBrollPlaceholder =
+    showTargetVideoBase && !foregroundMediaShown;
+  const suppressEmptyBackgroundPlaceholder =
+    showTargetVideoBase && !showCreatorInBackgroundRect;
+
   return (
     <div className="reel-mockup" title={`Mockup of how shot ${shot.shot_idx} looks in the reel`}>
       <div className="reel-mockup-phone">
         <div className="reel-mockup-notch" />
-        <div className="reel-mockup-canvas">
-          {backgroundRect && (
-            <div className="reel-block reel-block-bg" style={backgroundRect}>
-              <span className="reel-block-label">{backgroundLabel}</span>
+        <div
+          className="reel-mockup-canvas"
+        >
+          {showBlurBackdrop && previewImageUrl && (
+            <div className="reel-block reel-block-blur" aria-hidden="true">
+              {previewKind === 'video' ? (
+                <SegmentVideo
+                  className="reel-block-blur-media"
+                  src={previewImageUrl}
+                  shot={shot}
+                  mode={previewVideoMode}
+                  sourceStartMs={previewPlaybackStartMs}
+                  sourceEndMs={previewPlaybackEndMs}
+                  onPlaybackMs={reportPlayback}
+                  renderTimeMs={renderTimeMs}
+                />
+              ) : previewKind === 'reelthumb' ? (
+                <ReelThumbBlurMedia url={previewImageUrl} />
+              ) : (
+                <img
+                  className="reel-block-blur-media"
+                  src={previewImageUrl}
+                  alt=""
+                />
+              )}
             </div>
           )}
-          {brollRect && (
-            <div className="reel-block reel-block-broll" style={brollRect}>
-              {previewImageUrl &&
-              !(previewKind === 'video' && videoFailed) &&
-              !(previewKind === 'image' && imgFailed) ? (
+          {showTargetVideoBase && !showCreatorBehindContain && (
+            <SegmentVideo
+              className="reel-block-base-video"
+              src={targetVideoUrl}
+              shot={shot}
+              loopSegment={!reelPlayback}
+              onPlaybackMs={foregroundMediaShown ? undefined : reportPlayback}
+              renderTimeMs={renderTimeMs}
+              onSegmentEnd={foregroundMediaShown ? undefined : onSegmentEnd}
+              onError={() => setTargetVideoFailed(true)}
+            />
+          )}
+          {showCreatorBehindContain && targetVideoUrl && (
+            <SegmentVideo
+              className="reel-block-base-video"
+              src={targetVideoUrl}
+              shot={shot}
+              loopSegment={!reelPlayback}
+              onPlaybackMs={reportPlayback}
+              renderTimeMs={renderTimeMs}
+              onSegmentEnd={onSegmentEnd}
+              onError={() => setTargetVideoFailed(true)}
+            />
+          )}
+          {backgroundRect && !suppressEmptyBackgroundPlaceholder && (
+            <div
+              ref={origVideoRef}
+              className={`reel-block reel-block-bg${origAnimClass ? ' ' + origAnimClass : ''}`}
+              style={
+                {
+                  ...backgroundRect,
+                  '--original-position': originalPosition,
+                  '--anim-intensity': origAnimIntensity,
+                  '--anim-start-zoom': origMediaStartZoom,
+                  '--anim-duration': `${origAnimDurationMs}ms`,
+                  '--anim-ease': origAnimEasing,
+                  ...origStartZoomStyle,
+                  ...scrubStyle,
+                } as React.CSSProperties
+              }
+            >
+              {showCreatorInBackgroundRect && targetVideoUrl ? (
+                <SegmentVideo
+                  className="reel-block-img reel-block-img-cover"
+                  src={targetVideoUrl}
+                  shot={shot}
+                  loopSegment={!reelPlayback}
+                  onPlaybackMs={reportPlayback}
+                  renderTimeMs={renderTimeMs}
+                  onSegmentEnd={onSegmentEnd}
+                  onError={() => setTargetVideoFailed(true)}
+                />
+              ) : backgroundLabel ? (
+                <span className="reel-block-label">{backgroundLabel}</span>
+              ) : (
+                <span className="reel-block-empty" aria-hidden="true" />
+              )}
+            </div>
+          )}
+          {showSplitContainBlur && brollRect && previewImageUrl && (
+            <div
+              className="reel-block reel-block-split-blur"
+              style={brollRect as React.CSSProperties}
+              aria-hidden="true"
+            >
+              {previewKind === 'video' ? (
+                <SegmentVideo
+                  className="reel-block-blur-media"
+                  src={previewImageUrl}
+                  shot={shot}
+                  mode={previewVideoMode}
+                  sourceStartMs={previewPlaybackStartMs}
+                  sourceEndMs={previewPlaybackEndMs}
+                  onPlaybackMs={reportPlayback}
+                  renderTimeMs={renderTimeMs}
+                />
+              ) : previewKind === 'reelthumb' ? (
+                <ReelThumbBlurMedia url={previewImageUrl} />
+              ) : (
+                <img
+                  className="reel-block-blur-media"
+                  src={previewImageUrl}
+                  alt=""
+                />
+              )}
+            </div>
+          )}
+          {brollRect && !suppressEmptyBrollPlaceholder && (
+            <div
+              ref={brollRef}
+              className={`reel-block reel-block-broll${placement.fit === 'contain' ? ' reel-block-broll-contain' : placement.fit === 'fill' ? ' reel-block-broll-fill' : placement.fit.startsWith('split') ? ' reel-block-broll-split' : ''}${placement.fit.startsWith('split') && (shot.split_media_fit ?? 'fill') === 'contain' ? ' reel-block-broll-split-contain' : ''}${mediaShown || layeredMediaShown ? ' reel-block-broll-media' : ''}${layeredMediaShown ? ' reel-block-broll-overlay-stack' : ''}${!layeredMediaShown && animClass ? ' ' + animClass : ''}`}
+              style={
+                {
+                  ...brollRect,
+                  '--anim-intensity': animIntensity,
+                  '--anim-start-zoom': mediaStartZoom,
+                  '--anim-duration': `${animDurationMs}ms`,
+                  '--anim-ease': animEasing,
+                  '--media-zoom': mediaZoom,
+                  '--media-zoom-origin': mediaZoomOrigin,
+                  '--media-position': mediaPosition,
+                  '--overlay-parent-scale': placement.scale || 0.42,
+                  ...startZoomStyle,
+                  ...scrubStyle,
+                } as React.CSSProperties
+              }
+            >
+              {layeredMediaShown ? (
+                visibleLayeredPreviewMedia.map((layer, i) => (
+                  <div
+                    key={`${layer.src}-${i}`}
+                    className={`reel-overlay-stack-layer${wideLayerKeys.has(layer.src) ? ' reel-overlay-stack-layer-wide' : ''} ${sceneAnimationClass(layer.shot.scene_animation)}`}
+                    style={
+                      {
+                        '--layer-index': i,
+                        '--layer-count': layeredPreviewMedia.length,
+                        '--anim-intensity': layer.shot.animation_scale ?? 1,
+                        '--anim-start-zoom': layer.shot.media_start_zoom ?? 1,
+                        '--anim-duration': `${layer.shot.animation_duration_ms ?? layer.shot.duration_ms}ms`,
+                        '--anim-ease': layer.shot.animation_easing ?? 'ease-in-out',
+                        '--media-zoom': layer.shot.zoom_scale ?? 1,
+                        '--media-zoom-origin': pointOrigin(
+                          layer.shot.zoom_x,
+                          layer.shot.zoom_y,
+                          layer.shot.zoom_region ?? layer.shot.animation_origin ?? 'middle_center',
+                        ),
+                        '--media-position': frameRegionOrigin(layer.shot.placement.position ?? 'middle_center'),
+                        zIndex: 2 + i,
+                        ...scrubStyle,
+                      } as React.CSSProperties
+                    }
+                    title={layer.label}
+                  >
+                    {layer.kind === 'video' ? (
+                      <SegmentVideo
+                        className="reel-block-img"
+                        src={layer.src}
+                        shot={layer.shot}
+                        mode="full"
+                        sourceStartMs={layer.playbackStartMs}
+                        sourceEndMs={layer.playbackEndMs}
+                        onPlaybackMs={reportPlayback}
+                        renderTimeMs={renderTimeMs}
+                        onMetadata={(w, h) => markLayerWide(layer.src, w, h)}
+                      />
+                    ) : layer.kind === 'embed' ? (
+                      <iframe
+                        className="reel-block-img"
+                        src={layer.src}
+                        title={layer.label}
+                        allow="autoplay; encrypted-media; picture-in-picture"
+                        allowFullScreen
+                      />
+                    ) : layer.kind === 'reelthumb' ? (
+                      <ReelThumb url={layer.src} size="md" />
+                    ) : (
+                      <img
+                        className="reel-block-img"
+                        src={layer.src}
+                        alt={layer.label}
+                        loading="lazy"
+                        onLoad={(e) =>
+                          markLayerWide(
+                            layer.src,
+                            e.currentTarget.naturalWidth,
+                            e.currentTarget.naturalHeight,
+                          )
+                        }
+                      />
+                    )}
+                  </div>
+                ))
+              ) : mediaShown ? (
                 previewKind === 'video' ? (
-                  <video
+                  <SegmentVideo
                     className="reel-block-img"
                     src={previewImageUrl}
-                    autoPlay
-                    muted
-                    loop
-                    playsInline
-                    preload="metadata"
+                    shot={shot}
+                    mode={previewVideoMode}
+                    sourceStartMs={previewPlaybackStartMs}
+                    sourceEndMs={previewPlaybackEndMs}
+                    onPlaybackMs={reportPlayback}
+                    renderTimeMs={renderTimeMs}
                     onError={() => setVideoFailed(true)}
                   />
                 ) : previewKind === 'embed' ? (
@@ -2992,9 +10479,12 @@ function ReelMockup({
               )}
             </div>
           )}
-          {text_overlay && (
-            <div className="reel-text-overlay" style={overlayPosCss}>
-              {text_overlay}
+          {captionText && (
+            <div
+              className={`reel-text-overlay${applySpec ? ' reel-subtitle-overlay' : ''}`}
+              style={{ ...overlayPosCss, ...(capStyle ?? {}) }}
+            >
+              {captionText}
             </div>
           )}
         </div>
@@ -3117,6 +10607,155 @@ function OptionScores({
 }
 
 // ============================================================
+//  ShotIdeas — the selected shot's concept(s) as compact one-line
+//  rows (under the timeline). Space-saving alternative to the tall
+//  OptionCard; scores render as small circular rings, not bars.
+// ============================================================
+
+/** A small circular progress ring (donut) for a 0–100 score. `pct` null
+ *  renders an empty ring labelled n/a. */
+function ScoreCircle({
+  label,
+  pct,
+  kind,
+}: {
+  label: string;
+  pct: number | null;
+  kind: 'fit' | 'get';
+}): React.JSX.Element {
+  const deg = (pct ?? 0) * 3.6;
+  const color = kind === 'fit' ? 'var(--accent)' : 'var(--ai)';
+  return (
+    <span
+      className="score-circle"
+      title={`${label}: ${pct === null ? 'n/a' : `${pct}%`}`}
+    >
+      <span
+        className="score-circle-ring"
+        style={{
+          background:
+            pct === null
+              ? 'conic-gradient(var(--bg-3) 0deg 360deg)'
+              : `conic-gradient(${color} ${deg}deg, var(--bg-3) ${deg}deg)`,
+        }}
+      >
+        <span className="score-circle-val">{pct === null ? 'n/a' : pct}</span>
+      </span>
+      <span className="score-circle-label">{label}</span>
+    </span>
+  );
+}
+
+/** One idea rendered as a single horizontal, selectable row. */
+function ShotIdeaLine({
+  opt,
+  label,
+  primary,
+  selected,
+  onSelect,
+}: {
+  opt: ShotOption;
+  label: string;
+  primary?: boolean;
+  selected: boolean;
+  onSelect: () => void;
+}): React.JSX.Element {
+  const classes = [
+    'idea-line',
+    primary ? 'idea-line-primary' : '',
+    selected ? 'idea-line-on' : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+  return (
+    <div
+      className={classes}
+      role="radio"
+      aria-checked={selected}
+      tabIndex={0}
+      onClick={onSelect}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onSelect();
+        }
+      }}
+      title={opt.broll_description}
+    >
+      <span className="idea-line-label">
+        {primary ? 'VISUAL IDEA' : label}
+      </span>
+      <span className={`tier-chip tier-${opt.tier}`}>{opt.tier}</span>
+      <span className="idea-line-desc">{opt.broll_description}</span>
+      <span className="idea-line-scores">
+        <ScoreCircle label="fit" pct={Math.round(opt.fit_score * 100)} kind="fit" />
+        <ScoreCircle
+          label="get"
+          pct={opt.likelihood !== null ? Math.round(opt.likelihood * 100) : null}
+          kind="get"
+        />
+      </span>
+    </div>
+  );
+}
+
+function ShotIdeas({
+  shot,
+  selectedOptionIdx,
+  onSelectOption,
+}: {
+  shot: ShotPlan;
+  selectedOptionIdx: number;
+  onSelectOption: (shotIdx: number, optionIdx: number) => void;
+}): React.JSX.Element {
+  const [fallbackOpen, setFallbackOpen] = useState(false);
+  // Pair each option with its original index so selection survives the
+  // ideal/fallback split. The primary slot (index 0) is always shown.
+  const withIdx = shot.options.map((opt, idx) => ({ opt, idx }));
+  const ideaList = withIdx.filter(
+    ({ opt, idx }) => idx === 0 || opt.tier === 'ideal',
+  );
+  const fallbackList = withIdx.filter(
+    ({ opt, idx }) => idx !== 0 && opt.tier !== 'ideal',
+  );
+  return (
+    <div className="shot-ideas" role="radiogroup">
+      {ideaList.map(({ opt, idx }, i) => (
+        <ShotIdeaLine
+          key={idx}
+          opt={opt}
+          label={`idea ${i + 1}`}
+          primary={idx === 0}
+          selected={selectedOptionIdx === idx}
+          onSelect={() => onSelectOption(shot.shot_idx, idx)}
+        />
+      ))}
+      {fallbackList.length > 0 && (
+        <>
+          <button
+            className="ladder-toggle"
+            onClick={() => setFallbackOpen((v) => !v)}
+          >
+            {fallbackOpen ? '▾' : '▸'} {fallbackList.length} fallback option
+            {fallbackList.length === 1 ? '' : 's'}
+          </button>
+          {fallbackOpen &&
+            fallbackList.map(({ opt, idx }) => (
+              <ShotIdeaLine
+                key={idx}
+                opt={opt}
+                label={opt.tier}
+                selected={selectedOptionIdx === idx}
+                onSelect={() => onSelectOption(shot.shot_idx, idx)}
+              />
+            ))}
+        </>
+      )}
+    </div>
+  );
+}
+
+// ============================================================
 //  Curation view
 // ============================================================
 
@@ -3128,6 +10767,8 @@ function ShotCurationRow({
   onCurateShot,
   onRegenerate,
   onContinue,
+  onAddClip,
+  hideCandidates = false,
   onToggleMedia,
   nested = false,
 }: {
@@ -3138,6 +10779,8 @@ function ShotCurationRow({
   onCurateShot: (shotIdx: number, userPrompt?: string) => Promise<void>;
   onRegenerate: (shotIdx: number, userPrompt: string) => Promise<void>;
   onContinue: (shotIdx: number, userPrompt: string) => Promise<void>;
+  onAddClip?: (shotIdx: number, description: string) => Promise<AddClipResult>;
+  hideCandidates?: boolean;
   onToggleMedia?: (media: SelectedMedia | null) => void;
   nested?: boolean;
 }): React.JSX.Element {
@@ -3145,7 +10788,37 @@ function ShotCurationRow({
   const [regenOpen, setRegenOpen] = useState(false);
   const [regenPrompt, setRegenPrompt] = useState('');
   const [regenBusy, setRegenBusy] = useState(false);
-  const [curateBusy, setCurateBusy] = useState(false);
+  // Add-clip panel — describe a specific extra clip to research and
+  // append to this shot's candidates.
+  const [addOpen, setAddOpen] = useState(false);
+  const [addPrompt, setAddPrompt] = useState('');
+  const [addBusy, setAddBusy] = useState(false);
+  // Result banner shown after a run finishes, so the user always knows
+  // whether a clip actually landed in the library.
+  const [addResult, setAddResult] = useState<{
+    kind: 'added' | 'duplicate' | 'none';
+    count: number;
+  } | null>(null);
+  const submitAddClip = async (): Promise<void> => {
+    const description = addPrompt.trim();
+    if (!description || !onAddClip) return;
+    setAddBusy(true);
+    setAddResult(null);
+    try {
+      const res = await onAddClip(shotIdx, description);
+      if (!res.ok) return; // error already surfaced in the global banner
+      if (res.added > 0) {
+        setAddResult({ kind: 'added', count: res.added });
+        setAddPrompt('');
+      } else if (res.foundButDuplicate) {
+        setAddResult({ kind: 'duplicate', count: 0 });
+      } else {
+        setAddResult({ kind: 'none', count: 0 });
+      }
+    } finally {
+      setAddBusy(false);
+    }
+  };
   // Edit-result panel — only available after at least one curation
   // has happened (otherwise there's no session to continue from).
   const [editOpen, setEditOpen] = useState(false);
@@ -3167,14 +10840,6 @@ function ShotCurationRow({
       setRegenPrompt('');
     } finally {
       setRegenBusy(false);
-    }
-  };
-  const handleCurate = async (): Promise<void> => {
-    setCurateBusy(true);
-    try {
-      await onCurateShot(shotIdx);
-    } finally {
-      setCurateBusy(false);
     }
   };
   const submitEdit = async (): Promise<void> => {
@@ -3219,7 +10884,11 @@ function ShotCurationRow({
           </span>
         )}
         <span className="cand-count">
-          {notCurated ? 'not curated yet' : `${curation!.candidates.length} candidate(s)`}
+          {curation?.library_fulfilled
+            ? 'uses your footage'
+            : notCurated
+              ? 'not curated yet'
+              : `${curation!.candidates.length} candidate(s)`}
         </span>
         {trace && (
           <button
@@ -3230,30 +10899,6 @@ function ShotCurationRow({
             {traceOpen ? '▾ trace' : '▸ trace'}
           </button>
         )}
-        <button
-          className="btn btn-mini btn-curate-one"
-          onClick={handleCurate}
-          disabled={curateBusy}
-          title={
-            notCurated
-              ? 'Research media for just this shot'
-              : 'Re-research this shot from scratch'
-          }
-        >
-          {curateBusy
-            ? 'Curating…'
-            : notCurated
-              ? '▶ curate this shot'
-              : '↻ re-curate'}
-        </button>
-        <button
-          className="btn btn-mini btn-regen"
-          onClick={() => setRegenOpen((v) => !v)}
-          disabled={regenBusy}
-          title="Steer this shot with extra guidance"
-        >
-          {regenBusy ? 'Working…' : '✎ with prompt'}
-        </button>
         {!notCurated && (
           <button
             className="btn btn-mini btn-edit-result"
@@ -3264,7 +10909,101 @@ function ShotCurationRow({
             {editBusy ? 'Editing…' : '↪ edit result'}
           </button>
         )}
+        {onAddClip && (
+          <button
+            className={`btn btn-mini${addBusy ? ' btn-curating' : ''}`}
+            onClick={() => setAddOpen((v) => !v)}
+            disabled={addBusy}
+            title="Describe a specific clip you want — the curator finds it and adds it to this shot's candidates"
+          >
+            {addBusy && (
+              <span className="agent-status-spinner" aria-hidden="true" />
+            )}
+            {addBusy ? 'Adding clip…' : '＋ add clip'}
+          </button>
+        )}
       </div>
+      {addOpen && onAddClip && (
+        <div
+          className={`regen-panel add-clip-panel${addBusy ? ' add-clip-panel-running' : ''}`}
+        >
+          <label className="regen-label" htmlFor={`addclip-${shotIdx}`}>
+            Describe the clip you want to add
+          </label>
+          <textarea
+            id={`addclip-${shotIdx}`}
+            className="regen-textarea"
+            rows={2}
+            placeholder='e.g. "a close-up of the product packaging", "the founder speaking at a conference", "a Wikipedia photo of the Golden Gate Bridge"'
+            value={addPrompt}
+            onChange={(e) => {
+              setAddPrompt(e.target.value);
+              if (addResult) setAddResult(null);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                submitAddClip();
+              }
+            }}
+            disabled={addBusy}
+            autoFocus
+          />
+          {/* Prominent running / done status so it's never ambiguous
+              whether the agent is working or finished. */}
+          {addBusy ? (
+            <div className="add-clip-status add-clip-status-running">
+              <span className="agent-status-spinner" aria-hidden="true" />
+              Researching &amp; capturing your clip… this can take a bit.
+            </div>
+          ) : addResult ? (
+            <div
+              className={`add-clip-status ${
+                addResult.kind === 'added'
+                  ? 'add-clip-status-done'
+                  : 'add-clip-status-warn'
+              }`}
+            >
+              {addResult.kind === 'added' ? (
+                <>
+                  <span className="agent-status-check" aria-hidden="true">
+                    ✓
+                  </span>
+                  Added {addResult.count} clip{addResult.count === 1 ? '' : 's'}{' '}
+                  to the library below.
+                </>
+              ) : addResult.kind === 'duplicate' ? (
+                <>That clip was already in your library — nothing new to add.</>
+              ) : (
+                <>
+                  Couldn&apos;t find that clip. Try a more specific
+                  description (a name, place, or source).
+                </>
+              )}
+            </div>
+          ) : null}
+          <div className="regen-actions">
+            <button
+              className="btn btn-mini"
+              onClick={submitAddClip}
+              disabled={addBusy || addPrompt.trim().length === 0}
+              title="Researches your described clip and appends it to this shot's existing candidates"
+            >
+              {addBusy ? 'Adding…' : 'Add clip'}
+            </button>
+            <button
+              className="btn btn-mini btn-ghost"
+              onClick={() => {
+                setAddOpen(false);
+                setAddPrompt('');
+                setAddResult(null);
+              }}
+              disabled={addBusy}
+            >
+              {addResult?.kind === 'added' ? 'Done' : 'Cancel'}
+            </button>
+          </div>
+        </div>
+      )}
       {regenOpen && (
         <div className="regen-panel">
           <label className="regen-label" htmlFor={`regen-${shotIdx}`}>
@@ -3360,7 +11099,7 @@ function ShotCurationRow({
         <div className="research-fail">⚠ {curation.failure_reason}</div>
       )}
       {traceOpen && trace && <AgentTraceView trace={trace} />}
-      {curation && curation.candidates.length > 0 && (
+      {!hideCandidates && curation && curation.candidates.length > 0 && (
         <div className="candidates">
           {curation.candidates.map((c, i) => (
             <CandidateCard
@@ -3372,7 +11111,7 @@ function ShotCurationRow({
           ))}
         </div>
       )}
-      {curation?.alternatives && curation.alternatives.length > 0 && (
+      {!hideCandidates && curation?.alternatives && curation.alternatives.length > 0 && (
         <AlternativesView
           alternatives={curation.alternatives}
           shot={shot}
@@ -3429,6 +11168,52 @@ function AlternativesView({
             </div>
           </div>
         ))}
+    </div>
+  );
+}
+
+function SharedMediaLibrary({
+  items,
+  shot,
+  onRegenerateMedia,
+  onToggleMedia,
+}: {
+  items: LibraryCandidate[];
+  shot: ShotPlan;
+  onRegenerateMedia: (shotIdx: number, userPrompt?: string) => Promise<void>;
+  onToggleMedia: (media: SelectedMedia | null) => void;
+}): React.JSX.Element {
+  return (
+    <div className="shared-library">
+      <div className="shared-library-head">
+        <span className="shared-library-title">Library</span>
+        <span className="shared-library-sub">
+          {items.length} unique item{items.length === 1 ? '' : 's'}
+        </span>
+      </div>
+      <div className="candidates shared-library-grid">
+        {items.map((item) => (
+          <div
+            className="shared-library-item"
+            key={`${item.sourceShotIdx}-${mediaKey(item.candidate.auto_recording_url || item.candidate.url)}`}
+          >
+            <span className="shared-library-origin">{item.sourceLabel}</span>
+            <CandidateCard
+              candidate={item.candidate}
+              shot={shot}
+              brollOverride={item.brollOverride}
+              onToggleMedia={onToggleMedia}
+              onRegenerateMedia={
+                // Pasted media (sourceShotIdx < 0) has no shot to
+                // regenerate against — hide the regenerate affordance.
+                item.sourceShotIdx < 0
+                  ? undefined
+                  : (prompt) => onRegenerateMedia(item.sourceShotIdx, prompt)
+              }
+            />
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -3523,7 +11308,7 @@ function videoEmbedUrl(url: string): string | null {
 }
 
 /** How the phone preview should render its source URL. */
-type PreviewKind = 'image' | 'video' | 'embed' | 'reelthumb';
+export type PreviewKind = 'image' | 'video' | 'embed' | 'reelthumb';
 
 function isDirectVideoFile(url: string): boolean {
   return /\.(mp4|webm|mov|m4v|ogv)(\?|#|$)/i.test(url);
@@ -3536,7 +11321,41 @@ function isDirectVideoFile(url: string): boolean {
  *  IG permalink, a marketing page) return false — feeding those to a
  *  <video> just renders Chromium's broken-media glyph. */
 function isPlayableVideoUrl(url: string): boolean {
-  return /^(capture|clips|file|blob|data):/i.test(url) || isDirectVideoFile(url);
+  return /^(capture|clips|local-video|file|blob|data):/i.test(url) || isDirectVideoFile(url);
+}
+
+function SelectedMediaPreview({
+  media,
+}: {
+  media: SelectedMedia;
+}): React.JSX.Element {
+  if (media.kind === 'image') {
+    return (
+      <span className="shot-selected-media-preview">
+        <img src={media.url} alt="" loading="lazy" draggable={false} />
+      </span>
+    );
+  }
+
+  if (isPlayableVideoUrl(media.url)) {
+    return (
+      <span className="shot-selected-media-preview">
+        <video
+          src={media.url}
+          muted
+          playsInline
+          preload="metadata"
+          draggable={false}
+        />
+      </span>
+    );
+  }
+
+  return (
+    <span className="shot-selected-media-preview">
+      <ReelThumb url={media.from_candidate_url || media.url} size="sm" />
+    </span>
+  );
 }
 
 function CandidateCard({
@@ -3544,11 +11363,13 @@ function CandidateCard({
   shot,
   brollOverride,
   onToggleMedia,
+  onRegenerateMedia,
 }: {
   candidate: MediaCandidate;
   shot?: ShotPlan;
   brollOverride?: string;
   onToggleMedia?: (media: SelectedMedia | null) => void;
+  onRegenerateMedia?: (userPrompt?: string) => Promise<void>;
 }): React.JSX.Element {
   const devtools = React.useContext(DevtoolsContext);
   const isImage =
@@ -3566,11 +11387,23 @@ function CandidateCard({
     selections.findIndex((s) => s.url === url);
   const candidateIndex = indexOf(candidate.url);
   const candidateSelected = candidateIndex >= 0;
+  const primaryMediaUrl =
+    candidate.auto_recording_url ||
+    candidate.auto_screenshots?.[0]?.image_url ||
+    candidate.url;
+  const primaryKind: SelectedMedia['kind'] =
+    candidate.auto_screenshots?.[0]?.image_url && !candidate.auto_recording_url
+      ? 'image'
+      : isImage
+        ? 'image'
+        : 'video';
+  const primaryIndex = indexOf(primaryMediaUrl);
+  const primarySelected = primaryIndex >= 0 || candidateSelected;
   const toggleCandidate = (): void => {
     if (!onToggleMedia) return;
     onToggleMedia({
-      url: candidate.url,
-      kind: isImage ? 'image' : 'video',
+      url: primaryMediaUrl,
+      kind: primaryKind,
       origin: 'original_candidate',
       from_candidate_url: candidate.url,
       reason: candidate.notes ?? null,
@@ -3660,6 +11493,10 @@ function CandidateCard({
   const [framesLog, setFramesLog] = useState<VideoFrameProgressEvent[]>([]);
   const [activeFramesId, setActiveFramesId] = useState<string | null>(null);
   const [framesLogOpen, setFramesLogOpen] = useState(true);
+  const [regeneratingMedia, setRegeneratingMedia] = useState(false);
+  const [mediaRegenOpen, setMediaRegenOpen] = useState(false);
+  const [mediaRegenText, setMediaRegenText] = useState('');
+  const [detailsOpen, setDetailsOpen] = useState(false);
 
   useEffect(() => {
     if (!activeFramesId) return;
@@ -3721,7 +11558,19 @@ function CandidateCard({
   const [recordError, setRecordError] = useState<string | null>(null);
   const [recordResult, setRecordResult] = useState<
     Extract<RecordPageResponse, { ok: true }> | null
-  >(null);
+  >(() =>
+    candidate.auto_recording_url
+      ? {
+          ok: true,
+          recording_url: candidate.auto_recording_url,
+          recording_path: '',
+          duration_ms: candidate.duration_ms ?? shot?.duration_ms ?? 0,
+          page_title: candidate.title ?? null,
+          reasoning: candidate.notes ?? 'auto-captured',
+          segments: [],
+        }
+      : null,
+  );
   const [recordLog, setRecordLog] = useState<RecordProgressEvent[]>([]);
   const [activeRecordId, setActiveRecordId] = useState<string | null>(null);
   const [recordLogOpen, setRecordLogOpen] = useState(true);
@@ -3764,6 +11613,7 @@ function CandidateCard({
       })) as RecordPageResponse;
       if (res.ok) {
         setRecordResult(res);
+        setPreviewOpen(true);
       } else {
         setRecordError(`${res.stage}: ${res.error}`);
       }
@@ -3782,7 +11632,25 @@ function CandidateCard({
   const [screenshotError, setScreenshotError] = useState<string | null>(null);
   const [screenshotResult, setScreenshotResult] = useState<
     Extract<ScreenshotPageResponse, { ok: true }> | null
-  >(null);
+  >(() =>
+    candidate.auto_screenshots?.length
+      ? {
+          ok: true,
+          page_title: candidate.title ?? null,
+          screenshots: candidate.auto_screenshots.map((s, i) => ({
+            screenshot_id: `${mediaKey(s.image_url)}-${i}`,
+            region_id: i,
+            reason: candidate.notes ?? 'auto-captured',
+            preview: candidate.title ?? candidate.url,
+            kind: 'image',
+            image_url: s.image_url,
+            image_path: s.image_path ?? '',
+            width: 0,
+            height: 0,
+          })),
+        }
+      : null,
+  );
   const [screenshotLog, setScreenshotLog] = useState<ScreenshotProgressEvent[]>(
     [],
   );
@@ -3834,6 +11702,7 @@ function CandidateCard({
       })) as ScreenshotPageResponse;
       if (res.ok) {
         setScreenshotResult(res);
+        setPreviewOpen(true);
       } else {
         setScreenshotError(`${res.stage}: ${res.error}`);
       }
@@ -3846,7 +11715,22 @@ function CandidateCard({
   };
 
   return (
-    <div className="candidate">
+    <div
+      className="candidate"
+      onClick={(e) => {
+        const target = e.target as HTMLElement;
+        if (target.closest('button,a,input,textarea,select,video,iframe')) return;
+        setDetailsOpen(true);
+      }}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          setDetailsOpen(true);
+        }
+      }}
+    >
       <div className="candidate-thumb">
         {isImage ? (
           <img src={thumb} alt={candidate.title ?? ''} loading="lazy" />
@@ -3883,21 +11767,35 @@ function CandidateCard({
       <div className="candidate-body">
         <div className="candidate-source">
           [{candidate.source}]
-          {onToggleMedia && (
+          {onRegenerateMedia && (
+            <button
+              type="button"
+              className="btn-select btn-regenerate-media"
+              onClick={() => setMediaRegenOpen(true)}
+              disabled={regeneratingMedia}
+              title="Regenerate this media source"
+            >
+              {regeneratingMedia ? 'Working…' : '↻'}
+            </button>
+          )}
+          {onToggleMedia &&
+            (!isWebPage ||
+              !!candidate.auto_recording_url ||
+              !!candidate.auto_screenshots?.length) && (
             <button
               type="button"
               className={
-                candidateSelected ? 'btn-select btn-select-on' : 'btn-select'
+                primarySelected ? 'btn-select btn-select-on' : 'btn-select'
               }
               onClick={toggleCandidate}
               title={
-                candidateSelected
-                  ? `Pick #${candidateIndex + 1} — click to remove`
-                  : 'Add this candidate to the shot picks'
+                primarySelected
+                  ? `Pick #${Math.max(primaryIndex, candidateIndex) + 1} — click to remove`
+                  : 'Add this item to the shot picks'
               }
             >
-              {candidateSelected
-                ? `✓ #${candidateIndex + 1}`
+              {primarySelected
+                ? `✓ #${Math.max(primaryIndex, candidateIndex) + 1}`
                 : '+ Use this'}
             </button>
           )}
@@ -3927,6 +11825,52 @@ function CandidateCard({
             {(candidate.recommended_segment_ms.end_ms / 1000).toFixed(1)}s
           </div>
         )}
+        {canRecord && (
+          <div className="candidate-extract">
+            <div className="candidate-extract-actions">
+              <button
+                type="button"
+                className={`btn btn-mini ${recordResult ? 'btn-view' : 'btn-extract'}`}
+                onClick={recordResult ? openPreview : runRecord}
+                disabled={recording}
+                title={
+                  recordResult
+                    ? 'Open the page recording'
+                    : 'Record this page as a vertical clip'
+                }
+              >
+                {recording
+                  ? 'Recording…'
+                  : recordResult
+                    ? '▷ View recording'
+                    : '● Record page'}
+              </button>
+              <button
+                type="button"
+                className={`btn btn-mini ${screenshotResult ? 'btn-view' : 'btn-extract'}`}
+                onClick={screenshotResult ? openPreview : runScreenshot}
+                disabled={screenshotting}
+                title={
+                  screenshotResult
+                    ? 'Open captured page screenshots'
+                    : 'Capture screenshots from this page'
+                }
+              >
+                {screenshotting
+                  ? 'Capturing…'
+                  : screenshotResult
+                    ? `▣ View screenshots (${screenshotResult.screenshots.length})`
+                    : '▣ Screenshot page'}
+              </button>
+            </div>
+            {recordError && (
+              <div className="candidate-extract-error">⚠ {recordError}</div>
+            )}
+            {screenshotError && (
+              <div className="candidate-extract-error">⚠ {screenshotError}</div>
+            )}
+          </div>
+        )}
         {canExtract && (
           <div className="candidate-extract">
             <div className="candidate-extract-actions">
@@ -3934,7 +11878,7 @@ function CandidateCard({
                 type="button"
                 className={`btn btn-mini ${clips ? 'btn-view' : 'btn-extract'}`}
                 onClick={clips ? openPreview : runExtract}
-                disabled={extracting || framing}
+                disabled={extracting}
                 title={
                   clips
                     ? `Open the ${clips.length} extracted clip${clips.length === 1 ? '' : 's'} in the preview popup`
@@ -3946,23 +11890,6 @@ function CandidateCard({
                   : clips
                     ? `▷ View clips (${clips.length})`
                     : '✂ Extract clips'}
-              </button>
-              <button
-                type="button"
-                className={`btn btn-mini ${frames ? 'btn-view' : 'btn-extract'}`}
-                onClick={frames ? openPreview : runVideoScreenshots}
-                disabled={extracting || framing}
-                title={
-                  frames
-                    ? `Open the ${frames.length} frame${frames.length === 1 ? '' : 's'} in the preview popup`
-                    : 'Pick the most relevant frames from the source video and save them as still PNGs.'
-                }
-              >
-                {framing
-                  ? 'Capturing frames…'
-                  : frames
-                    ? `▷ View frames (${frames.length})`
-                    : '📸 Screenshot frames'}
               </button>
             </div>
             {extractError && (
@@ -4011,95 +11938,6 @@ function CandidateCard({
             )}
           </div>
         )}
-        {canRecord && (
-          <div className="candidate-extract">
-            <div className="candidate-extract-actions">
-              <button
-                type="button"
-                className={`btn btn-mini ${recordResult ? 'btn-view' : 'btn-extract'}`}
-                onClick={recordResult ? openPreview : runRecord}
-                disabled={recording || screenshotting}
-                title={
-                  recordResult
-                    ? 'Open the recorded mp4 in the preview popup'
-                    : 'Open the page in stealth Chromium, scroll through the sections most relevant to this shot, and record the result as a clean mp4.'
-                }
-              >
-                {recording
-                  ? 'Recording…'
-                  : recordResult
-                    ? '▷ View recording'
-                    : '⏺ Record'}
-              </button>
-              <button
-                type="button"
-                className={`btn btn-mini ${screenshotResult && (screenshotResult.screenshots?.length ?? 0) > 0 ? 'btn-view' : 'btn-extract'}`}
-                onClick={
-                  screenshotResult && (screenshotResult.screenshots?.length ?? 0) > 0
-                    ? openPreview
-                    : runScreenshot
-                }
-                disabled={recording || screenshotting}
-                title={
-                  screenshotResult
-                    ? `Open the ${screenshotResult.screenshots.length} screenshot${screenshotResult.screenshots.length === 1 ? '' : 's'} in the preview popup`
-                    : 'For static / one-screen pages — capture the whole page as a single full-page PNG instead of scrolling video.'
-                }
-              >
-                {screenshotting
-                  ? 'Screenshotting…'
-                  : screenshotResult && (screenshotResult.screenshots?.length ?? 0) > 0
-                    ? `▷ View screenshots (${screenshotResult.screenshots.length})`
-                    : '📸 Screenshot'}
-              </button>
-            </div>
-            {recordError && (
-              <div className="candidate-extract-error">⚠ {recordError}</div>
-            )}
-            {screenshotError && (
-              <div className="candidate-extract-error">⚠ {screenshotError}</div>
-            )}
-            {devtools && recordLog.length > 0 && (
-              <div className="extract-log">
-                <button
-                  type="button"
-                  className="extract-log-toggle"
-                  onClick={() => setRecordLogOpen((v) => !v)}
-                >
-                  {recordLogOpen ? '▾' : '▸'} thought process ({recordLog.length}{' '}
-                  step{recordLog.length === 1 ? '' : 's'})
-                </button>
-                {recordLogOpen && (
-                  <ol className="extract-log-list">
-                    {recordLog.map((ev, i) => (
-                      <RecordLogEntry key={i} event={ev} />
-                    ))}
-                  </ol>
-                )}
-              </div>
-            )}
-            {devtools && screenshotLog.length > 0 && (
-              <div className="extract-log">
-                <button
-                  type="button"
-                  className="extract-log-toggle"
-                  onClick={() => setScreenshotLogOpen((v) => !v)}
-                >
-                  {screenshotLogOpen ? '▾' : '▸'} screenshot thought process (
-                  {screenshotLog.length} step
-                  {screenshotLog.length === 1 ? '' : 's'})
-                </button>
-                {screenshotLogOpen && (
-                  <ol className="extract-log-list">
-                    {screenshotLog.map((ev, i) => (
-                      <ScreenshotLogEntry key={i} event={ev} />
-                    ))}
-                  </ol>
-                )}
-              </div>
-            )}
-          </div>
-        )}
       </div>
       {previewOpen && (
         <MediaPreviewModal
@@ -4119,14 +11957,164 @@ function CandidateCard({
               ? { busy: extracting || framing, run: runVideoScreenshots, label: '↻ Re-screenshot frames' }
               : null,
             recording: canRecord
-              ? { busy: recording || screenshotting, run: runRecord, label: '↻ Re-record' }
+              ? { busy: recording, run: runRecord, label: '↻ Re-record page' }
               : null,
             screenshots: canRecord
-              ? { busy: recording || screenshotting, run: runScreenshot, label: '↻ Re-screenshot' }
+              ? { busy: screenshotting, run: runScreenshot, label: '↻ Re-screenshot page' }
               : null,
           }}
         />
       )}
+      {detailsOpen && (
+        <CandidateDetailsModal
+          candidate={candidate}
+          mediaUrl={primaryMediaUrl}
+          mediaKind={primaryKind}
+          onClose={() => setDetailsOpen(false)}
+        />
+      )}
+      {mediaRegenOpen && onRegenerateMedia && (
+        <div className="regen-modal-backdrop" onClick={() => setMediaRegenOpen(false)}>
+          <form
+            className="regen-modal regen-media-modal"
+            onClick={(e) => e.stopPropagation()}
+            onSubmit={(e) => {
+              e.preventDefault();
+              setRegeneratingMedia(true);
+              setMediaRegenOpen(false);
+              void onRegenerateMedia(mediaRegenText.trim() || undefined).finally(
+                () => setRegeneratingMedia(false),
+              );
+              setMediaRegenText('');
+            }}
+          >
+            <div className="regen-modal-head">
+              <span className="regen-modal-title">Regenerate media</span>
+              <button
+                type="button"
+                className="preview-modal-close"
+                onClick={() => setMediaRegenOpen(false)}
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="regen-media-preview">
+              {primaryKind === 'image' ? (
+                <img src={primaryMediaUrl} alt={candidate.title ?? ''} />
+              ) : (
+                <video src={primaryMediaUrl} controls preload="metadata" />
+              )}
+            </div>
+            <label className="regen-label" htmlFor={`regen-media-${mediaKey(primaryMediaUrl)}`}>
+              What do you want to see instead?
+            </label>
+            <textarea
+              id={`regen-media-${mediaKey(primaryMediaUrl)}`}
+              className="regen-textarea"
+              rows={4}
+              value={mediaRegenText}
+              onChange={(e) => setMediaRegenText(e.currentTarget.value)}
+              placeholder='e.g. "use an actual product demo screen, not the homepage"'
+              autoFocus
+            />
+            <div className="regen-actions">
+              <button type="button" className="btn btn-ghost" onClick={() => setMediaRegenOpen(false)}>
+                Cancel
+              </button>
+              <button type="submit" className="btn btn-ai" disabled={regeneratingMedia}>
+                {regeneratingMedia ? 'Regenerating…' : '↻ Regenerate'}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CandidateDetailsModal({
+  candidate,
+  mediaUrl,
+  mediaKind,
+  onClose,
+}: {
+  candidate: MediaCandidate;
+  mediaUrl: string;
+  mediaKind: SelectedMedia['kind'];
+  onClose: () => void;
+}): React.JSX.Element {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent): void => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  return (
+    <div className="preview-modal-backdrop" onClick={onClose}>
+      <div
+        className="candidate-detail-modal"
+        role="dialog"
+        aria-modal="true"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="preview-modal-head">
+          <div className="preview-modal-head-text">
+            <span className="preview-modal-eyebrow">
+              {candidate.source.replace(/_/g, ' ')}
+            </span>
+            <span className="preview-modal-title">
+              {candidate.title || mediaUrl}
+            </span>
+          </div>
+          <button
+            type="button"
+            className="preview-modal-close"
+            onClick={onClose}
+            aria-label="Close preview"
+          >
+            ✕
+          </button>
+        </div>
+        <div className="candidate-detail-media">
+          {mediaKind === 'image' ? (
+            <img src={mediaUrl} alt={candidate.title ?? ''} />
+          ) : (
+            <video src={mediaUrl} controls autoPlay preload="metadata" />
+          )}
+        </div>
+        <div className="candidate-detail-body">
+          {candidate.notes && (
+            <p className="candidate-detail-notes">{candidate.notes}</p>
+          )}
+          <div className="candidate-detail-grid">
+            <span>media</span>
+            <a href={mediaUrl} target="_blank" rel="noreferrer">
+              {mediaUrl}
+            </a>
+            {candidate.source_page && (
+              <>
+                <span>source</span>
+                <a href={candidate.source_page} target="_blank" rel="noreferrer">
+                  {candidate.source_page}
+                </a>
+              </>
+            )}
+            {candidate.recommended_segment_ms && (
+              <>
+                <span>segment</span>
+                <span>
+                  {(candidate.recommended_segment_ms.start_ms / 1000).toFixed(1)}s
+                  {' - '}
+                  {(candidate.recommended_segment_ms.end_ms / 1000).toFixed(1)}s
+                </span>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -4816,13 +12804,11 @@ function ScreenshotLogEntry({
 // mounts rather than caching the failure forever.
 const thumbCache = new Map<string, string>();
 
-function ReelThumb({
-  url,
-  size = 'sm',
-}: {
-  url: string;
-  size?: 'sm' | 'md';
-}): React.JSX.Element {
+/** Resolve a reel/page poster frame to a renderable (data:) URL via the
+ *  main process, cached across mounts. `undefined` = still loading,
+ *  `null` = no poster available. Shared by <ReelThumb> and the blurred
+ *  backdrop so both draw the same resolved image. */
+function useReelThumb(url: string): string | null | undefined {
   const [thumb, setThumb] = useState<string | null | undefined>(
     () => thumbCache.get(url) ?? undefined,
   );
@@ -4845,6 +12831,18 @@ function ReelThumb({
     };
   }, [url]);
 
+  return thumb;
+}
+
+function ReelThumb({
+  url,
+  size = 'sm',
+}: {
+  url: string;
+  size?: 'sm' | 'md';
+}): React.JSX.Element {
+  const thumb = useReelThumb(url);
+
   return (
     <div className={`reel-thumb reel-thumb-${size}`}>
       {thumb === undefined && <div className="reel-thumb-loading">…</div>}
@@ -4852,6 +12850,15 @@ function ReelThumb({
       {thumb && <img src={thumb} alt="reel preview" loading="lazy" />}
     </div>
   );
+}
+
+/** Blurred, darkened copy of a reel/page poster used as a full-bleed
+ *  backdrop behind letterboxed foreground media. Resolves the same
+ *  poster <ReelThumb> uses; renders nothing until it's available. */
+function ReelThumbBlurMedia({ url }: { url: string }): React.JSX.Element | null {
+  const thumb = useReelThumb(url);
+  if (!thumb) return null;
+  return <img className="reel-block-blur-media" src={thumb} alt="" />;
 }
 
 // ============================================================
@@ -4900,6 +12907,37 @@ const PLATFORM_BADGE: Record<ResolvedReel['platform'], string> = {
   unknown: '—',
 };
 
+/** Friendly labels for the coarse SFX acoustic buckets. */
+const SFX_TYPE_LABELS: Record<string, string> = {
+  impulse_tonal: 'ding / bell',
+  impulse_noisy: 'clap / impact',
+  sweep: 'whoosh / sweep',
+  vocal: 'vocal stinger',
+  sustained: 'drone / sustained',
+  other: 'other',
+};
+
+/** Marker colors per SFX acoustic bucket, for the timeline overlay. */
+const SFX_TYPE_COLORS: Record<string, string> = {
+  impulse_tonal: '#ffd24a',
+  impulse_noisy: '#ff7a59',
+  sweep: '#5ac8fa',
+  vocal: '#c98bff',
+  sustained: '#9aa0a6',
+  other: '#ffffff',
+};
+
+/** Stable, distinct color for a named sound (so a "ding" lane and a "wow" lane
+ *  read as different colors even within the same acoustic bucket). Falls back
+ *  to the bucket color when no specific sound is set. */
+function colorForSfx(ev: { type: string; sound?: string }): string {
+  if (!ev.sound) return SFX_TYPE_COLORS[ev.type] ?? '#ffffff';
+  let h = 0;
+  const s = ev.sound.toLowerCase();
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return `hsl(${h % 360} 75% 62%)`;
+}
+
 /** Display order for clip types in the "What's on screen" breakdown,
  *  largest-share-first regardless, but this fixes the iteration set
  *  (the renderer can't import the runtime CLIP_TYPES from main). */
@@ -4920,6 +12958,16 @@ const CLIP_META: Record<ClipType, { label: string; color: string }> = {
     label: 'Talking head (unsure)',
     color: 'var(--az-gray)',
   },
+};
+
+/** Display label + bar color for each measured camera-motion kind. */
+const MOTION_META: Record<CameraMotionKind, { label: string; color: string }> = {
+  none: { label: 'Static', color: 'var(--az-gray)' },
+  zoom_in: { label: 'Zoom in', color: 'var(--accent)' },
+  zoom_out: { label: 'Zoom out', color: 'var(--az-blue)' },
+  pan_left: { label: 'Pan left', color: 'var(--az-purple)' },
+  pan_right: { label: 'Pan right', color: 'var(--az-purple)' },
+  ken_burns: { label: 'Ken Burns', color: 'var(--az-blue)' },
 };
 
 /** The face-bearing clip types the "Talking-head moments" section
@@ -5282,6 +13330,269 @@ function BarRow({
   );
 }
 
+/** Map a detected color word ("yellow", "black") or hex string to a hex
+ *  value usable by <input type="color">. Returns null when unknown so
+ *  callers can fall back to a default. */
+const NAMED_COLORS: Record<string, string> = {
+  white: '#ffffff',
+  black: '#000000',
+  yellow: '#ffe000',
+  green: '#22dd55',
+  red: '#ff3b30',
+  blue: '#2d7dff',
+  cyan: '#22d3ee',
+  pink: '#ff5fa2',
+  purple: '#a855f7',
+  orange: '#ff8a00',
+  gray: '#808080',
+  grey: '#808080',
+};
+function namedColorToHex(color: string | null | undefined): string | null {
+  if (!color) return null;
+  const c = color.trim().toLowerCase();
+  if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/.test(c)) return c;
+  return NAMED_COLORS[c] ?? null;
+}
+
+/** Inject an @font-face for a matched caption font (served as a data URL
+ *  by the main process) so the Subtitle-style preview renders in the
+ *  ACTUAL detected font. Idempotent per family. */
+const injectedFontFaces = new Set<string>();
+function injectFontFace(family: string, dataUrl: string): void {
+  if (injectedFontFaces.has(family)) return;
+  injectedFontFaces.add(family);
+  const style = document.createElement('style');
+  style.textContent = `@font-face{font-family:'${family}';src:url(${dataUrl}) format('truetype');font-display:swap;}`;
+  document.head.appendChild(style);
+}
+
+/** Resolve a matched caption font id to a usable CSS family, loading +
+ *  injecting it on demand. Returns null until ready (caller falls back).
+ *  The data-URL fetch is cached per id so many mockups sharing one font
+ *  don't each hit IPC. */
+const fontDataUrlCache = new Map<string, Promise<string | null>>();
+function useMatchedFont(fontId: string | null | undefined): string | null {
+  const [family, setFamily] = useState<string | null>(null);
+  useEffect(() => {
+    setFamily(null);
+    if (!fontId) return;
+    let cancelled = false;
+    let p = fontDataUrlCache.get(fontId);
+    if (!p) {
+      p = window.api.getFontDataUrl(fontId);
+      fontDataUrlCache.set(fontId, p);
+    }
+    void p.then((dataUrl) => {
+      if (cancelled || !dataUrl) return;
+      const fam = `cap-${fontId}`;
+      injectFontFace(fam, dataUrl);
+      setFamily(fam);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [fontId]);
+  return family;
+}
+
+function subtitlePositionCss(position: SubtitleSpec['position']): {
+  top?: string;
+  bottom?: string;
+  left?: string;
+  transform?: string;
+} {
+  const pos = position === 'varies' ? 'bottom' : position;
+  if (pos === 'top') {
+    return { top: '12%', left: '50%', transform: 'translateX(-50%)' };
+  }
+  if (pos === 'center') {
+    return {
+      top: '50%',
+      left: '50%',
+      transform: 'translate(-50%, -50%)',
+    };
+  }
+  if (pos === 'lower_third') {
+    return { bottom: '24%', left: '50%', transform: 'translateX(-50%)' };
+  }
+  return { bottom: '10%', left: '50%', transform: 'translateX(-50%)' };
+}
+
+/** Inline CSS that reproduces a SubtitleSpec's look on a text overlay —
+ *  used in the storyboard/preview so the burned-in caption matches the
+ *  detected style (font, treatment, color, casing) instead of a generic
+ *  default. `fontFamily` is the resolved CSS family from useMatchedFont. */
+/** Clamped subtitle fine-size multiplier (1 = preset default). Slider
+ *  range is 0.5x–3x; typed values are clamped to the same window. */
+function subtitleFontScale(spec: SubtitleSpec): number {
+  const s = spec.font_scale ?? 1;
+  if (!Number.isFinite(s) || s <= 0) return 1;
+  return Math.max(0.5, Math.min(3, s));
+}
+
+/** Outline thickness (px) for the 'bordered' treatment, scaled with the
+ *  font so it stays proportional. Base clamps to 0–8px. */
+function subtitleBorderWidth(spec: SubtitleSpec): number {
+  const w = spec.border_width ?? 2;
+  const base = Number.isFinite(w) ? Math.max(0, Math.min(8, w)) : 2;
+  return base * subtitleFontScale(spec);
+}
+
+function subtitleSpecCss(
+  spec: SubtitleSpec,
+  fontFamily: string | null,
+): React.CSSProperties {
+  const treat = namedColorToHex(spec.treatment_color) ?? '#000000';
+  const baseSize =
+    spec.font_size === 'small' ? 11 : spec.font_size === 'medium' ? 14 : 18;
+  const fontSize = baseSize * subtitleFontScale(spec);
+  return {
+    fontFamily: fontFamily ?? undefined,
+    fontWeight: 800,
+    textTransform:
+      spec.casing === 'uppercase'
+        ? 'uppercase'
+        : spec.casing === 'title_case'
+          ? 'capitalize'
+          : 'none',
+    color: namedColorToHex(spec.text_color) ?? '#ffffff',
+    fontSize,
+    padding: spec.text_treatment === 'backgrounded' ? '3px 9px' : 0,
+    borderRadius: spec.text_treatment === 'backgrounded' ? 4 : 0,
+    ...(spec.text_treatment === 'bordered'
+      ? {
+          background: 'transparent',
+          WebkitTextStroke: `${subtitleBorderWidth(spec)}px ${treat}`,
+          // paintOrder keeps the stroke behind the fill so thin glyphs
+          // stay legible.
+          paintOrder: 'stroke fill',
+        }
+      : spec.text_treatment === 'backgrounded'
+        ? { background: treat }
+        : {
+            background: 'transparent',
+            textShadow: '0 1px 3px rgba(0,0,0,0.7)',
+          }),
+  };
+}
+
+/** The reel as an EDITING BRIEF — the spec you'd hand a pro social editor
+ *  to recreate this video's style. Generated on demand by the main process
+ *  (LLM grounded on the per-shot script/footage/overlay breakdown, with a
+ *  deterministic fallback). Explains what footage runs on the main track,
+ *  what overlays sit on top and how they're organized, and how the visuals
+ *  map to the script. Cached per reel so toggling views doesn't refetch. */
+const briefCache = new Map<string, EditingBrief>();
+
+function ReelBrief({
+  reel,
+  a,
+}: {
+  reel: ResolvedReel;
+  a: ReelAnalysisResult;
+}): React.JSX.Element {
+  // Cache key: the reel URL plus shot count is enough to distinguish a
+  // re-analysis of the same reel within a session.
+  const cacheKey = `${reel.playable_url}::${a.shots.length}`;
+  const [brief, setBrief] = useState<EditingBrief | null>(
+    () => briefCache.get(cacheKey) ?? null,
+  );
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (briefCache.has(cacheKey)) {
+      setBrief(briefCache.get(cacheKey)!);
+      return;
+    }
+    let cancelled = false;
+    setBrief(null);
+    setError(null);
+    void window.api
+      .generateBrief({ analysis: a, durationMs: reel.duration_ms })
+      .then((b) => {
+        if (cancelled) return;
+        briefCache.set(cacheKey, b);
+        setBrief(b);
+      })
+      .catch((e) => {
+        if (!cancelled)
+          setError(e instanceof Error ? e.message : 'Failed to write brief.');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [cacheKey, a, reel.duration_ms]);
+
+  if (error) {
+    return (
+      <div className="az-brief">
+        <div className="error">{error}</div>
+      </div>
+    );
+  }
+  if (!brief) {
+    return (
+      <div className="az-brief az-brief-loading">
+        <span className="az-spinner" />
+        Writing the editing brief…
+      </div>
+    );
+  }
+
+  return (
+    <div className="az-brief">
+      {brief.summary && <p className="az-brief-intro">{brief.summary}</p>}
+
+      {brief.sections.map((sec) => (
+        <section className="az-section" key={sec.title}>
+          <h3 className="az-section-title">
+            {sec.title}
+            {sec.tag && <span className="az-section-count">{sec.tag}</span>}
+          </h3>
+          <ul className="az-brief-directives">
+            {sec.directives.map((line, i) => (
+              <li key={i}>{line}</li>
+            ))}
+          </ul>
+        </section>
+      ))}
+
+      {brief.script_map.length > 0 && (
+        <section className="az-section">
+          <h3 className="az-section-title">
+            Script → screen
+            <span className="az-section-count">what shows when it&apos;s said</span>
+          </h3>
+          <div className="az-brief-map">
+            {brief.script_map.map((beat, i) => (
+              <div className="az-brief-beat" key={i}>
+                <div className="az-brief-says">“{beat.says}”</div>
+                <div className="az-brief-shows">
+                  <span className="az-brief-shows-tag">Footage</span>
+                  {beat.footage}
+                </div>
+                {beat.overlay && (
+                  <div className="az-brief-shows az-brief-shows-ov">
+                    <span className="az-brief-shows-tag">Overlay</span>
+                    {beat.overlay}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {!brief.ai_generated && (
+        <p className="az-brief-note">
+          Generated from metrics — set OPENAI_API_KEY for a fuller,
+          script-aware brief.
+        </p>
+      )}
+    </div>
+  );
+}
+
 function AnalyzeDashboard({
   reel,
   analysis: a,
@@ -5293,6 +13604,67 @@ function AnalyzeDashboard({
   // Which shot the user is inspecting — drives the bbox overlay on the
   // preview and the highlight on the scene strip + moments list.
   const [activeShotIdx, setActiveShotIdx] = useState<number | null>(null);
+  // Current preview playback position (ms), driven by the video's
+  // timeupdate — used to pop the SFX badge as playback crosses each onset.
+  const [playMs, setPlayMs] = useState(0);
+
+  // Right-column view: the metric "Insights" panels, or a readable
+  // narrative "Brief" of the reel and what it looks like.
+  const [azView, setAzView] = useState<'insights' | 'brief'>('insights');
+
+  // User override of the subtitle treatment, seeded from what was
+  // detected. Lets the user shuffle bordered / backgrounded / clear and
+  // recolor it; the detected values are the starting point.
+  const [subTreatment, setSubTreatment] = useState<CaptionTreatment>(
+    a.caption_style?.text_treatment ?? 'clear',
+  );
+  const [subTreatmentColor, setSubTreatmentColor] = useState<string>(
+    namedColorToHex(a.caption_style?.treatment_color) ?? '#000000',
+  );
+
+  // What kinds of SFX were detected across the reel (coarse acoustic
+  // buckets), and any named AudioSet labels the model assigned. Tallied
+  // from each shot's sfx_classifications.
+  const sfxDetected = React.useMemo(() => {
+    const types = new Map<string, number>();
+    const labels = new Map<string, number>();
+    const events: { ms: number; type: string; label?: string }[] = [];
+    for (const s of a.shots) {
+      for (const e of s.sfx_classifications ?? []) {
+        types.set(e.type, (types.get(e.type) ?? 0) + 1);
+        if (e.label) labels.set(e.label, (labels.get(e.label) ?? 0) + 1);
+        events.push({ ms: e.ms, type: e.type, label: e.label ?? undefined });
+      }
+    }
+    events.sort((x, y) => x.ms - y.ms);
+    return {
+      types: [...types.entries()].sort((x, y) => y[1] - x[1]),
+      labels: [...labels.entries()].sort((x, y) => y[1] - x[1]),
+      events,
+    };
+  }, [a.shots]);
+
+  // Load the matched caption font so the preview renders in it. Returns
+  // the CSS family once the font is fetched + injected, else null (preview
+  // falls back to a generic bold sans).
+  const matchedFontId = a.caption_style?.font_family ?? '';
+  const [previewFontFamily, setPreviewFontFamily] = useState<string | null>(
+    null,
+  );
+  useEffect(() => {
+    setPreviewFontFamily(null);
+    if (!matchedFontId) return;
+    let cancelled = false;
+    void window.api.getFontDataUrl(matchedFontId).then((dataUrl) => {
+      if (cancelled || !dataUrl) return;
+      const family = `cap-${matchedFontId}`;
+      injectFontFace(family, dataUrl);
+      setPreviewFontFamily(family);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [matchedFontId]);
 
   /** Seek the preview video to a shot's start and play it (muted), so
    *  clicking a moment jumps the footage to exactly when it happens. */
@@ -5308,6 +13680,18 @@ function AnalyzeDashboard({
       });
     } catch {
       /* seeking before metadata loads — ignore */
+    }
+  };
+
+  /** Seek the preview to an exact ms (used by the SFX timeline markers). */
+  const seekToMs = (ms: number): void => {
+    const v = videoRef.current;
+    if (!v) return;
+    try {
+      v.currentTime = ms / 1000;
+      void v.play().catch(() => {});
+    } catch {
+      /* ignore */
     }
   };
 
@@ -5333,12 +13717,36 @@ function AnalyzeDashboard({
     .filter((r) => r.value > 0.005)
     .sort((x, y) => y.value - x.value);
 
+  // Camera-motion rows (optical flow). Skip 'none' in the bars — the
+  // headline already states the moving vs static share. Empty when the
+  // motion pass didn't run.
+  const motionDist = a.camera_motion_distribution;
+  const motionRows = motionDist
+    ? (Object.keys(MOTION_META) as CameraMotionKind[])
+        .filter((k) => k !== 'none')
+        .map((k) => ({ kind: k, value: motionDist[k] ?? 0 }))
+        .filter((r) => r.value > 0.005)
+        .sort((x, y) => y.value - x.value)
+    : [];
+  const movingPct = motionDist ? Math.round((1 - motionDist.none) * 100) : null;
+
   // Every face-bearing shot, in playback order, with its original index
   // (needed to seek). Each row shows when (time range) + where (face
   // region) and is clickable to jump the preview there.
   const talkingMoments = a.shots
     .map((shot, idx) => ({ shot, idx }))
     .filter(({ shot }) => TALKING_TYPES.includes(shot.clip_type));
+
+  // The SFX onset closest to the current playback position (within a small
+  // window) — drives the on-video badge + the highlighted timeline marker.
+  const SFX_BADGE_WINDOW_MS = 220;
+  let activeSfx: { ms: number; type: string; label?: string } | null = null;
+  for (const e of sfxDetected.events) {
+    const d = Math.abs(e.ms - playMs);
+    if (d <= SFX_BADGE_WINDOW_MS && (!activeSfx || d < Math.abs(activeSfx.ms - playMs))) {
+      activeSfx = e;
+    }
+  }
 
   return (
     <div className="az-grid">
@@ -5360,6 +13768,23 @@ function AnalyzeDashboard({
               />
             ))}
           </div>
+          {sfxDetected.events.length > 0 && (
+            <div className="az-sfx-markers" aria-hidden={false}>
+              {sfxDetected.events.map((e, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  className={`az-sfx-marker ${activeSfx && activeSfx.ms === e.ms ? 'active' : ''}`}
+                  style={{
+                    left: `${(e.ms / totalMs) * 100}%`,
+                    background: SFX_TYPE_COLORS[e.type] ?? '#fff',
+                  }}
+                  title={`${e.label ?? SFX_TYPE_LABELS[e.type] ?? e.type} · ${(e.ms / 1000).toFixed(2)}s`}
+                  onClick={() => seekToMs(e.ms)}
+                />
+              ))}
+            </div>
+          )}
           {reel.playable_url ? (
             <video
               ref={videoRef}
@@ -5369,11 +13794,30 @@ function AnalyzeDashboard({
               loop
               playsInline
               autoPlay
+              onTimeUpdate={(e) =>
+                setPlayMs(e.currentTarget.currentTime * 1000)
+              }
             />
           ) : (
             <div className="az-phone-novideo">
               preview unavailable
               <span>source link expired</span>
+            </div>
+          )}
+          {activeSfx && (
+            <div
+              key={activeSfx.ms}
+              className="az-sfx-pop"
+              style={{
+                borderColor: SFX_TYPE_COLORS[activeSfx.type] ?? '#fff',
+                color: SFX_TYPE_COLORS[activeSfx.type] ?? '#fff',
+              }}
+            >
+              <span
+                className="az-sfx-pop-dot"
+                style={{ background: SFX_TYPE_COLORS[activeSfx.type] ?? '#fff' }}
+              />
+              {activeSfx.label ?? SFX_TYPE_LABELS[activeSfx.type] ?? activeSfx.type}
             </div>
           )}
           {activeShot?.face_bbox && (
@@ -5429,6 +13873,31 @@ function AnalyzeDashboard({
           </div>
         )}
 
+        <div className="az-viewtoggle" role="tablist">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={azView === 'insights'}
+            className={`az-viewtoggle-btn ${azView === 'insights' ? 'on' : ''}`}
+            onClick={() => setAzView('insights')}
+          >
+            Insights
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={azView === 'brief'}
+            className={`az-viewtoggle-btn ${azView === 'brief' ? 'on' : ''}`}
+            onClick={() => setAzView('brief')}
+          >
+            Brief
+          </button>
+        </div>
+
+        {azView === 'brief' ? (
+          <ReelBrief reel={reel} a={a} />
+        ) : (
+          <>
         <section className="az-section">
           <h3 className="az-section-title">Pacing &amp; build</h3>
           <div className="az-stats">
@@ -5479,6 +13948,36 @@ function AnalyzeDashboard({
           </section>
         )}
 
+        {movingPct !== null && (
+          <section className="az-section">
+            <h3 className="az-section-title">
+              Camera motion{' '}
+              <span className="az-section-count">
+                {movingPct}% of shots move
+                {a.camera_motion_confidence != null
+                  ? ` · ${Math.round(a.camera_motion_confidence * 100)}% conf`
+                  : ''}
+              </span>
+            </h3>
+            <div className="az-panel">
+              {motionRows.length > 0 ? (
+                motionRows.map((r) => (
+                  <BarRow
+                    key={r.kind}
+                    label={MOTION_META[r.kind].label}
+                    value={r.value}
+                    color={MOTION_META[r.kind].color}
+                  />
+                ))
+              ) : (
+                <div className="az-empty-note">
+                  Mostly static holds — no significant camera movement detected.
+                </div>
+              )}
+            </div>
+          </section>
+        )}
+
         {talkingMoments.length > 0 && (
           <section className="az-section">
             <h3 className="az-section-title">
@@ -5519,6 +14018,12 @@ function AnalyzeDashboard({
                         <span className="az-moment-conf">
                           {Math.round(shot.speaker_confidence * 100)}% conf
                         </span>
+                        {shot.detected_motion &&
+                          shot.detected_motion.kind !== 'none' && (
+                            <span className="az-moment-motion">
+                              {MOTION_META[shot.detected_motion.kind].label}
+                            </span>
+                          )}
                       </span>
                       {shot.visual_caption && (
                         <span className="az-moment-caption">
@@ -5530,6 +14035,223 @@ function AnalyzeDashboard({
                   </button>
                 );
               })}
+            </div>
+          </section>
+        )}
+
+        {a.caption_style?.present && (
+          <section className="az-section">
+            <h3 className="az-section-title">Subtitle style</h3>
+            <div className="az-panel">
+              {a.caption_style.preset_label && (
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    marginBottom: 10,
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: 12,
+                      textTransform: 'uppercase',
+                      letterSpacing: 0.5,
+                      opacity: 0.6,
+                    }}
+                  >
+                    Matches
+                  </span>
+                  <span
+                    style={{
+                      fontSize: 15,
+                      fontWeight: 700,
+                      padding: '2px 10px',
+                      borderRadius: 6,
+                      background: 'rgba(120,140,255,0.18)',
+                    }}
+                  >
+                    {a.caption_style.preset_label}
+                  </span>
+                  <span style={{ fontSize: 12, opacity: 0.55 }}>
+                    {Math.round(a.caption_style.preset_confidence * 100)}% fit
+                  </span>
+                </div>
+              )}
+              {a.caption_style.style_label && (
+                <div
+                  style={{ fontSize: 13, opacity: 0.75, marginBottom: 10 }}
+                >
+                  {a.caption_style.style_label}
+                </div>
+              )}
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'auto 1fr',
+                  rowGap: 6,
+                  columnGap: 14,
+                  fontSize: 13,
+                }}
+              >
+                {(
+                  [
+                    ['Position', a.caption_style.position],
+                    ['Chunking', a.caption_style.chunking],
+                    [
+                      'Words/group',
+                      a.caption_style.words_per_chunk > 0
+                        ? String(a.caption_style.words_per_chunk)
+                        : '',
+                    ],
+                    ['Size', a.caption_style.font_size],
+                    ['Emphasis', a.caption_style.emphasis],
+                    ['Casing', a.caption_style.casing],
+                    ['Animation', a.caption_style.animation],
+                    [
+                      'Font',
+                      a.caption_style.font_family_name
+                        ? `${a.caption_style.font_family_name} — ${a.caption_style.font_descriptor}`
+                        : a.caption_style.font_descriptor,
+                    ],
+                    ['Text color', a.caption_style.text_color],
+                    ['Treatment', a.caption_style.text_treatment],
+                    [
+                      'Border/BG color',
+                      a.caption_style.treatment_color ?? '',
+                    ],
+                    ['Highlight', a.caption_style.highlight_color ?? ''],
+                    ['Emoji', a.caption_style.has_emoji ? 'yes' : 'no'],
+                  ] as [string, string][]
+                )
+                  .filter(([, v]) => v.length > 0)
+                  .map(([label, v]) => (
+                    <React.Fragment key={label}>
+                      <span style={{ opacity: 0.6 }}>{label}</span>
+                      <span>{v.replace(/_/g, ' ')}</span>
+                    </React.Fragment>
+                  ))}
+              </div>
+
+              {/* Shuffle the legibility treatment + its color. Seeded
+                  from the detected style; the user can override. */}
+              <div
+                style={{
+                  marginTop: 14,
+                  paddingTop: 12,
+                  borderTop: '1px solid rgba(255,255,255,0.08)',
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 12,
+                    opacity: 0.6,
+                    marginBottom: 8,
+                    textTransform: 'uppercase',
+                    letterSpacing: 0.5,
+                  }}
+                >
+                  Treatment
+                </div>
+                <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+                  {(
+                    ['bordered', 'backgrounded', 'clear'] as CaptionTreatment[]
+                  ).map((t) => (
+                    <button
+                      key={t}
+                      onClick={() => setSubTreatment(t)}
+                      style={{
+                        flex: 1,
+                        padding: '6px 8px',
+                        fontSize: 12,
+                        borderRadius: 6,
+                        cursor: 'pointer',
+                        textTransform: 'capitalize',
+                        border:
+                          subTreatment === t
+                            ? '1px solid rgba(120,140,255,0.9)'
+                            : '1px solid rgba(255,255,255,0.12)',
+                        background:
+                          subTreatment === t
+                            ? 'rgba(120,140,255,0.18)'
+                            : 'transparent',
+                        color: 'inherit',
+                      }}
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
+                {subTreatment !== 'clear' && (
+                  <label
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      fontSize: 13,
+                      marginBottom: 10,
+                    }}
+                  >
+                    <span style={{ opacity: 0.6 }}>
+                      {subTreatment === 'bordered' ? 'Border' : 'Background'}{' '}
+                      color
+                    </span>
+                    <input
+                      type="color"
+                      value={subTreatmentColor}
+                      onChange={(e) => setSubTreatmentColor(e.target.value)}
+                      style={{
+                        width: 32,
+                        height: 24,
+                        padding: 0,
+                        border: 'none',
+                        background: 'transparent',
+                        cursor: 'pointer',
+                      }}
+                    />
+                    <span style={{ opacity: 0.55 }}>{subTreatmentColor}</span>
+                  </label>
+                )}
+                {/* Live preview of the chosen treatment. */}
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'center',
+                    padding: '14px 8px',
+                    borderRadius: 8,
+                    background:
+                      'repeating-conic-gradient(#2a2a2a 0% 25%, #1f1f1f 0% 50%) 50% / 18px 18px',
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: 34,
+                      fontWeight: 800,
+                      letterSpacing: 0.5,
+                      textTransform: 'uppercase',
+                      fontFamily: previewFontFamily ?? undefined,
+                      color:
+                        namedColorToHex(a.caption_style.text_color) ??
+                        '#ffe000',
+                      ...(subTreatment === 'bordered'
+                        ? {
+                            WebkitTextStroke: `2px ${subTreatmentColor}`,
+                          }
+                        : subTreatment === 'backgrounded'
+                          ? {
+                              background: subTreatmentColor,
+                              padding: '2px 10px',
+                              borderRadius: 4,
+                            }
+                          : {
+                              textShadow: '0 2px 6px rgba(0,0,0,0.6)',
+                            }),
+                    }}
+                  >
+                    People
+                  </span>
+                </div>
+              </div>
             </div>
           </section>
         )}
@@ -5554,6 +14276,86 @@ function AnalyzeDashboard({
             />
           </div>
         </section>
+
+        {sfxDetected.types.length > 0 && (
+          <section className="az-section">
+            <h3 className="az-section-title">SFX</h3>
+            <div className="az-panel">
+              <div className="az-sfx-types">
+                <span className="az-sfx-types-label">types detected</span>
+                <div className="az-sfx-chips">
+                  {sfxDetected.types.map(([type, n]) => (
+                    <span key={type} className="az-sfx-chip">
+                      <span
+                        className="az-sfx-chip-dot"
+                        style={{ background: SFX_TYPE_COLORS[type] ?? '#fff' }}
+                      />
+                      {SFX_TYPE_LABELS[type] ?? type}
+                      <span className="az-sfx-chip-n">{n}</span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+              {sfxDetected.labels.length > 0 && (
+                <div className="az-sfx-types">
+                  <span className="az-sfx-types-label">sounds</span>
+                  <div className="az-sfx-chips">
+                    {sfxDetected.labels.slice(0, 8).map(([label, n]) => (
+                      <span key={label} className="az-sfx-chip">
+                        {label}
+                        <span className="az-sfx-chip-n">{n}</span>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {a.sfx_context && a.sfx_context.signals.sfx_count > 0 && (
+                <>
+                  <p className="az-sfx-summary">
+                    {a.sfx_context.pattern_summary}
+                  </p>
+                  <div className="az-stats">
+                    <StatCard
+                      value={a.sfx_context.signals.sfx_per_word.toFixed(2)}
+                      label="SFX / word"
+                    />
+                    <StatCard
+                      value={`${Math.round(a.sfx_context.signals.on_word_pct * 100)}%`}
+                      label="land on a word"
+                      bar={a.sfx_context.signals.on_word_pct}
+                      barColor="var(--az-gold)"
+                    />
+                    <StatCard
+                      value={
+                        a.sfx_context.signals.hook_escalation >= 0.2
+                          ? 'yes'
+                          : 'no'
+                      }
+                      label="hook escalation"
+                    />
+                  </div>
+                  {a.sfx_context.rules.length > 0 && (
+                    <ul className="az-sfx-rules">
+                      {a.sfx_context.rules.map((r, i) => (
+                        <li key={i}>
+                          <span className="az-sfx-rule-type">
+                            {SFX_TYPE_LABELS[r.sfx_type] ?? r.sfx_type}
+                          </span>
+                          {' — '}
+                          {r.trigger}
+                          {r.example ? ` (e.g. “${r.example}”)` : ''}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </>
+              )}
+            </div>
+          </section>
+        )}
+          </>
+        )}
       </div>
     </div>
   );
