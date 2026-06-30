@@ -28,10 +28,11 @@ const RANK_MODEL = 'gpt-4o-mini';
 const MAX_REGIONS = 5;
 const MIN_IMAGE_WIDTH = 200;
 const MIN_IMAGE_HEIGHT = 150;
-// Cap an element-screenshot at this height so a huge "section"
-// container doesn't produce a near-full-page PNG. Anything taller
-// gets clipped from the top.
-const MAX_REGION_HEIGHT = 1200;
+const ALLOWED_SCREENSHOT_FRAMES = [
+  { width: 1280, height: 720, aspect: 16 / 9 },
+  { width: 960, height: 960, aspect: 1 },
+  { width: 540, height: 960, aspect: 9 / 16 },
+] as const;
 
 export type ScreenshotStage =
   | 'load'
@@ -120,6 +121,39 @@ function screenshotKey(input: ScreenshotPageInput): string {
     .update(input.broll_description)
     .digest('hex')
     .slice(0, 16);
+}
+
+function nearestAllowedFrame(aspect: number): (typeof ALLOWED_SCREENSHOT_FRAMES)[number] {
+  return ALLOWED_SCREENSHOT_FRAMES.reduce((best, frame) => {
+    const bestScore = Math.abs(Math.log(aspect / best.aspect));
+    const score = Math.abs(Math.log(aspect / frame.aspect));
+    return score < bestScore ? frame : best;
+  });
+}
+
+function allowedScreenshotClip(box: {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}): { x: number; y: number; width: number; height: number } {
+  const frame = nearestAllowedFrame(Math.max(0.01, box.width / Math.max(1, box.height)));
+  const width = frame.width;
+  const height = frame.height;
+  const x = Math.max(
+    0,
+    Math.min(DEFAULT_VIEWPORT.width - width, box.x + box.width / 2 - width / 2),
+  );
+  const y = Math.max(
+    0,
+    Math.min(DEFAULT_VIEWPORT.height - height, box.y + box.height / 2 - height / 2),
+  );
+  return {
+    x,
+    y,
+    width,
+    height,
+  };
 }
 
 /** Walk the rendered page for candidate regions. Each candidate gets
@@ -397,23 +431,16 @@ export async function screenshotPage(
         // capturing. ~250ms is enough for most pages without making
         // the whole pass crawl.
         await loaded.page.waitForTimeout(250);
-        // Clip the height so a giant "section" container can't yield a
-        // near-full-page PNG.
+        // Use a page clip instead of ElementHandle.screenshot so every
+        // output is one of the editor-supported screenshot ratios:
+        // 16:9, 1:1, or 9:16.
         const box = await handle.boundingBox().catch(() => null);
-        let buf: Buffer;
-        if (box && box.height > MAX_REGION_HEIGHT) {
-          buf = await loaded.page.screenshot({
-            type: 'png',
-            clip: {
-              x: Math.max(0, box.x),
-              y: Math.max(0, box.y),
-              width: Math.min(box.width, DEFAULT_VIEWPORT.width),
-              height: MAX_REGION_HEIGHT,
-            },
-          });
-        } else {
-          buf = await handle.screenshot({ type: 'png' });
-        }
+        if (!box) continue;
+        const clip = allowedScreenshotClip(box);
+        const buf = await loaded.page.screenshot({
+          type: 'png',
+          clip,
+        });
         const filename = `${key}-${pick.id}.png`;
         const outPath = resolve(CAPTURES_DIR, filename);
         writeFileSync(outPath, buf);
@@ -425,10 +452,8 @@ export async function screenshotPage(
           kind: region.kind,
           image_url: `capture://files/${filename}`,
           image_path: outPath,
-          width: box ? Math.round(box.width) : region.width,
-          height: box
-            ? Math.min(Math.round(box.height), MAX_REGION_HEIGHT)
-            : Math.min(region.height, MAX_REGION_HEIGHT),
+          width: Math.round(clip.width),
+          height: Math.round(clip.height),
         });
       } catch (err) {
         emit({

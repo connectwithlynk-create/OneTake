@@ -34,8 +34,15 @@ export type TargetInput =
   | { kind: 'local_video'; filePath: string };
 
 /** Bump when the synthesis prompt / schema / output shape changes
- *  meaningfully — invalidates cached plans. */
-export const SYNTHESIZE_VERSION = 14;
+ *  meaningfully — invalidates cached plans. v15: per-shot has_overlay
+ *  split (Step 1.7) gates media-overlay generation. v16: script-mapped
+ *  media-overlay PATTERN feeds the has_overlay split (where/when/what type).
+ *  v17: editing BRIEF directions injected into the plan prompt. v18:
+ *  explicit overlay QUOTA (floor of 1) so overlays aren't rounded to zero.
+ *  v19: footage-first — when a library is provided, library_search becomes
+ *  the PRIMARY option for matching shots (web_capture is the fallback). v20:
+ *  script-positioned clip-type/layout patterns drive reel remix planning. */
+export const SYNTHESIZE_VERSION = 20;
 
 const CACHE_DIR = resolve(process.cwd(), '.library', 'plans');
 
@@ -54,6 +61,8 @@ export interface PlanMeta {
   target_label: string;
   /** Raw target kind for tooltips / icons. */
   target_kind: TargetInput['kind'];
+  /** Absolute source file for local_video targets when available. */
+  target_file_path?: string | null;
   library_urls: string[];
   allow_copyrighted: boolean;
   user_instructions: string;
@@ -72,10 +81,13 @@ export type PlanListEntry = PlanMeta;
  *  always produce the same key, so we can detect cache hits without
  *  storing the input alongside the plan. */
 export function planCacheKey(input: unknown): string {
-  return createHash('sha1')
-    .update(JSON.stringify(input))
-    .digest('hex')
-    .slice(0, 16);
+  // The fingerprint embeds computed_at (wall-clock); hashing it would
+  // give identical inputs a fresh key on every run and the cache would
+  // never hit. Drop it from the hashed JSON.
+  const json = JSON.stringify(input, (key, value) =>
+    key === 'computed_at' ? undefined : value,
+  );
+  return createHash('sha1').update(json).digest('hex').slice(0, 16);
 }
 
 function planPath(key: string): string {
@@ -96,6 +108,16 @@ export function loadCachedPlan(key: string): SuggestedEdit | null {
       '[plan-cache] read failed:',
       err instanceof Error ? err.message : String(err),
     );
+    return null;
+  }
+}
+
+export function loadCachedPlanMeta(key: string): PlanMeta | null {
+  const path = metaPath(key);
+  if (!existsSync(path)) return null;
+  try {
+    return JSON.parse(readFileSync(path, 'utf8')) as PlanMeta;
+  } catch {
     return null;
   }
 }

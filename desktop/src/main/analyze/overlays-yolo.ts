@@ -16,6 +16,7 @@
 import { existsSync } from 'fs';
 import { join, resolve } from 'path';
 import * as ort from 'onnxruntime-web';
+import { initOrt } from './ort-init';
 import jpeg from 'jpeg-js';
 import type { ExtractedFrame, ShotFrames } from './frame-extractor';
 import type { Shot } from './scene-detect';
@@ -89,6 +90,7 @@ let sessionPromise: Promise<ort.InferenceSession> | null = null;
 function getSession(): Promise<ort.InferenceSession> {
   if (!sessionPromise) {
     sessionPromise = (async () => {
+      initOrt();
       const path = join(resolveModelDir(), MODEL_FILENAME);
       if (!existsSync(path)) {
         throw new Error(

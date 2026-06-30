@@ -1,0 +1,1842 @@
+{
+  "total_duration_ms": 13466,
+  "shots": [
+    {
+      "shot_idx": 0,
+      "start_ms": 0,
+      "end_ms": 2380,
+      "duration_ms": 2380,
+      "spoken_during": "What's this start up that lets",
+      "structure_role": "hook",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.95,
+          "likelihood": 0.95,
+          "broll_description": "Zoom-in on a Folk logo against a contrasting background, emphasizing the text 'What's this startup'.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.nozomio.ai",
+              "focus": "logo or branded asset display"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "zoom_in"
+          },
+          "placement": {
+            "aspect": "original",
+            "fit": "pip",
+            "position": "middle_center",
+            "scale": 0.42
+          },
+          "source_type": "logo / brand asset / product image of an entity",
+          "rationale": "Starting with a visual anchor like the startup's logo aligns well with the dynamic introduction."
+        },
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.4,
+          "broll_description": "Visual of a silhouetted figure looking curious, focusing on the startup nature.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://twitter.com/nozomioAI",
+              "focus": "featured promotional tweet describing the startup"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Using a human-centered image supports the intrigue and plays to the emotional hook."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.6,
+          "likelihood": 0.95,
+          "broll_description": "Capture of the Nozomio AI website homepage showcasing the brand message.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.nozomio.ai",
+              "focus": "homepage with key brand message or evocative imagery"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "The company's own media channels will feature brand information and imagery that are guaranteed to be available."
+        }
+      ],
+      "broll_description": "Zoom-in on a Folk logo against a contrasting background, emphasizing the text 'What's this startup'.",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://www.nozomio.ai",
+          "focus": "logo or branded asset display"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "zoom_in"
+      },
+      "placement": {
+        "aspect": "original",
+        "fit": "pip",
+        "position": "middle_center",
+        "scale": 0.42
+      },
+      "source_type": "logo / brand asset / product image of an entity",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DYlQlfYuTc7/",
+        "shot_idx": 0,
+        "pattern": "The opening uses a central focus with b-roll to captivate the viewer's attention."
+      },
+      "text_overlay": "UP / THAT LETS",
+      "text_position": "top_center",
+      "animation_cue": "type-on text",
+      "scene_animation": "zoom_in",
+      "animation_scale": 2,
+      "animation_easing": "linear",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": "impulse_tonal",
+      "clip_type": "broll_visual",
+      "rationale": "The hook uses a compelling zoom-in effect and strong graphical elements to engage the viewer.",
+      "selected_media": [
+        {
+          "url": "capture://files/9632256e55336a75.mp4",
+          "kind": "video",
+          "origin": "page_recording",
+          "from_candidate_url": "https://www.getfolk.app/",
+          "reason": "Emphasizes the Folk logo effectively as a hook.",
+          "animation_duration_ms": 1200,
+          "animation_scale": 9
+        },
+        {
+          "url": "capture://files/2b3fa86d82fd6dba.png",
+          "kind": "image",
+          "origin": "original_candidate",
+          "from_candidate_url": "capture://files/2b3fa86d82fd6dba.png",
+          "reason": "Pasted from clipboard"
+        }
+      ],
+      "animation_duration_ms": 2300,
+      "zoom_region": "middle_center",
+      "zoom_scale": 1.2,
+      "overlay_stack_mode": "replace"
+    },
+    {
+      "shot_idx": 2,
+      "start_ms": 2380,
+      "end_ms": 3920,
+      "duration_ms": 1540,
+      "spoken_during": "you stalk your ex?",
+      "structure_role": "hook",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.95,
+          "likelihood": 0.4,
+          "broll_description": "Screen capture of a Nozomio AI webpage showcasing features of Folk for nuanced surveillance applications.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.nozomio.ai/folk",
+              "focus": "Folk's unique selling points"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "original",
+            "fit": "contain",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Effectively highlights the public-facing features that align with the startup's premise."
+        },
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.4,
+          "broll_description": "Eye-catching animation derived from the Nozomio AI site interfacing the 'ex-stalking' capabilities with vibrant graphics.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.nozomio.ai/products/folk",
+              "focus": "animated visuals demonstrating unique functionalities"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Animated graphics provide an engaging visual connection to the spoken narration."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.65,
+          "likelihood": 0.95,
+          "broll_description": "General site capture from Nozomio showcasing the tech interface, appealing directly to the feature in discussion.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.nozomio.ai",
+              "focus": "overview of tech interface"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Assures the availability of a tech-forward image from a reliable source within the subject's own web resources."
+        }
+      ],
+      "broll_description": "Screen capture of a Nozomio AI webpage showcasing features of Folk for nuanced surveillance applications.",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://www.nozomio.ai/folk",
+          "focus": "Folk's unique selling points"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "static"
+      },
+      "placement": {
+        "aspect": "original",
+        "fit": "contain",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "screen recording of the subject's website",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DYlQlfYuTc7/",
+        "shot_idx": 2,
+        "pattern": "Zoom-in techniques focus on the product's appeal and its captivating features."
+      },
+      "text_overlay": "YOU STALK / YOUR EX?",
+      "text_position": "middle_center",
+      "animation_cue": "type-on text",
+      "scene_animation": "none",
+      "animation_scale": 1.05,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": "vocal hit on cut in",
+      "clip_type": "broll_visual",
+      "rationale": "Concludes the initial intrigue with a powerful product-centered visual that retains viewer interest.",
+      "selected_media": [
+        {
+          "url": "clips://files/d32a9067f12b21c4/0.mp4",
+          "kind": "video",
+          "origin": "extract_clip",
+          "from_candidate_url": "https://www.youtube.com/watch?v=WA-yWwOubCA",
+          "reason": "scene 1 (1.7s)",
+          "start_ms": 8133,
+          "end_ms": 9800,
+          "scene_animation": "zoom_in",
+          "animation_scale": 9
+        }
+      ],
+      "animation_duration_ms": 1540,
+      "zoom_region": "middle_center",
+      "zoom_scale": 1
+    },
+    {
+      "shot_idx": 3,
+      "start_ms": 3920,
+      "end_ms": 4898,
+      "duration_ms": 978,
+      "spoken_during": "This is",
+      "structure_role": "intro",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.92,
+          "likelihood": 0.4,
+          "broll_description": "Close-up video of the Nozomio AI logo morphing into the brand name 'Folk', positioned against a light background.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://twitter.com/nozomioAI",
+              "focus": "highlighted promotional tweet linked to YC entry"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "zoom_in"
+          },
+          "placement": {
+            "aspect": "original",
+            "fit": "contain",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "lots of Tony footage from stage talks — creator builds reels around the named subject themselves",
+          "rationale": "Combines brand imagery with motion to create a smooth intro connection with the spoken narrative."
+        },
+        {
+          "tier": "ideal",
+          "fit_score": 0.88,
+          "likelihood": 0.4,
+          "broll_description": "High-definition image of a Nozomio AI executive introducing 'Folk' in an official setting, emphasizing innovation.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.nozomio.ai/team",
+              "focus": "executive introductions with brand highlights"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "lots of Tony footage from stage talks — creator builds reels around the named subject themselves",
+          "rationale": "The visual inclusion of founders or executives facilitates a direct human connection with the audience."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.6,
+          "likelihood": 0.4,
+          "broll_description": "General shot of Nozomio's team page indicating brand values and innovative products.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.nozomio.ai/team",
+              "focus": "team page showing innovation highlights"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "The organization's team page reliably features available content synced with the essence of innovation."
+        }
+      ],
+      "broll_description": "Close-up video of the Nozomio AI logo morphing into the brand name 'Folk', positioned against a light background.",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://twitter.com/nozomioAI",
+          "focus": "highlighted promotional tweet linked to YC entry"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "zoom_in"
+      },
+      "placement": {
+        "aspect": "original",
+        "fit": "contain",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "lots of Tony footage from stage talks — creator builds reels around the named subject themselves",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DYlQlfYuTc7/",
+        "shot_idx": 6,
+        "pattern": "Cohesive close-up with animated text highlighting 'subject name', ideal for introductions."
+      },
+      "text_overlay": "THIS / IS",
+      "text_position": "bottom_left",
+      "animation_cue": "typewriter",
+      "scene_animation": "none",
+      "animation_scale": 1.05,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": "impulse_tonal",
+      "clip_type": "talking_head_unknown",
+      "rationale": "This segment highlights the introduction with a visual that directly ties the spoken 'this' to the company being described.",
+      "selected_media": [
+        {
+          "url": "capture://files/8d701ba0f10be45c.mp4",
+          "kind": "video",
+          "origin": "page_recording",
+          "from_candidate_url": "https://www.nozomio.com/",
+          "reason": "Introduces the brand with a clear transition from Nozomio to Folk."
+        }
+      ],
+      "animation_duration_ms": 978,
+      "zoom_region": "middle_center",
+      "zoom_scale": 1
+    },
+    {
+      "shot_idx": 4,
+      "start_ms": 4898,
+      "end_ms": 6102,
+      "duration_ms": 1204,
+      "spoken_during": "Folk by nozomio",
+      "structure_role": "intro",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.94,
+          "likelihood": 0.4,
+          "broll_description": "Highlight reel of Nozomio AI developers discussing the capabilities of 'Folk'.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.nozomio.ai/folk",
+              "focus": "developer discussions on Folk's features"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "zoom_in"
+          },
+          "placement": {
+            "aspect": "original",
+            "fit": "contain",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Showcases the talent behind the operation and aligns with a strategic introduction."
+        },
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.4,
+          "broll_description": "Employee video discussing Folk's role in disrupting traditional approaches.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.nozomio.ai/careers",
+              "focus": "employee testimonials on innovative approach"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "lots of Tony footage from stage talks — creator builds reels around the named subject themselves",
+          "rationale": "Employee perspectives offer authenticity and human elements fitting the narrative."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.58,
+          "likelihood": 0.4,
+          "broll_description": "Close-up of a press-ready image showing a developer with the product.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.nozomio.ai/gallery",
+              "focus": "product-in-development image highlighting developers"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Provides access to conventional images that should be readily obtainable for the visual context."
+        }
+      ],
+      "broll_description": "Highlight reel of Nozomio AI developers discussing the capabilities of 'Folk'.",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://www.nozomio.ai/folk",
+          "focus": "developer discussions on Folk's features"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "zoom_in"
+      },
+      "placement": {
+        "aspect": "original",
+        "fit": "contain",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "screen recording of the subject's website",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DYlQlfYuTc7/",
+        "shot_idx": 7,
+        "pattern": "Using video of developers offers a connection to innovation and the human side of technology."
+      },
+      "text_overlay": "FOLK BY / NOZOMIO",
+      "text_position": "bottom_center",
+      "animation_cue": "pop",
+      "scene_animation": "none",
+      "animation_scale": 1.05,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": "silent open",
+      "clip_type": "talking_head_unknown",
+      "rationale": "Providing a human touch combined with video narration aids in establishing brand identity promptly.",
+      "selected_media": [
+        {
+          "url": "capture://files/5bd4400b6ee750ec.mp4",
+          "kind": "video",
+          "origin": "page_recording",
+          "from_candidate_url": "https://www.ycombinator.com/companies/nozomio/jobs/rZv0CK8-short-form-content-creator",
+          "reason": "Directly connects Folk to Nozomio, reinforcing brand identity."
+        }
+      ],
+      "animation_duration_ms": 1204,
+      "zoom_region": "middle_center",
+      "zoom_scale": 1
+    },
+    {
+      "shot_idx": 5,
+      "start_ms": 6102,
+      "end_ms": 7586,
+      "duration_ms": 1484,
+      "spoken_during": "ai and they just",
+      "structure_role": "intro",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.93,
+          "likelihood": 0.4,
+          "broll_description": "Visual tour of offices at Nozomio AI, showcasing Folk in development stages.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.nozomio.ai/about-us",
+              "focus": "company office tour"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "zoom_in"
+          },
+          "placement": {
+            "aspect": "original",
+            "fit": "contain",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "lots of Tony footage from stage talks — creator builds reels around the named subject themselves",
+          "rationale": "Set in a relatable workspace image, the introduction ensures continuity with preceding shots."
+        },
+        {
+          "tier": "ideal",
+          "fit_score": 0.88,
+          "likelihood": 0.4,
+          "broll_description": "Animated content revealing brand insights about the innovation represented by Folk.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.nozomio.ai/innovation",
+              "focus": "animated brand insights related to Folk"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "logo / brand asset / product image of an entity",
+          "rationale": "Animations convey brand perceptions while focusing on Folk's innovative nature."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.59,
+          "likelihood": 0.4,
+          "broll_description": "Brand images detailing the meeting perspective of executives at Nozomio AI.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.nozomio.ai/about-us",
+              "focus": "executive meeting perspectives"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Presumed availability ensures reliability for the narrative's visual requirement."
+        }
+      ],
+      "broll_description": "Visual tour of offices at Nozomio AI, showcasing Folk in development stages.",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://www.nozomio.ai/about-us",
+          "focus": "company office tour"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "zoom_in"
+      },
+      "placement": {
+        "aspect": "original",
+        "fit": "contain",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "lots of Tony footage from stage talks — creator builds reels around the named subject themselves",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DYlQlfYuTc7/",
+        "shot_idx": 8,
+        "pattern": "Highlighted text syncing with visuals offers a cohesive soundtrack to visual storytelling."
+      },
+      "text_overlay": "AI AND THEY / JUST",
+      "text_position": "middle_center",
+      "animation_cue": "slide-up text",
+      "scene_animation": "none",
+      "animation_scale": 1.05,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": "silent open",
+      "clip_type": "talking_head_unknown",
+      "rationale": "The 'intro' role continuously promotes the brand, aligning speech with compelling visuals.",
+      "selected_media": [
+        {
+          "url": "capture://files/4601126a866d890e.mp4",
+          "kind": "video",
+          "origin": "page_recording",
+          "from_candidate_url": "https://www.uktech.news/ai/ai-startup-founded-by-18-year-old-nia-closes-localglobe-led-round-20250507",
+          "reason": "Highlights the recent funding and founder story, adding context."
+        }
+      ],
+      "animation_duration_ms": 1484,
+      "zoom_region": "middle_center",
+      "zoom_scale": 1
+    },
+    {
+      "shot_idx": 6,
+      "start_ms": 7586,
+      "end_ms": 8678,
+      "duration_ms": 1092,
+      "spoken_during": "got into YC",
+      "structure_role": "intro",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.97,
+          "likelihood": 0.4,
+          "broll_description": "A transitional piece with found footage of YC's campus, showcasing its association with Folk.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.ycombinator.com/companies/nozomio",
+              "focus": "YC batch card with company logo"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "zoom_in"
+          },
+          "placement": {
+            "aspect": "original",
+            "fit": "contain",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Establishing an external verification system enhances legitimacy within the reel."
+        },
+        {
+          "tier": "ideal",
+          "fit_score": 0.92,
+          "likelihood": 0.4,
+          "broll_description": "Zoomed visual of a celebratory page from Nozomio AI's website introducing its YC acceptance.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.nozomio.ai/news",
+              "focus": "press release on YC acceptance"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Showing a third-party accolade supports credibility, adding integrated brand messaging."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.6,
+          "likelihood": 0.4,
+          "broll_description": "Image highlight from Nozomio AI's culture section illustrating the YC acceptance story.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.nozomio.ai/culture",
+              "focus": "brand story and culture illustrations"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Backed’s consistent theme and aligned visuals which importantly mark the external achievement."
+        }
+      ],
+      "broll_description": "A transitional piece with found footage of YC's campus, showcasing its association with Folk.",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://www.ycombinator.com/companies/nozomio",
+          "focus": "YC batch card with company logo"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "zoom_in"
+      },
+      "placement": {
+        "aspect": "original",
+        "fit": "contain",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "screen recording of the subject's website",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DYlQlfYuTc7/",
+        "shot_idx": 13,
+        "pattern": "The contextual overlay was part of the emphasis on credibility and prestige."
+      },
+      "text_overlay": "GOT INTO / YC",
+      "text_position": "top_center",
+      "animation_cue": "zoom-in",
+      "scene_animation": "none",
+      "animation_scale": 1.05,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": "silent open",
+      "clip_type": "talking_head_unknown",
+      "rationale": "Strong emphasis on YC with a media overlay strengthens the association with quality and accreditation.",
+      "selected_media": [
+        {
+          "url": "capture://files/dc05735434db9029.mp4",
+          "kind": "video",
+          "origin": "page_recording",
+          "from_candidate_url": "https://www.ycombinator.com/companies/nozomio",
+          "reason": "Provides context about Folk's association with Y Combinator."
+        }
+      ],
+      "animation_duration_ms": 1092,
+      "zoom_region": "middle_center",
+      "zoom_scale": 1
+    },
+    {
+      "shot_idx": 7,
+      "start_ms": 8678,
+      "end_ms": 9826,
+      "duration_ms": 1148,
+      "spoken_during": "Folk lets you",
+      "structure_role": "body",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.91,
+          "likelihood": 0.4,
+          "broll_description": "Abstract representation of digital agents running, visualizing 'agents in the background'.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.nozomio.ai/innovation",
+              "focus": "multimedia projection on AI agents"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "original",
+            "fit": "contain",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Digital visuals relate to advanced features and offer a deeper dive into the subject matter."
+        },
+        {
+          "tier": "ideal",
+          "fit_score": 0.85,
+          "likelihood": 0.4,
+          "broll_description": "Feature-focused graphics on Folk's automation process and operation behind the scenes.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.nozomio.ai/folk",
+              "focus": "feature-specific graphics and insights"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "ken_burns"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Visual representation of core features offers informational value and mirrors spoken content."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.57,
+          "likelihood": 0.4,
+          "broll_description": "Depiction of traditional setups transitioned to newer folk solutions as seen on-brand supports.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.nozomio.ai/solutions",
+              "focus": "comparison illustrations"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Guaranteed availability means reliance is well placed on this robust fallback option."
+        }
+      ],
+      "broll_description": "Abstract representation of digital agents running, visualizing 'agents in the background'.",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://www.nozomio.ai/innovation",
+          "focus": "multimedia projection on AI agents"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "static"
+      },
+      "placement": {
+        "aspect": "original",
+        "fit": "contain",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "screen recording of the subject's website",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DYlQlfYuTc7/",
+        "shot_idx": 16,
+        "pattern": "Purposeful movement and domain-intrinsic visuals adding depth in product explanation."
+      },
+      "text_overlay": "FOLK LETS / YOU",
+      "text_position": "middle_left",
+      "animation_cue": "type-on text",
+      "scene_animation": "none",
+      "animation_scale": 1.05,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": "whoosh whoosh",
+      "clip_type": "broll_visual",
+      "rationale": "Aligns well with a precise explanation on digital intelligence benefits while remaining engaging.",
+      "selected_media": [
+        {
+          "url": "capture://files/a42dcda277cd2ad2.mp4",
+          "kind": "video",
+          "origin": "page_recording",
+          "from_candidate_url": "https://help.folk.app/en/articles/13051876-workflow-assistant",
+          "reason": "Demonstrates the functionality of Folk's background agents."
+        }
+      ],
+      "animation_duration_ms": 1148,
+      "zoom_region": "middle_center",
+      "zoom_scale": 1
+    },
+    {
+      "shot_idx": 8,
+      "start_ms": 9826,
+      "end_ms": 10974,
+      "duration_ms": 1148,
+      "spoken_during": "run agents in",
+      "structure_role": "body",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.93,
+          "likelihood": 0.4,
+          "broll_description": "Back-end system interface where AI agents execute procedures autonomously.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.nozomio.ai/back-end",
+              "focus": "AI agents performing tasks auto-driven"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "ken_burns"
+          },
+          "placement": {
+            "aspect": "original",
+            "fit": "contain",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Elementary insight into operating systems aligns with audience expectations."
+        },
+        {
+          "tier": "ideal",
+          "fit_score": 0.88,
+          "likelihood": 0.4,
+          "broll_description": "Interfaces of potential scenarios where AI assists users without direct visibility.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.nozomio.ai/folk",
+              "focus": "operations within the digital domain"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "logo / brand asset / product image of an entity",
+          "rationale": "It takes directly into practical applications enhancing technology understanding."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.58,
+          "likelihood": 0.4,
+          "broll_description": "Page from Nozomio's guide series on automated agent functions explaining processes.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.nozomio.ai/guides",
+              "focus": "process explanation on automation"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Acting as an engaging surrogate, tech essence is channeled effectively here."
+        }
+      ],
+      "broll_description": "Back-end system interface where AI agents execute procedures autonomously.",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://www.nozomio.ai/back-end",
+          "focus": "AI agents performing tasks auto-driven"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "ken_burns"
+      },
+      "placement": {
+        "aspect": "original",
+        "fit": "contain",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "screen recording of the subject's website",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DYlQlfYuTc7/",
+        "shot_idx": 17,
+        "pattern": "Content setups with a focus on backend structures help narrate deep-seated tech roles well."
+      },
+      "text_overlay": "RUN AGENTS / IN",
+      "text_position": "bottom_left",
+      "animation_cue": "slide-up text",
+      "scene_animation": "none",
+      "animation_scale": 1.05,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": "whoosh whoosh",
+      "clip_type": "broll_visual",
+      "rationale": "Optimizes graphical potential without disrupting narrative flow.",
+      "selected_media": [
+        {
+          "url": "capture://files/69c1854631bf7c6d.mp4",
+          "kind": "video",
+          "origin": "page_recording",
+          "from_candidate_url": "https://help.folk.app/en/articles/8249797-notifications-center",
+          "reason": "Illustrates ongoing task tracking, aligning with the script."
+        }
+      ],
+      "animation_duration_ms": 1148,
+      "zoom_region": "middle_center",
+      "zoom_scale": 1
+    },
+    {
+      "shot_idx": 9,
+      "start_ms": 10974,
+      "end_ms": 12318,
+      "duration_ms": 1344,
+      "spoken_during": "the backrgound Would",
+      "structure_role": "body",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.92,
+          "likelihood": 0.4,
+          "broll_description": "Simulated digital workspace transitioning into a representation of agents in action.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.nozomio.ai/solutions",
+              "focus": "digital workspace simulations"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "ken_burns"
+          },
+          "placement": {
+            "aspect": "original",
+            "fit": "contain",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Maintains discourse continuity employing futuristic digital scenarios."
+        },
+        {
+          "tier": "ideal",
+          "fit_score": 0.89,
+          "likelihood": 0.4,
+          "broll_description": "Illustrative content focusing on user perspectives supported by Folk's capabilities.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.nozomio.ai/overview",
+              "focus": "user practice scenarios with capabilities"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "logo / brand asset / product image of an entity",
+          "rationale": "Provides user-oriented imagery with conceptual progression and linked demonstration."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.6,
+          "likelihood": 0.4,
+          "broll_description": "Visualization of Nozomio's process digest and ergonomic user trials.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.nozomio.ai/process",
+              "focus": "process overview with user integration"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Alternative source placement assists at catering to visual continuity."
+        }
+      ],
+      "broll_description": "Simulated digital workspace transitioning into a representation of agents in action.",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://www.nozomio.ai/solutions",
+          "focus": "digital workspace simulations"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "ken_burns"
+      },
+      "placement": {
+        "aspect": "original",
+        "fit": "contain",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "screen recording of the subject's website",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DYlQlfYuTc7/",
+        "shot_idx": 18,
+        "pattern": "Scenarios within digital interaction nodes facilitate a narrative of technological application relevance."
+      },
+      "text_overlay": "THE BACKRGOUND / WOULD",
+      "text_position": "bottom_center",
+      "animation_cue": "pop",
+      "scene_animation": "none",
+      "animation_scale": 1.05,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": "whoosh whoosh",
+      "clip_type": "broll_visual",
+      "rationale": "Strong connection with the subject matter ensures engaging awareness with focused detail.",
+      "selected_media": [
+        {
+          "url": "capture://files/d173f36940d4d9ad.mp4",
+          "kind": "video",
+          "origin": "page_recording",
+          "from_candidate_url": "https://www.eomag.io/article/nozomio-arlan-rakhmetzhanov",
+          "reason": "Adds a personal story element to the narrative."
+        }
+      ],
+      "animation_duration_ms": 1344,
+      "zoom_region": "middle_center",
+      "zoom_scale": 1
+    },
+    {
+      "shot_idx": 10,
+      "start_ms": 12318,
+      "end_ms": 13466,
+      "duration_ms": 1148,
+      "spoken_during": "you use folk?",
+      "structure_role": "cta",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.94,
+          "likelihood": 0.4,
+          "broll_description": "End scene video of a user engaging relevant tasks using Folk, setting the query whether the viewer would use it.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.nozomio.ai/testimonials",
+              "focus": "user case scenario clips and feedback highlight"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "original",
+            "fit": "split_top",
+            "position": "top_center",
+            "scale": 0.5
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Reinforces the call-to-action by showcasing tangible user interactions."
+        },
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.4,
+          "broll_description": "An engaging close-up of Nozomio AI's interface sparking the 'use' CTA to the viewer.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.nozomio.ai/get-started",
+              "focus": "interactive use case snippets engaging audience"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "zoom_in"
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "logo / brand asset / product image of an entity",
+          "rationale": "Interactive CTA serves the tone and provides dynamic visual engagement with the closing dialogue."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.66,
+          "likelihood": 0.4,
+          "broll_description": "Nozomio's call-to-action placing engages potential users adeptly for closure.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.nozomio.ai",
+              "focus": "core call-to-action graphic and contact area"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Available content for wrapping purposes that assertively ties up the viewer's journey logically."
+        }
+      ],
+      "broll_description": "End scene video of a user engaging relevant tasks using Folk, setting the query whether the viewer would use it.",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://www.nozomio.ai/testimonials",
+          "focus": "user case scenario clips and feedback highlight"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "static"
+      },
+      "placement": {
+        "aspect": "original",
+        "fit": "split_top",
+        "position": "top_center",
+        "scale": 0.5
+      },
+      "source_type": "screen recording of the subject's website",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DYlQlfYuTc7/",
+        "shot_idx": 20,
+        "pattern": "Parting display of effective user design questioning prospects keeps the viewer engrossed."
+      },
+      "text_overlay": "YOU USE / FOLK?",
+      "text_position": "top_center",
+      "animation_cue": "pop",
+      "scene_animation": "none",
+      "animation_scale": 1.05,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": "impulse_tonal",
+      "clip_type": "talking_head",
+      "rationale": "A closing remark accentuates the call-to-action theme to navigate users towards a decision point.",
+      "selected_media": [
+        {
+          "url": "https://www.instagram.com/reel/DYNlckLy6R7",
+          "kind": "video",
+          "origin": "page_recording",
+          "from_candidate_url": "https://www.instagram.com/reel/DYNlckLy6R7",
+          "reason": "Concludes with a direct call to action for the audience."
+        }
+      ],
+      "animation_duration_ms": 1148,
+      "zoom_region": "middle_center",
+      "zoom_scale": 1
+    }
+  ],
+  "structure_sections": [
+    {
+      "role": "hook",
+      "script_template": "What's the <descriptor> that's <bold claim>?",
+      "target_fill": "What's this start up that lets you stalk your ex?",
+      "target_start_ms": 0,
+      "target_end_ms": 3920,
+      "shot_count": 3,
+      "visual_signature": {
+        "dominant_clip_type": "broll_visual",
+        "placement_pattern": "fullbleed 9:16",
+        "text_overlay_pattern": "large center caption big font",
+        "sfx_pattern": "vocal hit on cut in",
+        "motion_pattern": "zoom-in over the shot",
+        "scene_elements": []
+      }
+    },
+    {
+      "role": "intro",
+      "script_template": "This is <subject>, and they <one-line action>.",
+      "target_fill": "This is Folk by nozomio ai and they just got into YC",
+      "target_start_ms": 3920,
+      "target_end_ms": 8680,
+      "shot_count": 4,
+      "visual_signature": {
+        "dominant_clip_type": "talking_head_unknown",
+        "placement_pattern": "face centered full-screen",
+        "text_overlay_pattern": "small bottom strip",
+        "sfx_pattern": "silent open",
+        "motion_pattern": "ken_burns",
+        "scene_elements": []
+      }
+    },
+    {
+      "role": "body",
+      "script_template": "<claim 1>. <claim 2>. <claim N>.",
+      "target_fill": "Folk lets you run agents in the backrgound Would you use folk?",
+      "target_start_ms": 8680,
+      "target_end_ms": 13470,
+      "shot_count": 4,
+      "visual_signature": {
+        "dominant_clip_type": "broll_visual",
+        "placement_pattern": "fullbleed 9:16",
+        "text_overlay_pattern": "none",
+        "sfx_pattern": "whoosh whoosh",
+        "motion_pattern": "static cut",
+        "scene_elements": [
+          "pip_video"
+        ]
+      }
+    }
+  ],
+  "structure_confidence": "high",
+  "structure_rationale": "The template mirrors the common phrasing pattern used in reels tagged as structure inspiration, fitting the narrative structure of introducing a subject with a bold claim, followed by a more detailed introduction and elaboration.",
+  "structure_alternatives": null,
+  "content_source_patterns": [
+    "screen recording of the subject's website",
+    "lots of Tony footage from stage talks — creator builds reels around the named subject themselves",
+    "logo / brand asset / product image of an entity"
+  ],
+  "style_summary": "- reel 1: 15.7s, 21 shots, cuts/sec=1.27, text=95%, SFX=61/min\n- reel 2: 14.7s, 7 shots, cuts/sec=0.41, text=100%, SFX=33/min\n- reel 3: 17.2s, 9 shots, cuts/sec=0.46, text=100%, SFX=63/min\n- reel 4: 12.5s, 8 shots, cuts/sec=0.56, text=100%, SFX=29/min\n- reel 5: 13.5s, 11 shots, cuts/sec=0.74, text=100%, SFX=58/min\n- reel 6: 17.2s, 9 shots, cuts/sec=0.46, text=100%, SFX=63/min",
+  "content_sources": [
+    "https://www.instagram.com/p/DYlQlfYuTc7/",
+    "https://www.instagram.com/p/DYg26zgRiGS/",
+    "https://www.instagram.com/reel/DYxLMnNRzQ5/?igsh=bXhtY2JlNjhsYzNm",
+    "https://www.instagram.com/reel/DYg26zgRiGS/?igsh=enl3MzA3dnFnNHNv"
+  ],
+  "target_metrics": {
+    "fingerprint_version": 4,
+    "computed_at": 1781214599321,
+    "n_reels": 3,
+    "n_shots": 41,
+    "median_shot_ms": 800,
+    "cuts_per_sec": 0.824773034674918,
+    "clip_type_distribution": {
+      "talking_head": 0.18879615960103024,
+      "broll_talking_head": 0.15212545748307824,
+      "talking_head_unknown": 0.23018327944028208,
+      "broll_visual": 0.42889510347560944
+    },
+    "real_speaker_pct": 0.14381914381914382,
+    "broll_talking_head_pct": 0.10678210678210677,
+    "face_size_median": 0.38286084681749344,
+    "face_region_distribution": {
+      "top_left": 0,
+      "top_center": 0.2111111111111111,
+      "top_right": 0.027777777777777776,
+      "middle_left": 0.027777777777777776,
+      "middle_center": 0.4444444444444444,
+      "middle_right": 0,
+      "bottom_left": 0.027777777777777776,
+      "bottom_center": 0.2611111111111111,
+      "bottom_right": 0
+    },
+    "face_region_dominant": "mixed",
+    "text_overlay_pct": 0.9841269841269842,
+    "text_region_distribution": {
+      "top_left": 0.07886671593988669,
+      "top_center": 0.11313993594481399,
+      "top_right": 0.06004804138950479,
+      "middle_left": 0.09960704607046071,
+      "middle_center": 0.24571199802907118,
+      "middle_right": 0.09450726779995072,
+      "bottom_left": 0.0722690317812269,
+      "bottom_center": 0.1902648435575265,
+      "bottom_right": 0.04558511948755851
+    },
+    "text_region_dominant": "mixed",
+    "media_overlay_pct": 0.046176046176046176,
+    "overlays_per_min": 4.0186759877647065,
+    "overlay_kind_distribution": {
+      "image": 0.75,
+      "sticker": 0,
+      "gif": 0,
+      "pip_video": 0.25,
+      "emoji_graphic": 0
+    },
+    "overlay_motion_distribution": {
+      "static": 0.75,
+      "animated": 0.25
+    },
+    "overlay_region_distribution": {
+      "top_left": 0,
+      "top_center": 0,
+      "top_right": 0,
+      "middle_left": 0,
+      "middle_center": 0.25,
+      "middle_right": 0.25,
+      "bottom_left": 0.5,
+      "bottom_center": 0,
+      "bottom_right": 0
+    },
+    "overlay_region_dominant": "mixed",
+    "overlay_pattern": {
+      "summary": "This creator utilizes a limited variety of media overlays, primarily employing images and picture-in-picture videos. The overlays are mostly placed in the middle or lower regions of the screen and feature a mix of static and animated motion. They support the narrative by visually emphasizing key phrases or ideas related to the content being discussed.",
+      "per_reel_rate": 1,
+      "overlays_per_min": 3.872466761326965,
+      "entries": [
+        {
+          "kind": "pip_video",
+          "frequency": "once, in the middle",
+          "typical_position": "middle_center",
+          "placement": "central video overlay",
+          "motion": "animated",
+          "script_context": "during a description mentioning 'Walnut's'",
+          "examples": [
+            "Walnut's"
+          ]
+        },
+        {
+          "kind": "image",
+          "frequency": "~1 per reel",
+          "typical_position": "middle_right",
+          "placement": "side image overlay",
+          "motion": "static",
+          "script_context": "when referring to 'Walnut's' and at a later point discussing 'users funding'",
+          "examples": [
+            "Walnut's",
+            "users funding"
+          ]
+        }
+      ]
+    },
+    "camera_motion_distribution": {
+      "none": 0.34487734487734484,
+      "zoom_in": 0.2217412217412217,
+      "zoom_out": 0,
+      "pan_left": 0.015873015873015872,
+      "pan_right": 0,
+      "ken_burns": 0.41750841750841755
+    },
+    "camera_motion_dominant": "mixed",
+    "camera_motion_pct": 0.6551226551226552,
+    "camera_motion_confidence": 0.7187686387686387,
+    "voiceover_pct": 0.9435582225394666,
+    "music_pct": 0.032620378021250764,
+    "audio_silence_pct": 0.023821399439282593,
+    "audio_energy_mean": 0.10428770224085625,
+    "sfx_per_min": 60.46126471431764,
+    "cuts_with_sfx_pct": 0.481962481962482,
+    "sfx_at_cuts_pct": 0.46901709401709396,
+    "sfx_type_distribution": {
+      "impulse_tonal": 0.3404255319148936,
+      "impulse_noisy": 0.0425531914893617,
+      "sweep": 0,
+      "vocal": 0.48936170212765956,
+      "sustained": 0,
+      "other": 0.1276595744680851
+    },
+    "sfx_classified_total": 47,
+    "sfx_label_distribution": [],
+    "sfx_pattern": {
+      "signals": {
+        "sfx_count": 15.666666666666666,
+        "word_count": 40.333333333333336,
+        "sfx_per_word": 0.39627980922098566,
+        "on_word_pct": 0.6773504273504273,
+        "hook_density_per_s": 1.429505452482914,
+        "body_density_per_s": 0.9944313261995229,
+        "hook_escalation": -1,
+        "hook_dominant_type": "impulse_tonal",
+        "body_dominant_type": "vocal"
+      },
+      "rules": [
+        {
+          "trigger": "introduction of Tony",
+          "sfx_type": "impulse_tonal",
+          "example": "This is ⟨impulse_tonal⟩ Tony",
+          "reel_count": 1
+        },
+        {
+          "trigger": "building of Walnut",
+          "sfx_type": "vocal",
+          "example": "⟨vocal⟩ building ⟨vocal⟩ Walnut",
+          "reel_count": 1
+        },
+        {
+          "trigger": "description of the headband",
+          "sfx_type": "impulse_noisy",
+          "example": "⟨impulse_noisy⟩ that lets you feel the",
+          "reel_count": 1
+        },
+        {
+          "trigger": "question about Tony's future",
+          "sfx_type": "impulse_tonal",
+          "example": "Do you think Tony will be the next Steve Jobs",
+          "reel_count": 1
+        },
+        {
+          "trigger": "introduction of the startup name",
+          "sfx_type": "impulse_tonal",
+          "example": "This is Ornadyne",
+          "reel_count": 1
+        },
+        {
+          "trigger": "mention of the primary client",
+          "sfx_type": "impulse_tonal",
+          "example": "Their primary client is the government",
+          "reel_count": 1
+        }
+      ],
+      "summaries": [
+        "The sound effects primarily emphasize key phrases and moments of importance, with a consistent use of impulse tonal sounds throughout the hook. The SFX cadence aligns closely with significant claims, particularly during reveals and questions.",
+        "The sound effects are predominantly used to emphasize key moments in the spoken content, with a higher frequency of effects during the hook compared to the body. The SFX primarily highlight important claims and notable names.",
+        "The SFX usage features a higher density of sound effects during the hook, primarily using impulse tonal sounds to emphasize key moments, while the body relies on vocal stingers to maintain engagement. Sound effects are strategically placed on important claims and questions to enhance impact."
+      ],
+      "n_reels": 3
+    },
+    "hook_speeches": [
+      "Who's the Stanford student that thinks he's Steve Jobs This is Tony and he's building",
+      "What's this startup that's building robotic surveillance birds This is",
+      "Who's this student that skipped prom to apply to YC This is Jack and"
+    ],
+    "hook_texts": [
+      "<\n\n&\n\nWHO\n\niS\n\nZZ. —",
+      "'re building autonomous ornithopters with\n\nr-class flight times, low acoustic signatur\n\ni natural bird-like flight. This makes\n\nadyne's drones harder for humans and\n\nnter-UAS systems to detect, classify, and\n\nget.\n\ne Found\n\nSTARTUR\n\nourg’s Master's thesis is built on 2+ years c\n\nearch and development in flapping-wing\n\nnes. His work has received multiple awarc\n\nTU",
+      "my official ley\n\no stanford university,\n\n~\n\n» -"
+    ],
+    "hook_archetypes": null,
+    "caption_style": {
+      "captions_pct": 1,
+      "n_with_captions": 4,
+      "matched_preset": "hormozi",
+      "preset_label": "Hormozi",
+      "preset_confidence_avg": 0.86,
+      "preset_distribution": {
+        "hormozi": 4
+      },
+      "position": "center",
+      "chunking": "word_by_word",
+      "words_per_chunk_avg": 1,
+      "font_size": "large",
+      "text_treatment": "clear",
+      "treatment_color_examples": [],
+      "treatment_distribution": {
+        "clear": 4
+      },
+      "text_color": "yellow",
+      "highlight_color": null,
+      "emphasis": "active_word_highlight",
+      "casing": "uppercase",
+      "animation": "pop",
+      "position_distribution": {
+        "center": 4
+      },
+      "chunking_distribution": {
+        "word_by_word": 4
+      },
+      "font_size_distribution": {
+        "large": 4
+      },
+      "emphasis_distribution": {
+        "active_word_highlight": 4
+      },
+      "casing_distribution": {
+        "uppercase": 4
+      },
+      "animation_distribution": {
+        "pop": 4
+      },
+      "has_emoji_pct": 0,
+      "font_family": "mixed",
+      "font_family_name": "",
+      "font_family_distribution": {
+        "bebas-neue": 2,
+        "anton": 2
+      },
+      "font_descriptors": [
+        "bold sans-serif with no stroke"
+      ],
+      "style_labels": [
+        "word-by-word karaoke highlight",
+        "word-by-word active highlight"
+      ]
+    },
+    "beat_template": [
+      {
+        "clip_type": "broll_visual",
+        "n_shots": 17,
+        "duration_p50_ms": 734,
+        "has_text_p": 0.9411764705882353,
+        "has_face_p": 0,
+        "is_speaker_p": 0
+      },
+      {
+        "clip_type": "talking_head_unknown",
+        "n_shots": 15,
+        "duration_p50_ms": 566,
+        "has_text_p": 1,
+        "has_face_p": 1,
+        "is_speaker_p": 0
+      },
+      {
+        "clip_type": "talking_head",
+        "n_shots": 5,
+        "duration_p50_ms": 800,
+        "has_text_p": 1,
+        "has_face_p": 1,
+        "is_speaker_p": 1
+      },
+      {
+        "clip_type": "broll_talking_head",
+        "n_shots": 4,
+        "duration_p50_ms": 1434,
+        "has_text_p": 1,
+        "has_face_p": 1,
+        "is_speaker_p": 0
+      }
+    ]
+  },
+  "sfx_plan": {
+    "signals": {
+      "sfx_count": 15.666666666666666,
+      "word_count": 40.333333333333336,
+      "sfx_per_word": 0.39627980922098566,
+      "on_word_pct": 0.6773504273504273,
+      "hook_density_per_s": 1.429505452482914,
+      "body_density_per_s": 0.9944313261995229,
+      "hook_escalation": -1,
+      "hook_dominant_type": "impulse_tonal",
+      "body_dominant_type": "vocal"
+    },
+    "rules": [
+      {
+        "trigger": "introduction of Tony",
+        "sfx_type": "impulse_tonal",
+        "example": "This is ⟨impulse_tonal⟩ Tony",
+        "reel_count": 1
+      },
+      {
+        "trigger": "building of Walnut",
+        "sfx_type": "vocal",
+        "example": "⟨vocal⟩ building ⟨vocal⟩ Walnut",
+        "reel_count": 1
+      },
+      {
+        "trigger": "description of the headband",
+        "sfx_type": "impulse_noisy",
+        "example": "⟨impulse_noisy⟩ that lets you feel the",
+        "reel_count": 1
+      },
+      {
+        "trigger": "question about Tony's future",
+        "sfx_type": "impulse_tonal",
+        "example": "Do you think Tony will be the next Steve Jobs",
+        "reel_count": 1
+      },
+      {
+        "trigger": "introduction of the startup name",
+        "sfx_type": "impulse_tonal",
+        "example": "This is Ornadyne",
+        "reel_count": 1
+      },
+      {
+        "trigger": "mention of the primary client",
+        "sfx_type": "impulse_tonal",
+        "example": "Their primary client is the government",
+        "reel_count": 1
+      }
+    ],
+    "summaries": [
+      "The sound effects primarily emphasize key phrases and moments of importance, with a consistent use of impulse tonal sounds throughout the hook. The SFX cadence aligns closely with significant claims, particularly during reveals and questions.",
+      "The sound effects are predominantly used to emphasize key moments in the spoken content, with a higher frequency of effects during the hook compared to the body. The SFX primarily highlight important claims and notable names.",
+      "The SFX usage features a higher density of sound effects during the hook, primarily using impulse tonal sounds to emphasize key moments, while the body relies on vocal stingers to maintain engagement. Sound effects are strategically placed on important claims and questions to enhance impact."
+    ],
+    "n_reels": 3
+  },
+  "subtitle_spec": {
+    "enabled": true,
+    "preset_id": "hormozi",
+    "preset_label": "Hormozi",
+    "font_family": "",
+    "font_family_name": "",
+    "font_size": "large",
+    "position": "center",
+    "chunking": "word_by_word",
+    "words_per_chunk": 1,
+    "casing": "uppercase",
+    "emphasis": "active_word_highlight",
+    "animation": "pop",
+    "text_treatment": "clear",
+    "text_color": "yellow",
+    "treatment_color": null,
+    "highlight_color": null,
+    "has_emoji": false,
+    "low_confidence": false
+  },
+  "reel_id": "a3ce073b-0605-4a7f-811a-61b49bf9aa26",
+  "sfx_events": null,
+  "sfx_override": {
+    "cadence": "every_word",
+    "sound": "ding"
+  }
+}

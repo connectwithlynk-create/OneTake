@@ -8,6 +8,7 @@
 import { existsSync } from 'fs';
 import { join, resolve } from 'path';
 import * as ort from 'onnxruntime-web';
+import { initOrt } from './ort-init';
 import { extractAudioPCM } from './audio';
 import { extractFaceCrops } from './face-crops';
 import { mfcc } from './mfcc';
@@ -70,6 +71,7 @@ let sessionsPromise: Promise<Sessions> | null = null;
 function getSessions(): Promise<Sessions> {
   if (!sessionsPromise) {
     sessionsPromise = (async () => {
+      initOrt();
       const lip = await ort.InferenceSession.create(
         join(MODEL_DIR, 'syncnet-lip.onnx'),
       );

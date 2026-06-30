@@ -31,6 +31,46 @@ export interface NormBBox {
   h: number;
 }
 
+/** Dominant in-shot CAMERA motion, measured by the optical-flow pass
+ *  (motion.ts). Mirrors the editor's scene-animation presets minus
+ *  'punch_in' (a stylistic fast-zoom variant flow can't distinguish from
+ *  a plain zoom_in). 'none' = static hold. */
+export type CameraMotionKind =
+  | 'none'
+  | 'zoom_in'
+  | 'zoom_out'
+  | 'pan_left'
+  | 'pan_right'
+  | 'ken_burns';
+
+export const CAMERA_MOTION_KINDS: CameraMotionKind[] = [
+  'none',
+  'zoom_in',
+  'zoom_out',
+  'pan_left',
+  'pan_right',
+  'ken_burns',
+];
+
+/** Measured camera motion for one shot. Magnitudes are fractions summed
+ *  across the shot's sampled span (~the middle two-thirds of the shot),
+ *  so they approximate the total move over the shot. */
+export interface DetectedMotion {
+  /** Classified dominant motion. */
+  kind: CameraMotionKind;
+  /** Confidence in the classification, [0,1] — from flow magnitude,
+   *  block inlier ratio, and directional consistency across frame pairs. */
+  confidence: number;
+  /** Total fractional scale change across the shot. >0 zooms in, <0 out. */
+  zoom_rate: number;
+  /** Total horizontal drift as a fraction of frame width. >0 = content
+   *  moved right (pan_right). */
+  pan_x: number;
+  /** Total vertical drift as a fraction of frame height. >0 = content
+   *  moved down. */
+  pan_y: number;
+}
+
 /** One observed text-overlay moment within a shot. Text overlays often
  *  swap during a single underlying b-roll shot (top headline → bottom
  *  caption → off), so a shot can have multiple distinct moments. */
@@ -41,6 +81,12 @@ export interface TextMoment {
   bbox: NormBBox;
   /** 3x3 grid cell of the bbox centroid. */
   region: FrameRegion;
+  /** Best-effort role classification. `subtitle` means spoken-word
+   *  caption text that should inform caption style. `image_text` means
+   *  words embedded inside a screenshot/card/poster/image layer. */
+  role?: 'subtitle' | 'image_text' | 'title' | 'unknown';
+  /** Confidence for `role`, 0-1. */
+  role_confidence?: number;
 }
 
 /** 3x3 grid cell a face/text centroid sits in. Naming is row_column with
@@ -67,6 +113,90 @@ export const FRAME_REGIONS: FrameRegion[] = [
   'bottom_center',
   'bottom_right',
 ];
+
+/** Burned-in SPOKEN-WORD caption (subtitle) style — the auto-generated
+ *  "transcribe my talking" captions creators add (CapCut / Hormozi
+ *  style). These are orthogonal to titles, lower-third name tags, and
+ *  sticker text, which live in `text_moments`. See caption-style.ts. */
+export type CaptionPosition =
+  | 'center'
+  | 'lower_third'
+  | 'bottom'
+  | 'top'
+  | 'varies';
+export type CaptionChunking = 'word_by_word' | 'phrase' | 'sentence' | 'mixed';
+export type CaptionEmphasis =
+  | 'active_word_highlight'
+  | 'keyword_highlight'
+  | 'none';
+export type CaptionCasing =
+  | 'uppercase'
+  | 'title_case'
+  | 'sentence_case'
+  | 'mixed';
+export type CaptionAnimation =
+  | 'pop'
+  | 'karaoke_fill'
+  | 'fade'
+  | 'typewriter'
+  | 'static'
+  | 'none';
+/** On-screen caption text size relative to frame height: small (<5%),
+ *  medium (5-9%), large (>=9% — Hormozi-style big captions). */
+export type CaptionFontSize = 'small' | 'medium' | 'large';
+/** How the caption text is made legible against the video:
+ *  - bordered:     glyphs have an outline/stroke (e.g. yellow text, black edge)
+ *  - backgrounded: text sits on a solid color box/block behind it
+ *  - clear:        plain text, no outline or box (maybe a soft drop shadow) */
+export type CaptionTreatment = 'bordered' | 'backgrounded' | 'clear';
+
+/** Detected spoken-word caption style for one reel. `present` is false
+ *  when the reel burns in no spoken-word captions, in which case the
+ *  remaining fields hold defaults and should be ignored. Produced by a
+ *  vision pass over caption-bearing frames (caption-style.ts). */
+export interface CaptionStyleProfile {
+  present: boolean;
+  position: CaptionPosition;
+  chunking: CaptionChunking;
+  /** Typical number of words shown on screen at once before the caption
+   *  swaps to the next group. Concrete companion to `chunking`
+   *  (word_by_word ≈ 1-2, phrase ≈ 3-5, sentence ≈ 6+). 0 when absent. */
+  words_per_chunk: number;
+  /** On-screen text size relative to frame height. */
+  font_size: CaptionFontSize;
+  emphasis: CaptionEmphasis;
+  casing: CaptionCasing;
+  animation: CaptionAnimation;
+  /** Free-text font look, e.g. "bold rounded sans with black stroke". */
+  font_descriptor: string;
+  /** Closest real font matched against the downloaded font library — id
+   *  from FONT_CATALOG (font-catalog.ts), '' when none matched. Picked by
+   *  the vision model against a rendered reference sheet, so it names a
+   *  real, reproducible font instead of guessing. */
+  font_family: string;
+  /** Display name of font_family, e.g. "Anton". '' when none. */
+  font_family_name: string;
+  /** Base text color, e.g. "white". */
+  text_color: string;
+  /** How the text is made legible: outline, solid box, or neither. */
+  text_treatment: CaptionTreatment;
+  /** The treatment's color — the outline color (bordered) or the box
+   *  color (backgrounded). Null when treatment is clear. */
+  treatment_color: string | null;
+  /** Active/keyword highlight color; null when there is no emphasis color. */
+  highlight_color: string | null;
+  has_emoji: boolean;
+  /** Concise human label, e.g. "word-by-word karaoke highlight". */
+  style_label: string;
+  /** Closest premade subtitle style (id from SUBTITLE_PRESETS), chosen
+   *  by matching the detected attributes against the catalog. Empty when
+   *  no captions. See subtitle-presets.ts. */
+  matched_preset: string;
+  /** Display label of the matched preset. */
+  preset_label: string;
+  /** How well the matched preset fit, 0-1 (weighted attribute overlap). */
+  preset_confidence: number;
+}
 
 /** One detected shot with its annotation. Field names mirror the
  *  analysis result so persistence stays a 1:1 write. */
@@ -131,6 +261,10 @@ export interface ReelShot {
    *  the synthesis engine learn the mapping between what was said
    *  and what was shown across the collection. */
   spoken_window: string;
+  /** Dominant camera motion measured by optical flow (motion.ts), or
+   *  null when the pass was skipped or couldn't estimate (too few
+   *  decodable frames / no reliable block fit). */
+  detected_motion: DetectedMotion | null;
 }
 
 /** Heuristic media-overlay kind. The classifier looks at inner-bbox
@@ -195,11 +329,26 @@ export type { SfxType, SfxFeatures } from './sfx-classify';
 export interface SfxClassifiedEvent {
   /** Onset time in ms from reel start. */
   ms: number;
-  /** Coarse acoustic category. */
+  /** Coarse acoustic category. When `source === 'model'` this is the
+   *  AudioSet label mapped onto the bucket; otherwise it's the heuristic
+   *  classifier's own bucket. */
   type: SfxType;
-  /** Heuristic confidence in [0, 1]. */
+  /** Confidence in [0, 1]. For model events this is the top AudioSet
+   *  delta score; for heuristic events it's the rule-fit confidence. */
   confidence: number;
-  /** Raw features that drove the classification — useful for debugging
-   *  and future ML upgrades. */
+  /** Raw features that drove the heuristic classification — useful for
+   *  debugging and future ML upgrades. */
   features: SfxFeatures;
+  /** Which classifier produced this event. 'model' = PANNs CNN14 AudioSet
+   *  tagging (sfx-audioset.ts); 'heuristic' = delta-spectrum rules
+   *  (sfx-classify.ts), used as fallback when the model is absent or had
+   *  no confident non-speech label. */
+  source: 'model' | 'heuristic';
+  /** Human-readable AudioSet event name, e.g. "Whoosh, swoosh, swish".
+   *  Present only for `source === 'model'` events. */
+  label?: string;
+  /** Top AudioSet labels (descending by delta score) for model events.
+   *  Lets downstream reasoning see the runner-up types. Empty/omitted
+   *  for heuristic events. */
+  labels?: { label: string; score: number }[];
 }

@@ -1,0 +1,35 @@
+{
+  "picks": [
+    {
+      "timestamp_ms": 17484,
+      "reason": "This scene likely shows a demonstration of the Folk AI in action.",
+      "file": "65801fd4ea43bb91-0.png"
+    },
+    {
+      "timestamp_ms": 26383,
+      "reason": "This scene likely illustrates the practical applications of Folk, such as booking flights.",
+      "file": "65801fd4ea43bb91-1.png"
+    },
+    {
+      "timestamp_ms": 30634,
+      "reason": "This scene likely shows Folk assisting with tasks like responding to emails.",
+      "file": "65801fd4ea43bb91-2.png"
+    },
+    {
+      "timestamp_ms": 35200,
+      "reason": "This scene likely depicts a successful interaction with Folk, enhancing productivity.",
+      "file": "65801fd4ea43bb91-3.png"
+    },
+    {
+      "timestamp_ms": 7567,
+      "reason": "This scene likely shows the speaker introducing the Folk AI, setting the context.",
+      "file": "65801fd4ea43bb91-4.png"
+    },
+    {
+      "timestamp_ms": 4917,
+      "reason": "This scene likely shows the growing popularity and usage of the Folk AI.",
+      "file": "65801fd4ea43bb91-5.png"
+    }
+  ],
+  "source_mp4_path": "/Users/rahulpeesa/Documents/GitHub/OneTake/desktop/.library/source-videos/5ad4590182540af5.mp4"
+}

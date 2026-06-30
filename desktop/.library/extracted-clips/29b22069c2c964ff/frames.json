@@ -1,0 +1,30 @@
+{
+  "picks": [
+    {
+      "timestamp_ms": 6734,
+      "reason": "This frame likely shows Thomas's product being introduced.",
+      "file": "29b22069c2c964ff-0.png"
+    },
+    {
+      "timestamp_ms": 13000,
+      "reason": "This frame likely shows a visual representation of the AI generating ideas.",
+      "file": "29b22069c2c964ff-1.png"
+    },
+    {
+      "timestamp_ms": 27200,
+      "reason": "This frame likely shows Thomas engaging with the video content.",
+      "file": "29b22069c2c964ff-2.png"
+    },
+    {
+      "timestamp_ms": 29534,
+      "reason": "This frame likely shows Thomas in a relevant context.",
+      "file": "29b22069c2c964ff-3.png"
+    },
+    {
+      "timestamp_ms": 38835,
+      "reason": "This frame likely shows a reaction or demo related to the product.",
+      "file": "29b22069c2c964ff-4.png"
+    }
+  ],
+  "source_mp4_path": "/Users/rahulpeesa/Documents/GitHub/OneTake/desktop/.library/source-videos/7cb2d0126c105ca2.mp4"
+}

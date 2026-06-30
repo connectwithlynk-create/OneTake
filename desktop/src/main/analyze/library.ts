@@ -36,6 +36,11 @@ export interface LibraryReel {
 
 const CACHE_DIR = resolve(process.cwd(), '.library', 'cache');
 const LIBRARY_FILE = resolve(process.cwd(), '.library', 'library.json');
+const COLLECTIONS_FILE = resolve(
+  process.cwd(),
+  '.library',
+  'collections.json',
+);
 
 function ensureCacheDir(): void {
   if (!existsSync(CACHE_DIR)) mkdirSync(CACHE_DIR, { recursive: true });
@@ -106,6 +111,14 @@ export async function ensureAnalysis(
     playableUrl: resolved.playable_url,
     durationMs: resolved.duration_ms,
   });
+  // A zero-shot analysis means the probe/download failed (analyzeReel
+  // degrades to an empty result rather than throwing). Caching it would
+  // make a transient failure a permanent "hit" until ANALYSIS_VERSION
+  // bumps — treat it as a failure instead.
+  if (analysis.shots.length === 0) {
+    console.error('[library] analysis produced no shots — not caching:', url);
+    return null;
+  }
   saveCachedAnalysis(url, analysis);
   return analysis;
 }
@@ -154,6 +167,135 @@ export function loadLibrary(): LibraryReel[] {
     );
     return [];
   }
+}
+
+// ---------- collections ----------
+//
+// A collection is a NAMED set of reels you take inspiration from. The app
+// used to keep one flat library (library.json); collections let you group
+// reels (e.g. "Founder POV", "Product demos", "Hormozi-style") and
+// fingerprint each group separately for synthesis. Reels (url + tags) live
+// inside the collection; analyses stay in the shared per-URL cache, so the
+// same reel in two collections only analyzes once.
+
+export interface Collection {
+  id: string;
+  name: string;
+  created_at: number;
+  reels: LibraryReel[];
+}
+
+/** Slim on-disk shape — reels carry only url + tags (no analysis). */
+interface SlimCollection {
+  id: string;
+  name: string;
+  created_at: number;
+  reels: { url: string; tags: ReelTag[] }[];
+}
+
+function newId(): string {
+  return createHash('sha1')
+    .update(`${Date.now()}-${Math.round(Math.random() * 1e9)}`)
+    .digest('hex')
+    .slice(0, 12);
+}
+
+function writeCollections(cols: Collection[]): void {
+  ensureCacheDir();
+  const slim: SlimCollection[] = cols.map((c) => ({
+    id: c.id,
+    name: c.name,
+    created_at: c.created_at,
+    reels: c.reels.map((r) => ({ url: r.url, tags: r.tags })),
+  }));
+  writeFileSync(COLLECTIONS_FILE, JSON.stringify(slim, null, 2));
+}
+
+/** Load all collections. On first run, migrates an existing flat
+ *  library.json into a single "My Library" collection (and persists it);
+ *  if there's no prior library either, seeds one empty default collection.
+ *  Always returns at least one collection so the UI has an active target. */
+export function loadCollections(): Collection[] {
+  if (existsSync(COLLECTIONS_FILE)) {
+    try {
+      const parsed = JSON.parse(
+        readFileSync(COLLECTIONS_FILE, 'utf8'),
+      ) as SlimCollection[];
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed.map((c) => ({
+          id: c.id,
+          name: c.name,
+          created_at: c.created_at,
+          reels: (c.reels ?? []).map((r) => ({ url: r.url, tags: r.tags })),
+        }));
+      }
+    } catch (err) {
+      console.error(
+        '[library] collections read failed:',
+        err instanceof Error ? err.message : String(err),
+      );
+    }
+  }
+  // Migrate the legacy flat library, or seed an empty default.
+  const legacy = loadLibrary();
+  const seeded: Collection[] = [
+    {
+      id: newId(),
+      name: 'My Library',
+      created_at: Date.now(),
+      reels: legacy.map((r) => ({ url: r.url, tags: r.tags })),
+    },
+  ];
+  writeCollections(seeded);
+  return seeded;
+}
+
+/** Persist the reel list (url + tags) of one collection, leaving the
+ *  others untouched. No-op when the id isn't found. */
+export function saveCollectionReels(
+  id: string,
+  reels: LibraryReel[],
+): void {
+  const cols = loadCollections();
+  const target = cols.find((c) => c.id === id);
+  if (!target) return;
+  target.reels = reels.map((r) => ({ url: r.url, tags: r.tags }));
+  writeCollections(cols);
+}
+
+/** Create a new, empty collection and return it. */
+export function createCollection(name: string): Collection {
+  const cols = loadCollections();
+  const col: Collection = {
+    id: newId(),
+    name: name.trim() || 'Untitled collection',
+    created_at: Date.now(),
+    reels: [],
+  };
+  cols.push(col);
+  writeCollections(cols);
+  return col;
+}
+
+/** Rename a collection. Returns the updated list. */
+export function renameCollection(id: string, name: string): Collection[] {
+  const cols = loadCollections();
+  const target = cols.find((c) => c.id === id);
+  if (target) {
+    target.name = name.trim() || target.name;
+    writeCollections(cols);
+  }
+  return cols;
+}
+
+/** Delete a collection. The last remaining collection can't be deleted —
+ *  there must always be at least one. Returns the updated list. */
+export function deleteCollection(id: string): Collection[] {
+  const cols = loadCollections();
+  if (cols.length <= 1) return cols;
+  const next = cols.filter((c) => c.id !== id);
+  writeCollections(next);
+  return next;
 }
 
 /** Filter helpers used by the synthesis engine. */

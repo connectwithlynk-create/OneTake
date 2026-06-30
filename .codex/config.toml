@@ -1,0 +1,5 @@
+[mcp_servers.supabase]
+url = "https://mcp.supabase.com/mcp?project_ref=pylbexbnfrbojnvhcewm"
+
+[mcp_servers.tavily-remote-mcp]
+url = "https://mcp.tavily.com/mcp/"

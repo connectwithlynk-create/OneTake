@@ -1,0 +1,11 @@
+{
+  "clips": [
+    {
+      "start_ms": 0,
+      "end_ms": 8000,
+      "reason": "scene 1 (8.0s)",
+      "file": "0.mp4"
+    }
+  ],
+  "source_mp4_path": "/Users/rahulpeesa/Documents/GitHub/OneTake/desktop/.library/captures/8982f503a6eff272.mp4"
+}

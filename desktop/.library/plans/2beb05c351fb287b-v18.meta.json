@@ -1,0 +1,20 @@
+{
+  "key": "2beb05c351fb287b",
+  "version": 18,
+  "created_at": 1780907495064,
+  "shot_count": 9,
+  "hook_preview": "Who's this guy that that turned himself into a startup",
+  "target_label": "Script: \"Who's this guy that that turned himself into a startup This…\"",
+  "target_kind": "script",
+  "target_file_path": null,
+  "library_urls": [
+    "https://www.instagram.com/p/DYlQlfYuTc7/",
+    "https://www.instagram.com/p/DXz_iMJNjlV/",
+    "https://www.instagram.com/p/DYg26zgRiGS/",
+    "https://www.instagram.com/p/DU_3YEUEoGG/",
+    "https://www.instagram.com/reel/DYxLMnNRzQ5/?igsh=bXhtY2JlNjhsYzNm",
+    "https://www.instagram.com/reel/DYg26zgRiGS/?igsh=enl3MzA3dnFnNHNv"
+  ],
+  "allow_copyrighted": false,
+  "user_instructions": "Use content from websites, public videos, etc. Nothing about the actual founder thomas. Make it focused onthe  actual startup.\n\nPlan regeneration request: regenerate, ensure to use different sources for each shot. Also include some sources like reels or demos that are reviewing this company."
+}

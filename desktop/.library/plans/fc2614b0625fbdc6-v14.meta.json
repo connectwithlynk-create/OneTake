@@ -1,0 +1,19 @@
+{
+  "key": "fc2614b0625fbdc6",
+  "version": 14,
+  "created_at": 1780121171764,
+  "shot_count": 11,
+  "hook_preview": "How is a cheating app worth millions?",
+  "target_label": "Script: \"How is a cheating app worth millions? This is Cluely. It mo…\"",
+  "target_kind": "script",
+  "library_urls": [
+    "https://www.instagram.com/p/DYlQlfYuTc7/",
+    "https://www.instagram.com/p/DXz_iMJNjlV/",
+    "https://www.instagram.com/p/DYg26zgRiGS/",
+    "https://www.instagram.com/p/DU_3YEUEoGG/",
+    "https://www.instagram.com/reel/DYxLMnNRzQ5/?igsh=bXhtY2JlNjhsYzNm",
+    "https://www.instagram.com/reel/DYg26zgRiGS/?igsh=enl3MzA3dnFnNHNv"
+  ],
+  "allow_copyrighted": false,
+  "user_instructions": ""
+}

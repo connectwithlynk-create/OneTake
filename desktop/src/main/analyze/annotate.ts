@@ -1,3 +1,4 @@
+import jpeg from 'jpeg-js';
 import type { ShotAudio } from './audio';
 import type { ExtractedFrame, ShotFrames } from './frame-extractor';
 import { recognizeText } from './ocr';
@@ -17,6 +18,62 @@ import type {
 /** Below this duration we don't multi-sample OCR — the sampled frames
  *  would be near-identical and OCR is the dominant cost. */
 const OCR_MULTI_SAMPLE_MIN_MS = 2000;
+
+/** Media-overlay kinds that are STATIC (no inner motion). Only these can
+ *  be confused with a burned-in text card — animated kinds (gif,
+ *  pip_video) have real motion, so they're genuine media and skip the
+ *  text re-check. */
+const STATIC_OVERLAY_KINDS = new Set(['image', 'sticker']);
+
+/** A static overlay candidate whose own crop OCRs as mostly text is a
+ *  text card the per-shot text exclusion missed (scattered word bboxes
+ *  don't cross the coverage threshold even when the region is text). We
+ *  re-OCR the overlay's thumb crop directly and drop it when the text
+ *  fills the crop — text overlays belong in text_moments, never the
+ *  media list. Returns true => drop. Best-effort: never throws. */
+async function overlayIsMostlyText(thumbB64: string): Promise<boolean> {
+  try {
+    const ocr = await recognizeText(thumbB64);
+    if (ocr.lines.length === 0) return false;
+    const alnum = ocr.text.replace(/[^a-z0-9]/gi, '').length;
+    // Too few characters to call it text — likely an icon/logo watermark
+    // on a real image; keep it.
+    if (alnum < 8) return false;
+    let dims: { width: number; height: number } | null = null;
+    try {
+      dims = jpeg.decode(Buffer.from(thumbB64, 'base64'), { useTArray: true });
+    } catch {
+      dims = null;
+    }
+    if (!dims || dims.width * dims.height === 0) {
+      // No dims to compute coverage — fall back to a higher char floor.
+      return alnum >= 24;
+    }
+    const cropArea = dims.width * dims.height;
+    let textArea = 0;
+    for (const l of ocr.lines) textArea += Math.max(0, l.bbox.w * l.bbox.h);
+    // Either the text physically fills a good chunk of the crop, or there's
+    // simply a lot of it — both say "this is a text block, not an image".
+    return textArea / cropArea > 0.18 || alnum >= 24;
+  } catch {
+    return false;
+  }
+}
+
+/** Drop static overlay candidates that are really text cards. Animated
+ *  overlays pass through untouched. */
+async function suppressTextOverlays(
+  overlays: MediaOverlay[],
+): Promise<MediaOverlay[]> {
+  const kept: MediaOverlay[] = [];
+  for (const o of overlays) {
+    if (STATIC_OVERLAY_KINDS.has(o.kind) && o.thumb_b64) {
+      if (await overlayIsMostlyText(o.thumb_b64)) continue;
+    }
+    kept.push(o);
+  }
+  return kept;
+}
 
 /** Map a normalized centroid (x,y in [0,1]) to one of 9 grid cells. */
 export function regionForXY(x: number, y: number): FrameRegion {
@@ -178,6 +235,22 @@ export async function annotateShots(
         faceBbox: face_bbox,
         textMoments: moments,
       });
+      // Second-pass guard: re-OCR each static overlay's own crop and drop
+      // it if it's really a text card. Catches text the per-shot text
+      // exclusion missed (sparse word bboxes under the coverage floor).
+      if (overlays.length > 0) {
+        const before = overlays.length;
+        overlays = await suppressTextOverlays(overlays);
+        if (overlays.length < before) {
+          console.error(
+            '[overlays] shot',
+            i,
+            'dropped',
+            before - overlays.length,
+            'text-card overlay(s)',
+          );
+        }
+      }
     } catch (err) {
       console.error(
         '[overlays] shot',
@@ -213,6 +286,9 @@ export async function annotateShots(
       // transcript respectively, neither of which annotate.ts owns).
       visual_caption: null,
       spoken_window: '',
+      // Filled in by analyze.ts after annotation (the optical-flow pass
+      // decodes the sample-frame stack, which annotate.ts doesn't own).
+      detected_motion: null,
     });
   }
   return out;

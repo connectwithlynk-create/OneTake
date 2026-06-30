@@ -5,6 +5,21 @@ export type ProjectStatus = 'recording' | 'processing' | 'ready';
 export type Verdict = 'dud' | 'keep' | 'perfect';
 export type ClipTag = 'talking' | 'broll';
 
+export type MediaLibraryProvider =
+  | 'google_drive'
+  | 'dropbox'
+  | 'onedrive'
+  | 'icloud'
+  | 'local';
+export type MediaAssetKind = 'video' | 'image' | 'audio';
+export type MediaAssetSource =
+  | 'local_import'
+  | 'recording'
+  | 'web_capture'
+  | 'stock'
+  | 'generated';
+export type MediaAnalysisStatus = 'pending' | 'analyzing' | 'ready' | 'failed';
+
 /** Advanced descriptive tags, esp. for b-roll (what the footage is about). */
 export type MetaKind = 'location' | 'action' | 'subject';
 export interface MetaTag {
@@ -30,6 +45,8 @@ export type CaptionStyle =
   | 'subtle'
   | 'bar'
   | 'typeout';
+
+export type CaptionFont = 'display' | 'body' | 'mono';
 
 /** Per-clip visual + audio effect bag. Stored as JSON in
  *  clips.effects_json so the schema doesn't churn each pass. */
@@ -87,6 +104,8 @@ export interface Project extends SyncFields {
   captions_enabled: number;
   /** Caption style preset. */
   caption_style: CaptionStyle;
+  /** Subtitle font family preset. */
+  caption_font: CaptionFont;
   /** JSON: { [boundaryIndex: number]: ProjectTransition }. Null = no
    *  transitions, hard cut everywhere. */
   transitions_json: string | null;
@@ -135,6 +154,77 @@ export interface Clip extends SyncFields {
   /** Supabase Storage object key once uploaded. */
   remote_path: string | null;
   created_at: number;
+}
+
+/** User-owned cloud folder that stores media blobs and portable catalog files.
+ *  OneTake stores provider IDs and analysis metadata, never backend-hosted
+ *  media files. */
+export interface MediaLibraryRoot {
+  id: string;
+  provider: MediaLibraryProvider;
+  provider_root_id: string;
+  provider_root_name: string;
+  catalog_file_id: string | null;
+  embeddings_file_id: string | null;
+  change_cursor: string | null;
+  status: 'active' | 'disconnected' | 'error';
+  error: string | null;
+  created_at: number;
+  updated_at: number;
+}
+
+/** One source file in the user's cloud storage. Search should generally
+ *  return MediaAssetSegment rows; this row owns file identity and provenance. */
+export interface MediaAsset {
+  id: string;
+  library_id: string;
+  kind: MediaAssetKind;
+  source: MediaAssetSource;
+  provider: MediaLibraryProvider;
+  provider_file_id: string;
+  provider_revision_id: string | null;
+  provider_web_url: string | null;
+  name: string;
+  mime_type: string;
+  content_hash: string | null;
+  duration_ms: number | null;
+  width: number | null;
+  height: number | null;
+  fps: number | null;
+  size_bytes: number | null;
+  thumbnail_file_id: string | null;
+  proxy_file_id: string | null;
+  analysis_status: MediaAnalysisStatus;
+  analysis_error: string | null;
+  description: string | null;
+  tags_json: string | null;
+  objects_json: string | null;
+  transcript: string | null;
+  ocr_text: string | null;
+  embedding_ref: string | null;
+  last_seen_at: number;
+  analyzed_at: number | null;
+  created_at: number;
+  updated_at: number;
+}
+
+/** Searchable moment within an asset. A long video can produce many useful
+ *  b-roll segments, each with its own thumbnail, tags, and embedding. */
+export interface MediaAssetSegment {
+  id: string;
+  asset_id: string;
+  start_ms: number;
+  end_ms: number;
+  thumbnail_file_id: string | null;
+  description: string | null;
+  tags_json: string | null;
+  objects_json: string | null;
+  transcript: string | null;
+  ocr_text: string | null;
+  embedding_ref: string | null;
+  score: number | null;
+  created_at: number;
+  updated_at: number;
 }
 
 export interface Collection extends SyncFields {

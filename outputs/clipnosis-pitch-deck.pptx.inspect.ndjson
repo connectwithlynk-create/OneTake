@@ -1,0 +1,128 @@
+{"kind":"deck","id":"pr/s5ziiy","name":"Deck"}
+{"kind":"layout","layoutId":"6de67346-236e-470a-b61f-d09f7184bfcc","name":"Master","type":"master"}
+{"kind":"layout","layoutId":"dc9f3ed2-28d7-4dd7-8fd6-59759f7cbb00","name":"Title Slide","type":"title"}
+{"kind":"slide","id":"sl/ad66n3","slide":1,"title":"CLIPNOSIS","textShapes":10}
+{"kind":"textbox","id":"sh/sfil0rqd","slide":1,"text":"CLIPNOSIS","textPreview":"CLIPNOSIS","textChars":9,"textLines":1,"bbox":[54,44,360,32]}
+{"kind":"textbox","id":"sh/zupwb2hw","slide":1,"text":"SHORT-FORM VIDEO / IOS BETA","textPreview":"SHORT-FORM VIDEO / IOS BETA","textChars":27,"textLines":1,"bbox":[866,44,360,32]}
+{"kind":"textbox","id":"sh/a9w3m94f","slide":1,"text":"Think it.\nSee it.\nShip it.","textPreview":"Think it. | See it. | Ship it.","textChars":26,"textLines":3,"bbox":[54,168,720,260]}
+{"kind":"textbox","id":"sh/hcrmhk3q","slide":1,"text":"Clipnosis grades every take on your phone, sends keepers to desktop Studio, and returns a finished 1080x1920 reel ready to share.","textPreview":"Clipnosis grades every take on your phone, sends keepers to desktop Studio, and returns a finished 1080x1920 reel ready to share.","textChars":129,"textLines":1,"bbox":[54,468,720,92]}
+{"kind":"textbox","id":"sh/orytsvu9","slide":1,"text":"0.8s","textPreview":"0.8s","textChars":4,"textLines":1,"bbox":[860,186,220,58]}
+{"kind":"textbox","id":"sh/z61032ls","slide":1,"text":"verdict latency","textPreview":"verdict latency","textChars":15,"textLines":1,"bbox":[860,248,235,60]}
+{"kind":"textbox","id":"sh/al87ed8b","slide":1,"text":"82%","textPreview":"82%","textChars":3,"textLines":1,"bbox":[860,322,220,58]}
+{"kind":"textbox","id":"sh/hk3q5o7q","slide":1,"text":"keeper rate target","textPreview":"keeper rate target","textChars":18,"textLines":1,"bbox":[860,384,235,60]}
+{"kind":"textbox","id":"sh/oza1gvy9","slide":1,"text":"38s","textPreview":"38s","textChars":3,"textLines":1,"bbox":[860,458,220,58]}
+{"kind":"textbox","id":"sh/29gr2p8n","slide":1,"text":"auto-edit loop","textPreview":"auto-edit loop","textChars":14,"textLines":1,"bbox":[860,520,235,60]}
+{"kind":"notes","id":"nt/ad66n3","slide":1,"text":""}
+{"kind":"slide","id":"sl/ef6yqv","slide":2,"title":"PROBLEM","textShapes":9}
+{"kind":"textbox","id":"sh/p8nqxs72","slide":2,"text":"PROBLEM","textPreview":"PROBLEM","textChars":7,"textLines":1,"bbox":[54,42,520,30]}
+{"kind":"textbox","id":"sh/ih4byhgn","slide":2,"text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[1178,42,48,30]}
+{"kind":"textbox","id":"sh/72x4nap4","slide":2,"text":"Short-form creation is trapped between capture and edit.","textPreview":"Short-form creation is trapped between capture and edit.","textChars":56,"textLines":1,"bbox":[54,94,780,112]}
+{"kind":"shape","id":"sh/0z61032l","slide":2,"bbox":[54,330,350,220]}
+{"kind":"textbox","id":"sh/pkzupwb2","slide":2,"text":"Too many takes","textPreview":"Too many takes","textChars":14,"textLines":1,"bbox":[80,360,292,68]}
+{"kind":"textbox","id":"sh/itgfmlkj","slide":2,"text":"Creators record fast, then lose time deciding what is usable.","textPreview":"Creators record fast, then lose time deciding what is usable.","textChars":61,"textLines":1,"bbox":[80,436,292,86]}
+{"kind":"shape","id":"sh/7ed8bat4","slide":2,"bbox":[452,330,350,220]}
+{"kind":"textbox","id":"sh/0bi9s36h","slide":2,"text":"Editing breaks flow","textPreview":"Editing breaks flow","textChars":19,"textLines":1,"bbox":[478,360,292,68]}
+{"kind":"textbox","id":"sh/pwb2hwfy","slide":2,"text":"Manual trimming, captions, b-roll, and beat matching slow every post.","textPreview":"Manual trimming, captions, b-roll, and beat matching slow every post.","textChars":69,"textLines":1,"bbox":[478,436,292,86]}
+{"kind":"shape","id":"sh/94fu18jq","slide":2,"bbox":[850,330,350,220]}
+{"kind":"textbox","id":"sh/kjm1cfa9","slide":2,"text":"Mobile and desktop split","textPreview":"Mobile and desktop split","textChars":24,"textLines":1,"bbox":[876,360,292,68]}
+{"kind":"textbox","id":"sh/r2p8nqxs","slide":2,"text":"The best capture device and the best editing workspace rarely feel connected.","textPreview":"The best capture device and the best editing workspace rarely feel connected.","textChars":77,"textLines":1,"bbox":[876,436,292,86]}
+{"kind":"notes","id":"nt/ef6yqv","slide":2,"text":""}
+{"kind":"slide","id":"sl/2r8pyx","slide":3,"title":"SOLUTION","textShapes":13}
+{"kind":"textbox","id":"sh/x4nap4r6","slide":3,"text":"SOLUTION","textPreview":"SOLUTION","textChars":8,"textLines":1,"bbox":[54,42,520,30]}
+{"kind":"textbox","id":"sh/qd4vmtwr","slide":3,"text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[1178,42,48,30]}
+{"kind":"textbox","id":"sh/fyxobm58","slide":3,"text":"Clipnosis turns the edit into an intelligent loop.","textPreview":"Clipnosis turns the edit into an intelligent loop.","textChars":50,"textLines":1,"bbox":[54,94,780,112]}
+{"kind":"textbox","id":"sh/8v6psfil","slide":3,"text":"Creators keep recording on the phone. Clipnosis scores each take, moves only the best clips into Studio, and assembles the reel with captions, trims, audio beats, and b-roll.","textPreview":"Creators keep recording on the phone. Clipnosis scores each take, moves only the best clips into Studio, and assembles the reel with capt...","textChars":174,"textLines":1,"bbox":[54,222,680,120]}
+{"kind":"textbox","id":"sh/xczed8v6","slide":3,"text":"1","textPreview":"1","textChars":1,"textLines":1,"bbox":[112,430,46,44]}
+{"kind":"textbox","id":"sh/qpg3ex0n","slide":3,"text":"Grade takes","textPreview":"Grade takes","textChars":11,"textLines":1,"bbox":[174,426,220,34]}
+{"kind":"textbox","id":"sh/fa9w3m94","slide":3,"text":"On-phone verdicts surface the best moments.","textPreview":"On-phone verdicts surface the best moments.","textChars":43,"textLines":1,"bbox":[174,468,250,56]}
+{"kind":"textbox","id":"sh/8z25kb6x","slide":3,"text":"2","textPreview":"2","textChars":1,"textLines":1,"bbox":[482,430,46,44]}
+{"kind":"textbox","id":"sh/1gvy90je","slide":3,"text":"Auto-build","textPreview":"Auto-build","textChars":10,"textLines":1,"bbox":[544,426,220,34]}
+{"kind":"textbox","id":"sh/pg3ex0nu","slide":3,"text":"Studio assembles a draft around pacing and hooks.","textPreview":"Studio assembles a draft around pacing and hooks.","textChars":49,"textLines":1,"bbox":[544,468,250,56]}
+{"kind":"textbox","id":"sh/wval87ed","slide":3,"text":"3","textPreview":"3","textChars":1,"textLines":1,"bbox":[852,430,46,44]}
+{"kind":"textbox","id":"sh/7adsji5s","slide":3,"text":"Ship back","textPreview":"Ship back","textChars":9,"textLines":1,"bbox":[914,426,220,34]}
+{"kind":"textbox","id":"sh/epkzupwb","slide":3,"text":"The final vertical reel returns ready to post.","textPreview":"The final vertical reel returns ready to post.","textChars":46,"textLines":1,"bbox":[914,468,250,56]}
+{"kind":"notes","id":"nt/2r8pyx","slide":3,"text":""}
+{"kind":"slide","id":"sl/g2k0jd","slide":4,"title":"PRODUCT LOOP","textShapes":14}
+{"kind":"textbox","id":"sh/a5gbq1or","slide":4,"text":"PRODUCT LOOP","textPreview":"PRODUCT LOOP","textChars":12,"textLines":1,"bbox":[54,42,520,30]}
+{"kind":"textbox","id":"sh/lszqtcj6","slide":4,"text":"04","textPreview":"04","textChars":2,"textLines":1,"bbox":[1178,42,48,30]}
+{"kind":"textbox","id":"sh/s72x4nap","slide":4,"text":"A cross-device workflow built around creator speed.","textPreview":"A cross-device workflow built around creator speed.","textChars":51,"textLines":1,"bbox":[54,94,780,112]}
+{"kind":"shape","id":"sh/3ylc7u54","slide":4,"bbox":[76,330,242,170]}
+{"kind":"textbox","id":"sh/adsji5sn","slide":4,"text":"Phone capture","textPreview":"Phone capture","textChars":13,"textLines":1,"bbox":[98,356,198,34]}
+{"kind":"textbox","id":"sh/h4byhgn2","slide":4,"text":"Raw takes, clips, and ideas","textPreview":"Raw takes, clips, and ideas","textChars":27,"textLines":1,"bbox":[98,404,190,60]}
+{"kind":"textbox","id":"sh/sji5snel","slide":4,"text":">","textPreview":">","textChars":1,"textLines":1,"bbox":[336,390,28,40]}
+{"kind":"shape","id":"sh/za1gvy90","slide":4,"bbox":[376,330,242,170]}
+{"kind":"textbox","id":"sh/ap4r65wj","slide":4,"text":"Clipnosis score","textPreview":"Clipnosis score","textChars":15,"textLines":1,"bbox":[398,356,198,34]}
+{"kind":"textbox","id":"sh/0je9cvix","slide":4,"text":"Perfect, keep, or dud verdicts","textPreview":"Perfect, keep, or dud verdicts","textChars":30,"textLines":1,"bbox":[398,404,190,60]}
+{"kind":"textbox","id":"sh/t47y1kre","slide":4,"text":">","textPreview":">","textChars":1,"textLines":1,"bbox":[636,390,28,40]}
+{"kind":"shape","id":"sh/idonyd0z","slide":4,"bbox":[676,330,242,170]}
+{"kind":"textbox","id":"sh/byhgn29g","slide":4,"text":"Desktop Studio","textPreview":"Desktop Studio","textChars":14,"textLines":1,"bbox":[698,356,198,34]}
+{"kind":"textbox","id":"sh/0rqd4vmt","slide":4,"text":"Trims, captions, b-roll, audio","textPreview":"Trims, captions, b-roll, audio","textChars":30,"textLines":1,"bbox":[698,404,190,60]}
+{"kind":"textbox","id":"sh/tcj6tova","slide":4,"text":">","textPreview":">","textChars":1,"textLines":1,"bbox":[936,390,28,40]}
+{"kind":"shape","id":"sh/il0rqd4v","slide":4,"bbox":[976,330,242,170]}
+{"kind":"textbox","id":"sh/b6xkf6dc","slide":4,"text":"Phone export","textPreview":"Phone export","textChars":12,"textLines":1,"bbox":[998,356,198,34]}
+{"kind":"textbox","id":"sh/032lszqt","slide":4,"text":"1080x1920 reel, ready to share","textPreview":"1080x1920 reel, ready to share","textChars":30,"textLines":1,"bbox":[998,404,190,60]}
+{"kind":"notes","id":"nt/g2k0jd","slide":4,"text":""}
+{"kind":"slide","id":"sl/fsnjr6","slide":5,"title":"PRODUCT","textShapes":10}
+{"kind":"textbox","id":"sh/bulwval8","slide":5,"text":"PRODUCT","textPreview":"PRODUCT","textChars":7,"textLines":1,"bbox":[54,42,520,30]}
+{"kind":"textbox","id":"sh/0fepkzup","slide":5,"text":"05","textPreview":"05","textChars":2,"textLines":1,"bbox":[1178,42,48,30]}
+{"kind":"textbox","id":"sh/p0bi9s36","slide":5,"text":"The wedge is clip judgment before full editing.","textPreview":"The wedge is clip judgment before full editing.","textChars":47,"textLines":1,"bbox":[54,94,780,112]}
+{"kind":"textbox","id":"sh/ixczed8v","slide":5,"text":"Clipnosis starts where creators feel the most drag: deciding what footage is worth editing.","textPreview":"Clipnosis starts where creators feel the most drag: deciding what footage is worth editing.","textChars":91,"textLines":1,"bbox":[54,220,610,80]}
+{"kind":"textbox","id":"sh/bi9s36hc","slide":5,"text":"Perfect","textPreview":"Perfect","textChars":7,"textLines":1,"bbox":[90,390,220,58]}
+{"kind":"textbox","id":"sh/032lszqt","slide":5,"text":"strong hook, clean energy","textPreview":"strong hook, clean energy","textChars":25,"textLines":1,"bbox":[90,452,235,60]}
+{"kind":"textbox","id":"sh/tovahoza","slide":5,"text":"Keep","textPreview":"Keep","textChars":4,"textLines":1,"bbox":[430,390,220,58]}
+{"kind":"textbox","id":"sh/il0rqd4v","slide":5,"text":"usable moment for a sequence","textPreview":"usable moment for a sequence","textChars":28,"textLines":1,"bbox":[430,452,235,60]}
+{"kind":"textbox","id":"sh/b6xkf6dc","slide":5,"text":"Dud","textPreview":"Dud","textChars":3,"textLines":1,"bbox":[770,390,220,58]}
+{"kind":"textbox","id":"sh/32lszqtc","slide":5,"text":"discard before it reaches Studio","textPreview":"discard before it reaches Studio","textChars":32,"textLines":1,"bbox":[770,452,235,60]}
+{"kind":"notes","id":"nt/fsnjr6","slide":5,"text":""}
+{"kind":"slide","id":"sl/e3utmo","slide":6,"title":"MARKET","textShapes":9}
+{"kind":"textbox","id":"sh/tovahoza","slide":6,"text":"MARKET","textPreview":"MARKET","textChars":6,"textLines":1,"bbox":[54,42,520,30]}
+{"kind":"textbox","id":"sh/ixczed8v","slide":6,"text":"06","textPreview":"06","textChars":2,"textLines":1,"bbox":[1178,42,48,30]}
+{"kind":"textbox","id":"sh/bi9s36hc","slide":6,"text":"A tool for creators who publish often, not occasionally.","textPreview":"A tool for creators who publish often, not occasionally.","textChars":56,"textLines":1,"bbox":[54,94,780,112]}
+{"kind":"textbox","id":"sh/0fepkzup","slide":6,"text":"Initial users","textPreview":"Initial users","textChars":13,"textLines":1,"bbox":[54,250,250,36]}
+{"kind":"textbox","id":"sh/p0bi9s36","slide":6,"text":"Solo creators, founders, coaches, trainers, and operators posting vertical video.","textPreview":"Solo creators, founders, coaches, trainers, and operators posting vertical video.","textChars":81,"textLines":1,"bbox":[340,250,760,58]}
+{"kind":"textbox","id":"sh/i9s36hcr","slide":6,"text":"Core budget","textPreview":"Core budget","textChars":11,"textLines":1,"bbox":[54,368,250,36]}
+{"kind":"textbox","id":"sh/bulwval8","slide":6,"text":"Time currently spent on manual editing, outsourced edits, templates, and caption tools.","textPreview":"Time currently spent on manual editing, outsourced edits, templates, and caption tools.","textChars":87,"textLines":1,"bbox":[340,368,760,58]}
+{"kind":"textbox","id":"sh/0je9cvix","slide":6,"text":"Expansion","textPreview":"Expansion","textChars":9,"textLines":1,"bbox":[54,486,250,36]}
+{"kind":"textbox","id":"sh/t47y1kre","slide":6,"text":"Team workflows, brand kits, shared Studio projects, and performance-aware edits.","textPreview":"Team workflows, brand kits, shared Studio projects, and performance-aware edits.","textChars":80,"textLines":1,"bbox":[340,486,760,58]}
+{"kind":"notes","id":"nt/e3utmo","slide":6,"text":""}
+{"kind":"slide","id":"sl/5m5b5t","slide":7,"title":"WHY NOW","textShapes":9}
+{"kind":"textbox","id":"sh/61032lsz","slide":7,"text":"WHY NOW","textPreview":"WHY NOW","textChars":7,"textLines":1,"bbox":[54,42,520,30]}
+{"kind":"textbox","id":"sh/dsji5sne","slide":7,"text":"07","textPreview":"07","textChars":2,"textLines":1,"bbox":[1178,42,48,30]}
+{"kind":"textbox","id":"sh/o7qpg3ex","slide":7,"text":"The creator stack is ready for assistive editing.","textPreview":"The creator stack is ready for assistive editing.","textChars":49,"textLines":1,"bbox":[54,94,780,112]}
+{"kind":"textbox","id":"sh/vy90je9c","slide":7,"text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[54,252,72,42]}
+{"kind":"textbox","id":"sh/6dcbulwv","slide":7,"text":"Short-form formats reward speed, volume, and iteration.","textPreview":"Short-form formats reward speed, volume, and iteration.","textChars":55,"textLines":1,"bbox":[150,250,920,48]}
+{"kind":"textbox","id":"sh/d4vmtwra","slide":7,"text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[54,360,72,42]}
+{"kind":"textbox","id":"sh/oj2t83it","slide":7,"text":"On-device capture creates rich signals before clips ever reach an editor.","textPreview":"On-device capture creates rich signals before clips ever reach an editor.","textChars":73,"textLines":1,"bbox":[150,358,920,48]}
+{"kind":"textbox","id":"sh/z25kb6xk","slide":7,"text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[54,468,72,42]}
+{"kind":"textbox","id":"sh/6hcrmhk3","slide":7,"text":"AI-assisted editing can now reason about pacing, captions, hooks, and beats.","textPreview":"AI-assisted editing can now reason about pacing, captions, hooks, and beats.","textChars":76,"textLines":1,"bbox":[150,466,920,48]}
+{"kind":"notes","id":"nt/5m5b5t","slide":7,"text":""}
+{"kind":"slide","id":"sl/5e7p0a","slide":8,"title":"BUSINESS MODEL","textShapes":9}
+{"kind":"textbox","id":"sh/4byhgn29","slide":8,"text":"BUSINESS MODEL","textPreview":"BUSINESS MODEL","textChars":14,"textLines":1,"bbox":[54,42,520,30]}
+{"kind":"textbox","id":"sh/bq1oryts","slide":8,"text":"08","textPreview":"08","textChars":2,"textLines":1,"bbox":[1178,42,48,30]}
+{"kind":"textbox","id":"sh/m58z25kb","slide":8,"text":"Start free in beta, then monetize workflow intensity.","textPreview":"Start free in beta, then monetize workflow intensity.","textChars":53,"textLines":1,"bbox":[54,94,780,112]}
+{"kind":"textbox","id":"sh/t83itgfm","slide":8,"text":"Free beta","textPreview":"Free beta","textChars":9,"textLines":1,"bbox":[54,302,290,38]}
+{"kind":"textbox","id":"sh/4nap4r65","slide":8,"text":"Acquire creators, learn scoring signals, and refine the loop.","textPreview":"Acquire creators, learn scoring signals, and refine the loop.","textChars":61,"textLines":1,"bbox":[54,358,320,100]}
+{"kind":"textbox","id":"sh/b2hwfyxo","slide":8,"text":"Pro","textPreview":"Pro","textChars":3,"textLines":1,"bbox":[452,302,290,38]}
+{"kind":"textbox","id":"sh/mhk3q5o7","slide":8,"text":"Unlimited projects, faster exports, brand kits, caption styles, and Studio automation.","textPreview":"Unlimited projects, faster exports, brand kits, caption styles, and Studio automation.","textChars":86,"textLines":1,"bbox":[452,358,320,100]}
+{"kind":"textbox","id":"sh/tgfmlkjm","slide":8,"text":"Team","textPreview":"Team","textChars":4,"textLines":1,"bbox":[850,302,290,38]}
+{"kind":"textbox","id":"sh/4vmtwra5","slide":8,"text":"Shared collections, review flows, and managed creator pipelines.","textPreview":"Shared collections, review flows, and managed creator pipelines.","textChars":64,"textLines":1,"bbox":[850,358,320,100]}
+{"kind":"notes","id":"nt/5e7p0a","slide":8,"text":""}
+{"kind":"slide","id":"sl/ixxtax","slide":9,"title":"ROADMAP","textShapes":9}
+{"kind":"textbox","id":"sh/2x4nap4r","slide":9,"text":"ROADMAP","textPreview":"ROADMAP","textChars":7,"textLines":1,"bbox":[54,42,520,30]}
+{"kind":"textbox","id":"sh/donyd0z6","slide":9,"text":"09","textPreview":"09","textChars":2,"textLines":1,"bbox":[1178,42,48,30]}
+{"kind":"textbox","id":"sh/k3q5o7qp","slide":9,"text":"Milestones focus on proof, retention, and export quality.","textPreview":"Milestones focus on proof, retention, and export quality.","textChars":57,"textLines":1,"bbox":[54,94,780,112]}
+{"kind":"textbox","id":"sh/val87ed8","slide":9,"text":"Now","textPreview":"Now","textChars":3,"textLines":1,"bbox":[92,270,160,42]}
+{"kind":"textbox","id":"sh/6psfil0r","slide":9,"text":"iOS beta, clip grading, local workspace, Studio loop","textPreview":"iOS beta, clip grading, local workspace, Studio loop","textChars":52,"textLines":1,"bbox":[280,272,770,42]}
+{"kind":"textbox","id":"sh/dcbulwva","slide":9,"text":"Next","textPreview":"Next","textChars":4,"textLines":1,"bbox":[92,382,160,42]}
+{"kind":"textbox","id":"sh/kre1w7mp","slide":9,"text":"Caption style controls, b-roll drops, audio beat matching","textPreview":"Caption style controls, b-roll drops, audio beat matching","textChars":57,"textLines":1,"bbox":[280,384,770,42]}
+{"kind":"textbox","id":"sh/v6psfil0","slide":9,"text":"Later","textPreview":"Later","textChars":5,"textLines":1,"bbox":[92,494,160,42]}
+{"kind":"textbox","id":"sh/2lszqtcj","slide":9,"text":"Performance learning, team spaces, repeatable creator templates","textPreview":"Performance learning, team spaces, repeatable creator templates","textChars":63,"textLines":1,"bbox":[280,496,770,42]}
+{"kind":"notes","id":"nt/ixxtax","slide":9,"text":""}
+{"kind":"slide","id":"sl/psu2el","slide":10,"title":"ASK","textShapes":6}
+{"kind":"textbox","id":"sh/fepkzupw","slide":10,"text":"ASK","textPreview":"ASK","textChars":3,"textLines":1,"bbox":[54,42,520,30]}
+{"kind":"textbox","id":"sh/4zidonyd","slide":10,"text":"10","textPreview":"10","textChars":2,"textLines":1,"bbox":[1178,42,48,30]}
+{"kind":"textbox","id":"sh/xkf6dcbu","slide":10,"text":"Help Clipnosis prove the creator edit loop.","textPreview":"Help Clipnosis prove the creator edit loop.","textChars":43,"textLines":1,"bbox":[54,94,780,112]}
+{"kind":"textbox","id":"sh/mlkjm1cf","slide":10,"text":"We are looking for beta creators, design partners, and early capital to validate retention, improve automated edit quality, and ship the full phone-to-Studio-to-phone workflow.","textPreview":"We are looking for beta creators, design partners, and early capital to validate retention, improve automated edit quality, and ship the ...","textChars":176,"textLines":1,"bbox":[54,236,760,130]}
+{"kind":"textbox","id":"sh/f6dcbulw","slide":10,"text":"Clipnosis","textPreview":"Clipnosis","textChars":9,"textLines":1,"bbox":[54,552,340,54]}
+{"kind":"textbox","id":"sh/4r65wjud","slide":10,"text":"Think it. See it. Ship it.","textPreview":"Think it. See it. Ship it.","textChars":26,"textLines":1,"bbox":[54,610,420,34]}
+{"kind":"notes","id":"nt/psu2el","slide":10,"text":""}

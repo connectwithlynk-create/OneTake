@@ -1,0 +1,1508 @@
+{
+  "total_duration_ms": 13968,
+  "shots": [
+    {
+      "shot_idx": 0,
+      "start_ms": 0,
+      "end_ms": 683,
+      "duration_ms": 683,
+      "spoken_during": "▎ What",
+      "structure_role": "hook",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.95,
+          "likelihood": 0.95,
+          "broll_description": "Close-up of Ara IDE logo with animated code lines in the background.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://ara.com",
+              "focus": "IDE logo and animated code"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "zoom in 1.1x over the shot"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "A focused shot of Ara's logo emphasizes the brand while hinting at its coding capabilities."
+        },
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.95,
+          "broll_description": "Dynamic animation showing the Ara IDE interface on a laptop screen.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://ara.com/product",
+              "focus": "IDE interface on laptop"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Showcasing the actual interface gives an immediate visual link to the product."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.6,
+          "likelihood": 0.95,
+          "broll_description": "Static view of Ara's homepage with the logo in focus.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://ara.com",
+              "focus": "homepage hero or logo lockup"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "The homepage is readily accessible, making this a reliable fallback."
+        }
+      ],
+      "broll_description": "Close-up of Ara IDE logo with animated code lines in the background.",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://ara.com",
+          "focus": "IDE logo and animated code"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "zoom in 1.1x over the shot"
+      },
+      "placement": {
+        "aspect": "16:9",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "screen recording of the subject's website",
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DYg26zgRiGS/",
+        "shot_idx": 0,
+        "pattern": "The opening shot zooms into a tech device, establishing context."
+      },
+      "text_overlay": "< & WHAT IS ARA —",
+      "text_position": "middle_center",
+      "animation_cue": "zoom-in over the shot",
+      "sfx_cue": "vocal hit",
+      "clip_type": "broll_visual",
+      "rationale": "Opening with Ara's branding helps captivate the audience and introduce the subject.",
+      "selected_media": [
+        {
+          "url": "clips://files/71e2c5edb3a1bbdf/0.mp4",
+          "kind": "video",
+          "origin": "extract_clip",
+          "from_candidate_url": "capture://files/8982f503a6eff272.mp4",
+          "reason": "scene 1 (8.0s)",
+          "start_ms": 0,
+          "end_ms": 8000
+        }
+      ]
+    },
+    {
+      "shot_idx": 1,
+      "start_ms": 683,
+      "end_ms": 1467,
+      "duration_ms": 784,
+      "spoken_during": "What is this IDE",
+      "structure_role": "hook",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.92,
+          "likelihood": 0.95,
+          "broll_description": "Zoom-in on a developer typing on a laptop running Ara IDE.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://twitter.com/ara_dev",
+              "focus": "developer using Ara IDE"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "zoom in 1.2x over the shot"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screenshot of the subject's social media profile",
+          "rationale": "Watching a developer interact with ARA grounds the audience in its use case."
+        },
+        {
+          "tier": "ideal",
+          "fit_score": 0.87,
+          "likelihood": 0.95,
+          "broll_description": "Close-up of computer screen showing Ara IDE's dashboard features.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://ara.com/features",
+              "focus": "dashboard features"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Displaying the dashboard highlights the efficiency and focus on software development."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.58,
+          "likelihood": 0.95,
+          "broll_description": "Static image of a webpage displaying an overview of Ara IDE.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://ara.com",
+              "focus": "overview section"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "This fallback captures the product description on their homepage."
+        }
+      ],
+      "broll_description": "Zoom-in on a developer typing on a laptop running Ara IDE.",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://twitter.com/ara_dev",
+          "focus": "developer using Ara IDE"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "zoom in 1.2x over the shot"
+      },
+      "placement": {
+        "aspect": "16:9",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "screenshot of the subject's social media profile",
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DYg26zgRiGS/",
+        "shot_idx": 1,
+        "pattern": "Progressive zoom on tech elements establishes the subject theme."
+      },
+      "text_overlay": "WHAT IS THIS IDE",
+      "text_position": "middle_center",
+      "animation_cue": "zoom-in over the shot",
+      "sfx_cue": "vocal hit",
+      "clip_type": "broll_visual",
+      "rationale": "Building intrigue with tangible interaction and visual confirmation of the IDE."
+    },
+    {
+      "shot_idx": 2,
+      "start_ms": 1467,
+      "end_ms": 2116,
+      "duration_ms": 649,
+      "spoken_during": "IDE that",
+      "structure_role": "intro",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.91,
+          "likelihood": 0.95,
+          "broll_description": "Screen recording of YC company directory page with Ara's profile highlighted.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.ycombinator.com/companies/ara",
+              "focus": "company profile with YC details"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of an authoritative external site",
+          "rationale": "Highlighting Ara's YC affiliation reinforces trust and prestige."
+        },
+        {
+          "tier": "ideal",
+          "fit_score": 0.85,
+          "likelihood": 0.95,
+          "broll_description": "Direct view of Ara's inclusion in a notable tech incubator newsletter screenshot.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://techcrunch.com/2023/04/01/ara-joins-yc/",
+              "focus": "featured image with company mention"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of an authoritative external site",
+          "rationale": "Reporting a reputable news source establishes credibility and provides context."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.55,
+          "likelihood": 0.95,
+          "broll_description": "Static announcement of Ara's admission into YC on their website page.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://ara.com/yc-admission",
+              "focus": "admission announcement section"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Accessible and straightforward fallback outlines the company's milestone."
+        }
+      ],
+      "broll_description": "Screen recording of YC company directory page with Ara's profile highlighted.",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://www.ycombinator.com/companies/ara",
+          "focus": "company profile with YC details"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "static"
+      },
+      "placement": {
+        "aspect": "16:9",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "screen recording of an authoritative external site",
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DYg26zgRiGS/",
+        "shot_idx": 3,
+        "pattern": "Introducing key credentials immediately establishes credibility."
+      },
+      "text_overlay": "IDE THAT GOT INTO YC",
+      "text_position": "top_center",
+      "animation_cue": "static cut",
+      "sfx_cue": "none",
+      "clip_type": "broll_visual",
+      "rationale": "Leveraging validating milestones like YC admission aligns with prominent status."
+    },
+    {
+      "shot_idx": 3,
+      "start_ms": 2116,
+      "end_ms": 2423,
+      "duration_ms": 307,
+      "spoken_during": "that got",
+      "structure_role": "intro",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.88,
+          "likelihood": 0.95,
+          "broll_description": "Compilation of clips showing Ara developers brainstorming over coffee.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://ara.com/blog/culture",
+              "focus": "company culture photos"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Highlights the collaborative ethos and ingenuity of Ara's team."
+        },
+        {
+          "tier": "ideal",
+          "fit_score": 0.82,
+          "likelihood": 0.95,
+          "broll_description": "Social media clip of Ara developers celebrating entry to YC in an office setting.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://twitter.com/ara_dev",
+              "focus": "celebration post with office setting"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screenshot of the subject's social media profile",
+          "rationale": "Gives a personal and relatable aspect by showing personal celebrations."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.53,
+          "likelihood": 0.95,
+          "broll_description": "Ara's press release photo detailing their YC journey.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://ara.com/press",
+              "focus": "press release photo"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Press releases provide concrete and publicly vetted information, ensuring fallback viability."
+        }
+      ],
+      "broll_description": "Compilation of clips showing Ara developers brainstorming over coffee.",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://ara.com/blog/culture",
+          "focus": "company culture photos"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "static"
+      },
+      "placement": {
+        "aspect": "16:9",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "screen recording of the subject's website",
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DYlQlfYuTc7/",
+        "shot_idx": 5,
+        "pattern": "Personality-driven introductions establishing context with team emphasizes brand story."
+      },
+      "text_overlay": "GOT INTO YC? THIS IS ARA",
+      "text_position": "bottom_center",
+      "animation_cue": "static cut",
+      "sfx_cue": "none",
+      "clip_type": "broll_visual",
+      "rationale": "Connecting human energy and team spirit with the brand narrative."
+    },
+    {
+      "shot_idx": 4,
+      "start_ms": 2423,
+      "end_ms": 3958,
+      "duration_ms": 1535,
+      "spoken_during": "got into YC? ▎ This",
+      "structure_role": "intro",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.89,
+          "likelihood": 0.95,
+          "broll_description": "Zoomed-in shot of Ara's website header showing YC acceptance badge.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://ara.com",
+              "focus": "YC acceptance badge in header"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Concretizes Ara’s achievement visually for the audience."
+        },
+        {
+          "tier": "ideal",
+          "fit_score": 0.83,
+          "likelihood": 0.95,
+          "broll_description": "Still of Ara's founders pictured with YC co-founder during networking event.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://ara.com/team",
+              "focus": "event photo with a notable figure"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "close-up of a relevant prop or artifact",
+          "rationale": "Places Ara strategically among influential figures, underscoring networking prowess."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.56,
+          "likelihood": 0.95,
+          "broll_description": "Static shot from Ara's blog announcing YC inclusion and its implications.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://ara.com/blog/yc-entry",
+              "focus": "announcement blog post"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Captures significant milestones with visible impact for fallback use."
+        }
+      ],
+      "broll_description": "Zoomed-in shot of Ara's website header showing YC acceptance badge.",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://ara.com",
+          "focus": "YC acceptance badge in header"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "static"
+      },
+      "placement": {
+        "aspect": "16:9",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "screen recording of the subject's website",
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DXz_iMJNjlV/",
+        "shot_idx": 2,
+        "pattern": "Integrating key elements on screen conveys focal points engagingly."
+      },
+      "text_overlay": "THIS IS ARA",
+      "text_position": "middle_center",
+      "animation_cue": "static cut",
+      "sfx_cue": "none",
+      "clip_type": "broll_visual",
+      "rationale": "Reinforcing brand identity through associative transitive benefits solidifies introduction."
+    },
+    {
+      "shot_idx": 5,
+      "start_ms": 3958,
+      "end_ms": 4947,
+      "duration_ms": 989,
+      "spoken_during": "This is Ara",
+      "structure_role": "body",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.93,
+          "likelihood": 0.95,
+          "broll_description": "Animated diagram showing Ara's system architecture with interactive elements.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://ara.com/architecture",
+              "focus": "system architecture diagram"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "type-on text"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "close-up of a relevant prop or artifact",
+          "rationale": "Breaks down Ara's technical uniqueness into digestible elements, engaging tech-savvy viewers."
+        },
+        {
+          "tier": "ideal",
+          "fit_score": 0.85,
+          "likelihood": 0.95,
+          "broll_description": "Video collage mixing coding snippets and finished project demonstrations.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://ara.com/showcase",
+              "focus": "coding snippets and demos"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "close-up of a relevant prop or artifact",
+          "rationale": "Illustrates Ara's transformation of code into tangible projects, underscoring functional adaptability."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.57,
+          "likelihood": 0.95,
+          "broll_description": "Static chart of Ara's process steps from integration to deployment.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://ara.com/process",
+              "focus": "integration to deployment chart"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "close-up of a relevant prop or artifact",
+          "rationale": "Provides foundational understanding as a visually accessible fallback resource."
+        }
+      ],
+      "broll_description": "Animated diagram showing Ara's system architecture with interactive elements.",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://ara.com/architecture",
+          "focus": "system architecture diagram"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "type-on text"
+      },
+      "placement": {
+        "aspect": "16:9",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "close-up of a relevant prop or artifact",
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DYg26zgRiGS/",
+        "shot_idx": 6,
+        "pattern": "Demonstrates function and utility via animated transitions holding viewer attention."
+      },
+      "text_overlay": "RUNS BACKGROUND AGENTS",
+      "text_position": "bottom_center",
+      "animation_cue": "type-on text",
+      "sfx_cue": null,
+      "clip_type": "broll_visual",
+      "rationale": "Explains Ara's main actionable feature, encouraging deeper interest and understanding."
+    },
+    {
+      "shot_idx": 6,
+      "start_ms": 4947,
+      "end_ms": 7983,
+      "duration_ms": 3036,
+      "spoken_during": "Ara and it runs background agents while you work",
+      "structure_role": "body",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.95,
+          "broll_description": "Animated visualization illustrating how Ara's background agents operate on code.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://ara.com/technology",
+              "focus": "background agents operation visualization"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "close-up of a relevant prop or artifact",
+          "rationale": "Transforms Ara's abstract agent processes into a clearer visual for audiences."
+        },
+        {
+          "tier": "ideal",
+          "fit_score": 0.87,
+          "likelihood": 0.95,
+          "broll_description": "Video of a live coding session with Ara agents interacting on-screen.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://youtube.com/watch?v=coding_session",
+              "focus": "live coding with Ara agents"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of an authoritative external site",
+          "rationale": "Reveals real-time collaboration and coding enhancements facilitated by Ara."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.62,
+          "likelihood": 0.95,
+          "broll_description": "Screen capture of in-progress code on Ara's IDE during agent activation.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://ara.com/demo",
+              "focus": "code on IDE with agent activity"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Effective fallback grounding understanding in realistic application of Ara tools."
+        }
+      ],
+      "broll_description": "Animated visualization illustrating how Ara's background agents operate on code.",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://ara.com/technology",
+          "focus": "background agents operation visualization"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "static"
+      },
+      "placement": {
+        "aspect": "16:9",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "close-up of a relevant prop or artifact",
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DU_3YEUEoGG/",
+        "shot_idx": 3,
+        "pattern": "Engages viewer through detailed, animated illustrations consistent with explained capabilities."
+      },
+      "text_overlay": "ARA TURNS CODING",
+      "text_position": "middle_center",
+      "animation_cue": "type-on text",
+      "sfx_cue": null,
+      "clip_type": "broll_visual",
+      "rationale": "Visual transition engages spectators and succinctly conveys coding’s transformative potential."
+    },
+    {
+      "shot_idx": 7,
+      "start_ms": 7983,
+      "end_ms": 8802,
+      "duration_ms": 819,
+      "spoken_during": "work Ara turns",
+      "structure_role": "body",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.95,
+          "likelihood": 0.95,
+          "broll_description": "Interactive mockup demonstrating closed-loop coding process with Ara.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://ara.com/features/closed-loop",
+              "focus": "mockup of closed-loop process"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "close-up of a relevant prop or artifact",
+          "rationale": "Renders Ara’s unique value proposition via visually guided steps."
+        },
+        {
+          "tier": "ideal",
+          "fit_score": 0.91,
+          "likelihood": 0.95,
+          "broll_description": "Success story showcasing a finished product developed entirely through Ara tools.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://ara.com/success-stories",
+              "focus": "finished product developed with Ara"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "close-up of a relevant prop or artifact",
+          "rationale": "An effective proof solution creating narrative continuity of Ara as an engine."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.59,
+          "likelihood": 0.95,
+          "broll_description": "Page layout showing how Ara facilitates a closed-loop with a series of steps in text.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://ara.com/processes",
+              "focus": "closed-loop coding page layout"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Page layouts are uncomplicated and highly accessible, paramount for fallback."
+        }
+      ],
+      "broll_description": "Interactive mockup demonstrating closed-loop coding process with Ara.",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://ara.com/features/closed-loop",
+          "focus": "mockup of closed-loop process"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "static"
+      },
+      "placement": {
+        "aspect": "16:9",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "close-up of a relevant prop or artifact",
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DYlQlfYuTc7/",
+        "shot_idx": 7,
+        "pattern": "Centralized value core animation provides viewer understanding on functionality."
+      },
+      "text_overlay": "INTO A CLOSED LOOP",
+      "text_position": "bottom_center",
+      "animation_cue": "type-on text",
+      "sfx_cue": null,
+      "clip_type": "broll_visual",
+      "rationale": "Emphasizes Ara's ability to streamline processes reciprocating the closed-loop framework."
+    },
+    {
+      "shot_idx": 8,
+      "start_ms": 8802,
+      "end_ms": 9552,
+      "duration_ms": 750,
+      "spoken_during": "turns coding into",
+      "structure_role": "cta",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.92,
+          "likelihood": 0.95,
+          "broll_description": "Interactive poll on Ara’s landing page asking for user preferences over Cursor.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://ara.com/poll",
+              "focus": "poll asking for user feedback"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "zoom-in over the shot"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "split_top",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Poll interactions provoke engagement by soliciting user opinions on competitive landscape."
+        },
+        {
+          "tier": "ideal",
+          "fit_score": 0.85,
+          "likelihood": 0.95,
+          "broll_description": "Video still of an influencer comparing Ara and Cursor IDE functionalities.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://youtube.com/watch?v=ara_vs_cursor",
+              "focus": "influencer comparison review"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "split_top",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of an authoritative external site",
+          "rationale": "Authoritative comparisons validate user choices through persuasive third-party recommendations."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.61,
+          "likelihood": 0.95,
+          "broll_description": "Static frame showcasing an Ara feature comparison chart against similar platforms.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://ara.com/comparison",
+              "focus": "feature comparison chart"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "split_top",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Comparative tables provide direct, accessible insights into varied offerings, enhancing fallback support."
+        }
+      ],
+      "broll_description": "Interactive poll on Ara’s landing page asking for user preferences over Cursor.",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://ara.com/poll",
+          "focus": "poll asking for user feedback"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "zoom-in over the shot"
+      },
+      "placement": {
+        "aspect": "16:9",
+        "fit": "split_top",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "screen recording of the subject's website",
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/reel/DYxLMnNRzQ5/?igsh=bXhtY2JlNjhsYzNm",
+        "shot_idx": 9,
+        "pattern": "Conclusion queries in open-ended format maximizes audience engagement."
+      },
+      "text_overlay": "WOULD YOU USE ARA OVER CURSOR?",
+      "text_position": "middle_center",
+      "animation_cue": "zoom-in over the shot",
+      "sfx_cue": "vocal hit",
+      "clip_type": "talking_head",
+      "rationale": "Encouraging viewer engagement and participation closes the reel with a potent final note."
+    },
+    {
+      "shot_idx": 9,
+      "start_ms": 9552,
+      "end_ms": 11258,
+      "duration_ms": 1706,
+      "spoken_during": "into a closed loop.",
+      "structure_role": "unspecified",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.95,
+          "broll_description": "Real public web source visualizing: into a closed loop.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "",
+              "focus": "into a closed loop."
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "unspecified",
+          "rationale": "Auto-generated fallback: model returned an empty option for this shot; curator agent will research it via the improvisation ladder."
+        }
+      ],
+      "broll_description": "Real public web source visualizing: into a closed loop.",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "",
+          "focus": "into a closed loop."
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": null
+      },
+      "placement": {
+        "aspect": "9:16",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "unspecified",
+      "additional_elements": [],
+      "inspired_by": null,
+      "text_overlay": "",
+      "text_position": "bottom_center",
+      "animation_cue": null,
+      "sfx_cue": null,
+      "clip_type": "broll_visual",
+      "rationale": ""
+    },
+    {
+      "shot_idx": 10,
+      "start_ms": 11258,
+      "end_ms": 13968,
+      "duration_ms": 2710,
+      "spoken_during": "▎ Would you use ara over cursor?",
+      "structure_role": "unspecified",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.95,
+          "broll_description": "Real public web source visualizing: ▎ Would you use ara over cursor?",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "",
+              "focus": "▎ Would you use ara over cursor?"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "unspecified",
+          "rationale": "Auto-generated fallback: model returned an empty option for this shot; curator agent will research it via the improvisation ladder."
+        }
+      ],
+      "broll_description": "Real public web source visualizing: ▎ Would you use ara over cursor?",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "",
+          "focus": "▎ Would you use ara over cursor?"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": null
+      },
+      "placement": {
+        "aspect": "9:16",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "unspecified",
+      "additional_elements": [],
+      "inspired_by": null,
+      "text_overlay": "",
+      "text_position": "bottom_center",
+      "animation_cue": null,
+      "sfx_cue": null,
+      "clip_type": "broll_visual",
+      "rationale": ""
+    }
+  ],
+  "structure_sections": [
+    {
+      "role": "hook",
+      "script_template": "What's this <thing> that's <feature>?",
+      "target_fill": "▎ What is this IDE",
+      "target_start_ms": 0,
+      "target_end_ms": 1470,
+      "shot_count": 2,
+      "visual_signature": {
+        "dominant_clip_type": "broll_visual",
+        "placement_pattern": "fullbleed 9:16",
+        "text_overlay_pattern": "large center caption big font",
+        "sfx_pattern": "vocal hit on cut in",
+        "motion_pattern": "zoom-in over the shot",
+        "scene_elements": []
+      }
+    },
+    {
+      "role": "intro",
+      "script_template": "This is <subject>, and <action>.",
+      "target_fill": "IDE that got into YC? ▎ This is Ara",
+      "target_start_ms": 1470,
+      "target_end_ms": 4950,
+      "shot_count": 4,
+      "visual_signature": {
+        "dominant_clip_type": "talking_head_unknown",
+        "placement_pattern": "fullbleed 9:16",
+        "text_overlay_pattern": "none",
+        "sfx_pattern": "silent open",
+        "motion_pattern": "static cut",
+        "scene_elements": []
+      }
+    },
+    {
+      "role": "body",
+      "script_template": "<claim 1>. <claim 2>.",
+      "target_fill": "Ara and it runs background agents while you work Ara turns coding into a closed loop.",
+      "target_start_ms": 4950,
+      "target_end_ms": 11260,
+      "shot_count": 5,
+      "visual_signature": {
+        "dominant_clip_type": "broll_visual",
+        "placement_pattern": "fullbleed 9:16",
+        "text_overlay_pattern": "small bottom strip",
+        "sfx_pattern": "whoosh whoosh",
+        "motion_pattern": "type-on text",
+        "scene_elements": []
+      }
+    },
+    {
+      "role": "cta",
+      "script_template": "Would you <ask>?",
+      "target_fill": "▎ Would you use ara over cursor?",
+      "target_start_ms": 11260,
+      "target_end_ms": 13970,
+      "shot_count": 1,
+      "visual_signature": {
+        "dominant_clip_type": "talking_head",
+        "placement_pattern": "split-screen top",
+        "text_overlay_pattern": "large center caption big font",
+        "sfx_pattern": "vocal hit on cut in",
+        "motion_pattern": "zoom-in over the shot",
+        "scene_elements": []
+      }
+    }
+  ],
+  "structure_confidence": "high",
+  "structure_rationale": "The reels clearly follow a pattern with hooks, introductions, bodies, and calls to action, making the structure highly predictable.",
+  "structure_alternatives": null,
+  "content_source_patterns": [
+    "screen recording of the subject's website",
+    "close-up of a relevant prop or artifact",
+    "screenshot of the subject's social media profile",
+    "stock / archival footage tied to a claim"
+  ],
+  "style_summary": "- reel 1: 15.9s, 21 shots, cuts/sec=1.26, text=95%, SFX=61/min\n- reel 2: 14.8s, 7 shots, cuts/sec=0.41, text=100%, SFX=32/min\n- reel 3: 17.3s, 9 shots, cuts/sec=0.46, text=100%, SFX=62/min\n- reel 4: 12.6s, 8 shots, cuts/sec=0.55, text=100%, SFX=29/min\n- reel 5: 13.7s, 11 shots, cuts/sec=0.73, text=100%, SFX=57/min\n- reel 6: 17.3s, 9 shots, cuts/sec=0.46, text=100%, SFX=62/min",
+  "content_sources": [
+    "https://www.instagram.com/p/DYlQlfYuTc7/",
+    "https://www.instagram.com/p/DYg26zgRiGS/",
+    "https://www.instagram.com/reel/DYxLMnNRzQ5/?igsh=bXhtY2JlNjhsYzNm",
+    "https://www.instagram.com/reel/DYg26zgRiGS/?igsh=enl3MzA3dnFnNHNv"
+  ],
+  "target_metrics": {
+    "fingerprint_version": 3,
+    "computed_at": 1780362320738,
+    "n_reels": 3,
+    "n_shots": 41,
+    "median_shot_ms": 800,
+    "cuts_per_sec": 0.8186244454438908,
+    "clip_type_distribution": {
+      "talking_head": 0.19202795602538228,
+      "broll_talking_head": 0.15367065186187284,
+      "talking_head_unknown": 0.22844009428188963,
+      "broll_visual": 0.4258612978308553
+    },
+    "real_speaker_pct": 0.14381914381914382,
+    "broll_talking_head_pct": 0.10678210678210677,
+    "face_size_median": 0.38380971699953076,
+    "face_region_distribution": {
+      "top_left": 0,
+      "top_center": 0.2111111111111111,
+      "top_right": 0.027777777777777776,
+      "middle_left": 0.027777777777777776,
+      "middle_center": 0.4444444444444444,
+      "middle_right": 0,
+      "bottom_left": 0.027777777777777776,
+      "bottom_center": 0.2611111111111111,
+      "bottom_right": 0
+    },
+    "face_region_dominant": "mixed",
+    "text_overlay_pct": 0.9841269841269842,
+    "text_region_distribution": {
+      "top_left": 0.07557587961556778,
+      "top_center": 0.11220606046970327,
+      "top_right": 0.06439577169555909,
+      "middle_left": 0.09278945848754494,
+      "middle_center": 0.25330828449184223,
+      "middle_right": 0.09745236782798794,
+      "bottom_left": 0.07112858530292974,
+      "bottom_center": 0.1833402705124888,
+      "bottom_right": 0.04980332159637616
+    },
+    "text_region_dominant": "mixed",
+    "media_overlay_pct": 0.046176046176046176,
+    "overlays_per_min": 3.9879058042529287,
+    "overlay_kind_distribution": {
+      "image": 0.75,
+      "sticker": 0,
+      "gif": 0,
+      "pip_video": 0.25,
+      "emoji_graphic": 0
+    },
+    "overlay_motion_distribution": {
+      "static": 0.75,
+      "animated": 0.25
+    },
+    "overlay_region_distribution": {
+      "top_left": 0,
+      "top_center": 0,
+      "top_right": 0,
+      "middle_left": 0,
+      "middle_center": 0.25,
+      "middle_right": 0.25,
+      "bottom_left": 0.5,
+      "bottom_center": 0,
+      "bottom_right": 0
+    },
+    "overlay_region_dominant": "mixed",
+    "voiceover_pct": 0.9370862999995276,
+    "music_pct": 0.03239355502829707,
+    "audio_silence_pct": 0.030520144972175325,
+    "audio_energy_mean": 0.1035693683937054,
+    "sfx_per_min": 60.015673299265124,
+    "cuts_with_sfx_pct": 0.481962481962482,
+    "sfx_at_cuts_pct": 0.46901709401709396,
+    "sfx_type_distribution": {
+      "impulse_tonal": 0.3404255319148936,
+      "impulse_noisy": 0.0425531914893617,
+      "sweep": 0,
+      "vocal": 0.48936170212765956,
+      "sustained": 0,
+      "other": 0.1276595744680851
+    },
+    "sfx_classified_total": 47,
+    "hook_speeches": [
+      "Who's the Stanford student that thinks he's Steve Jobs This is Tony and he's building",
+      "What's this startup that's building robotic surveillance birds This is",
+      "Who's this student that skipped prom to apply to YC This is Jack and"
+    ],
+    "hook_texts": [
+      "<\n\n&\n\nWHO\n\niS\n\nZZ. —",
+      "'re building autonomous ornithopters with\n\nr-class flight times, low acoustic signatur\n\ni natural bird-like flight. This makes\n\nadyne's drones harder for humans and\n\nnter-UAS systems to detect, classify, and\n\nget.\n\ne Found\n\nSTARTUR\n\nourg’s Master's thesis is built on 2+ years c\n\nearch and development in flapping-wing\n\nnes. His work has received multiple awarc\n\nTU",
+      "my official ley\n\no stanford university,\n\n~\n\n» -"
+    ],
+    "hook_archetypes": null,
+    "caption_style": {
+      "captions_pct": 1,
+      "n_with_captions": 4,
+      "matched_preset": "",
+      "preset_label": "",
+      "preset_confidence_avg": 0.86,
+      "preset_distribution": {},
+      "position": "center",
+      "chunking": "word_by_word",
+      "words_per_chunk_avg": 1,
+      "font_size": "large",
+      "text_treatment": "clear",
+      "treatment_color_examples": [],
+      "treatment_distribution": {
+        "clear": 4
+      },
+      "text_color": "yellow",
+      "highlight_color": null,
+      "emphasis": "active_word_highlight",
+      "casing": "uppercase",
+      "animation": "pop",
+      "position_distribution": {
+        "center": 4
+      },
+      "chunking_distribution": {
+        "word_by_word": 4
+      },
+      "font_size_distribution": {
+        "large": 4
+      },
+      "emphasis_distribution": {
+        "active_word_highlight": 4
+      },
+      "casing_distribution": {
+        "uppercase": 4
+      },
+      "animation_distribution": {
+        "pop": 4
+      },
+      "has_emoji_pct": 0,
+      "font_family": "bebas-neue",
+      "font_family_name": "Bebas Neue",
+      "font_family_distribution": {
+        "bebas-neue": 3,
+        "anton": 1
+      },
+      "font_descriptors": [
+        "bold sans-serif with no stroke"
+      ],
+      "style_labels": [
+        "word-by-word active highlight",
+        "word-by-word karaoke highlight"
+      ]
+    },
+    "beat_template": [
+      {
+        "clip_type": "broll_visual",
+        "n_shots": 17,
+        "duration_p50_ms": 734,
+        "has_text_p": 0.9411764705882353,
+        "has_face_p": 0,
+        "is_speaker_p": 0
+      },
+      {
+        "clip_type": "talking_head_unknown",
+        "n_shots": 15,
+        "duration_p50_ms": 566,
+        "has_text_p": 1,
+        "has_face_p": 1,
+        "is_speaker_p": 0
+      },
+      {
+        "clip_type": "talking_head",
+        "n_shots": 5,
+        "duration_p50_ms": 800,
+        "has_text_p": 1,
+        "has_face_p": 1,
+        "is_speaker_p": 1
+      },
+      {
+        "clip_type": "broll_talking_head",
+        "n_shots": 4,
+        "duration_p50_ms": 1434,
+        "has_text_p": 1,
+        "has_face_p": 1,
+        "is_speaker_p": 0
+      }
+    ]
+  },
+  "subtitle_spec": {
+    "enabled": true,
+    "preset_id": "",
+    "preset_label": "",
+    "font_family": "bebas-neue",
+    "font_family_name": "Bebas Neue",
+    "font_size": "large",
+    "position": "center",
+    "chunking": "word_by_word",
+    "words_per_chunk": 1,
+    "casing": "uppercase",
+    "emphasis": "active_word_highlight",
+    "animation": "pop",
+    "text_treatment": "bordered",
+    "text_color": "yellow",
+    "treatment_color": null,
+    "highlight_color": null,
+    "has_emoji": false,
+    "low_confidence": false
+  }
+}

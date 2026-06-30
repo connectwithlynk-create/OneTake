@@ -1,0 +1,878 @@
+{
+  "shots": [
+    {
+      "start_ms": 0,
+      "end_ms": 968,
+      "has_face": false,
+      "ocr_text": "vo ft\n\n~~\n\nSSK\n\nx\n\nIl\n\nii\n\n-\n\n4\n\nik\n\n4",
+      "speaker_verdict": "no_face",
+      "speaker_confidence": 1,
+      "sync_conf": 0,
+      "clip_type": "broll_visual",
+      "face_bbox": null,
+      "face_region": null,
+      "text_moments": [
+        {
+          "text": "Il",
+          "bbox": {
+            "x": 0.34074074074074073,
+            "y": 0.25555555555555554,
+            "w": 0.0345679012345679,
+            "h": 0.058333333333333334
+          },
+          "region": "top_center",
+          "role": "unknown",
+          "role_confidence": 0.25
+        },
+        {
+          "text": "ii",
+          "bbox": {
+            "x": 0.25679012345679014,
+            "y": 0.2791666666666667,
+            "w": 0.05925925925925926,
+            "h": 0.06527777777777778
+          },
+          "region": "top_left",
+          "role": "unknown",
+          "role_confidence": 0.25
+        },
+        {
+          "text": "4",
+          "bbox": {
+            "x": 0.49382716049382713,
+            "y": 0.7638888888888888,
+            "w": 0.12839506172839507,
+            "h": 0.05
+          },
+          "region": "bottom_center",
+          "role": "unknown",
+          "role_confidence": 0.25
+        }
+      ],
+      "audio_rms_mean": 0.13317204691718373,
+      "audio_peak_rms": 0.1917010423510125,
+      "audio_silence_pct": 0,
+      "audio_speech_pct": 0.7741935483870968,
+      "audio_music_pct": 0.22580645161290322,
+      "sfx_count": 1,
+      "sfx_at_start": false,
+      "sfx_classifications": [
+        {
+          "ms": 576,
+          "type": "impulse_noisy",
+          "confidence": 0.9606645843454544,
+          "features": {
+            "peak_rms": 0.19578880071640015,
+            "baseline_rms": 0.051334991306066516,
+            "spike_ratio": 3.8139443629994885,
+            "delta_centroid_hz": 2048.553042209676,
+            "delta_flatness": 0.690443056230303,
+            "delta_voice_band_ratio": 0.3629662871104275,
+            "delta_high_band_ratio": 0.2958586021797417
+          },
+          "source": "heuristic"
+        }
+      ],
+      "overlays": [],
+      "visual_caption": "Zooms in on a man in an orange hoodie celebrating on a sports field, others visible in the background.",
+      "spoken_window": "Who is this player that",
+      "detected_motion": {
+        "kind": "zoom_in",
+        "confidence": 0.36,
+        "zoom_rate": 0.041,
+        "pan_x": -0.018,
+        "pan_y": 0.019
+      }
+    },
+    {
+      "start_ms": 968,
+      "end_ms": 1301,
+      "has_face": false,
+      "ocr_text": "i\n\ni\n\nSa.\n\n4\n\ncig ld\n\nEo\n\n&\n\nbh\n\nran\n\nll\n\nSI\n\n=\n\n-—\n\nSte\n\n= [ere\n\na\n\nay\n\n1 A",
+      "speaker_verdict": "no_face",
+      "speaker_confidence": 1,
+      "sync_conf": 0,
+      "clip_type": "broll_visual",
+      "face_bbox": null,
+      "face_region": null,
+      "text_moments": [
+        {
+          "text": "i",
+          "bbox": {
+            "x": 0.1111111111111111,
+            "y": 0.34444444444444444,
+            "w": 0.08641975308641975,
+            "h": 0.020833333333333332
+          },
+          "region": "middle_left",
+          "role": "unknown",
+          "role_confidence": 0.25
+        },
+        {
+          "text": "Ste",
+          "bbox": {
+            "x": 0.32839506172839505,
+            "y": 0.7069444444444445,
+            "w": 0.17037037037037037,
+            "h": 0.03333333333333333
+          },
+          "region": "bottom_center",
+          "role": "unknown",
+          "role_confidence": 0.4
+        }
+      ],
+      "audio_rms_mean": 0.1522654953766598,
+      "audio_peak_rms": 0.2747751746245841,
+      "audio_silence_pct": 0,
+      "audio_speech_pct": 1,
+      "audio_music_pct": 0,
+      "sfx_count": 0,
+      "sfx_at_start": false,
+      "sfx_classifications": [],
+      "overlays": [],
+      "visual_caption": "Zoom out revealing a group of people playing a sport on a field, with a yellowish filter throughout.",
+      "spoken_window": "that is dominating",
+      "detected_motion": {
+        "kind": "ken_burns",
+        "confidence": 1,
+        "zoom_rate": 0.138,
+        "pan_x": 0.02,
+        "pan_y": -0.038
+      }
+    },
+    {
+      "start_ms": 1301,
+      "end_ms": 4505,
+      "has_face": false,
+      "ocr_text": "Fits\n\nyy\n\nA\n\n\"oo eS\n\n+5\n\ni\n\n>\n\not\n\n5¢\n\n7;\n\n158 =)\n\nOT\n\nB.\n\nALL?",
+      "speaker_verdict": "no_face",
+      "speaker_confidence": 1,
+      "sync_conf": 0,
+      "clip_type": "broll_visual",
+      "face_bbox": null,
+      "face_region": null,
+      "text_moments": [
+        {
+          "text": "2p",
+          "bbox": {
+            "x": 0.23950617283950618,
+            "y": 0.7111111111111111,
+            "w": 0.15308641975308643,
+            "h": 0.04722222222222222
+          },
+          "region": "bottom_left",
+          "role": "unknown",
+          "role_confidence": 0.25
+        },
+        {
+          "text": "37u",
+          "bbox": {
+            "x": 0.32839506172839505,
+            "y": 0.7819444444444444,
+            "w": 0.3432098765432099,
+            "h": 0.09444444444444444
+          },
+          "region": "bottom_center",
+          "role": "subtitle",
+          "role_confidence": 0.97
+        },
+        {
+          "text": "FOOTBALL?",
+          "bbox": {
+            "x": 0.20987654320987653,
+            "y": 0.7611111111111111,
+            "w": 0.582716049382716,
+            "h": 0.10416666666666667
+          },
+          "region": "bottom_center",
+          "role": "subtitle",
+          "role_confidence": 0.97
+        },
+        {
+          "text": "7;",
+          "bbox": {
+            "x": 0.49876543209876545,
+            "y": 0.7694444444444445,
+            "w": 0.08148148148148149,
+            "h": 0.03194444444444444
+          },
+          "region": "bottom_center",
+          "role": "unknown",
+          "role_confidence": 0.25
+        },
+        {
+          "text": "OT",
+          "bbox": {
+            "x": 0.34814814814814815,
+            "y": 0.8069444444444445,
+            "w": 0.1382716049382716,
+            "h": 0.04583333333333333
+          },
+          "region": "bottom_center",
+          "role": "unknown",
+          "role_confidence": 0.25
+        },
+        {
+          "text": "B.",
+          "bbox": {
+            "x": 0.4839506172839506,
+            "y": 0.8083333333333333,
+            "w": 0.06419753086419754,
+            "h": 0.043055555555555555
+          },
+          "region": "bottom_center",
+          "role": "unknown",
+          "role_confidence": 0.25
+        },
+        {
+          "text": "ALL?",
+          "bbox": {
+            "x": 0.5358024691358024,
+            "y": 0.7611111111111111,
+            "w": 0.254320987654321,
+            "h": 0.09166666666666666
+          },
+          "region": "bottom_center",
+          "role": "image_text",
+          "role_confidence": 0.68
+        },
+        {
+          "text": "-",
+          "bbox": {
+            "x": 0.8049382716049382,
+            "y": 0.5930555555555556,
+            "w": 0.0691358024691358,
+            "h": 0.020833333333333332
+          },
+          "region": "middle_right",
+          "role": "unknown",
+          "role_confidence": 0.25
+        },
+        {
+          "text": "Gs",
+          "bbox": {
+            "x": 0.4839506172839506,
+            "y": 0.7402777777777778,
+            "w": 0.1037037037037037,
+            "h": 0.06111111111111111
+          },
+          "region": "bottom_center",
+          "role": "unknown",
+          "role_confidence": 0.25
+        },
+        {
+          "text": "FOOTBALL?",
+          "bbox": {
+            "x": 0.20987654320987653,
+            "y": 0.7625,
+            "w": 0.582716049382716,
+            "h": 0.1111111111111111
+          },
+          "region": "bottom_center",
+          "role": "subtitle",
+          "role_confidence": 0.97
+        }
+      ],
+      "audio_rms_mean": 0.1311381240289162,
+      "audio_peak_rms": 0.23861480830062254,
+      "audio_silence_pct": 0,
+      "audio_speech_pct": 1,
+      "audio_music_pct": 0,
+      "sfx_count": 2,
+      "sfx_at_start": false,
+      "sfx_classifications": [
+        {
+          "ms": 1920,
+          "type": "vocal",
+          "confidence": 0.6575631813765662,
+          "features": {
+            "peak_rms": 0.20971377193927765,
+            "baseline_rms": 0.04365228667855263,
+            "spike_ratio": 4.8041875442533195,
+            "delta_centroid_hz": 1450.4454187261047,
+            "delta_flatness": 0.4782798520748613,
+            "delta_voice_band_ratio": 0.6575631813765662,
+            "delta_high_band_ratio": 0.10166871521612984
+          },
+          "source": "heuristic"
+        },
+        {
+          "ms": 4448,
+          "type": "vocal",
+          "confidence": 0.5354939769133067,
+          "features": {
+            "peak_rms": 0.3557884395122528,
+            "baseline_rms": 0.038279715180397036,
+            "spike_ratio": 9.29443800288387,
+            "delta_centroid_hz": 1731.520696366243,
+            "delta_flatness": 0.3358303893619712,
+            "delta_voice_band_ratio": 0.5354939769133067,
+            "delta_high_band_ratio": 0.2039574117284084
+          },
+          "source": "heuristic"
+        }
+      ],
+      "overlays": [],
+      "visual_caption": "Zoom in on a group playing football outdoors, with the focus shifting to a player in an orange hoodie.",
+      "spoken_window": "dominating 37U football",
+      "detected_motion": {
+        "kind": "zoom_in",
+        "confidence": 0.53,
+        "zoom_rate": 0.08,
+        "pan_x": -0.019,
+        "pan_y": -0.023
+      }
+    },
+    {
+      "start_ms": 4505,
+      "end_ms": 6874,
+      "has_face": true,
+      "ocr_text": "—\n\n=\n\np.\n\nI\n\na od",
+      "speaker_verdict": "broll",
+      "speaker_confidence": 0.14241715878687047,
+      "sync_conf": 0.42725147636061145,
+      "clip_type": "broll_talking_head",
+      "face_bbox": {
+        "x": 0.3257070329454211,
+        "y": 0.15934513211250306,
+        "w": 0.3422999276055228,
+        "h": 0.19254254102706908
+      },
+      "face_region": "top_center",
+      "text_moments": [
+        {
+          "text": "|",
+          "bbox": {
+            "x": 0.7407407407407407,
+            "y": 0.5430555555555555,
+            "w": 0.037037037037037035,
+            "h": 0.15416666666666667
+          },
+          "region": "middle_right",
+          "role": "unknown",
+          "role_confidence": 0.25
+        },
+        {
+          "text": "(0",
+          "bbox": {
+            "x": 0.5654320987654321,
+            "y": 0.8180555555555555,
+            "w": 0.05185185185185185,
+            "h": 0.02638888888888889
+          },
+          "region": "bottom_center",
+          "role": "unknown",
+          "role_confidence": 0.25
+        },
+        {
+          "text": "=",
+          "bbox": {
+            "x": 0.09876543209876543,
+            "y": 0.5541666666666667,
+            "w": 0.1506172839506173,
+            "h": 0.08055555555555556
+          },
+          "region": "middle_left",
+          "role": "unknown",
+          "role_confidence": 0.25
+        },
+        {
+          "text": "od",
+          "bbox": {
+            "x": 0.6444444444444445,
+            "y": 0.8486111111111111,
+            "w": 0.027160493827160494,
+            "h": 0.002777777777777778
+          },
+          "region": "bottom_center",
+          "role": "unknown",
+          "role_confidence": 0.25
+        },
+        {
+          "text": "|",
+          "bbox": {
+            "x": 0.7679012345679013,
+            "y": 0.5777777777777777,
+            "w": 0.04197530864197531,
+            "h": 0.17083333333333334
+          },
+          "region": "middle_right",
+          "role": "unknown",
+          "role_confidence": 0.25
+        },
+        {
+          "text": "0",
+          "bbox": {
+            "x": 0.5901234567901235,
+            "y": 0.8208333333333333,
+            "w": 0.024691358024691357,
+            "h": 0.018055555555555554
+          },
+          "region": "bottom_center",
+          "role": "unknown",
+          "role_confidence": 0.25
+        },
+        {
+          "text": "|",
+          "bbox": {
+            "x": 0.782716049382716,
+            "y": 0.5930555555555556,
+            "w": 0.044444444444444446,
+            "h": 0.18055555555555555
+          },
+          "region": "bottom_right",
+          "role": "unknown",
+          "role_confidence": 0.25
+        }
+      ],
+      "audio_rms_mean": 0.12429922706955708,
+      "audio_peak_rms": 0.24529693691805862,
+      "audio_silence_pct": 0,
+      "audio_speech_pct": 1,
+      "audio_music_pct": 0,
+      "sfx_count": 1,
+      "sfx_at_start": true,
+      "sfx_classifications": [
+        {
+          "ms": 6848,
+          "type": "vocal",
+          "confidence": 0.6755484561707892,
+          "features": {
+            "peak_rms": 0.28158238530158997,
+            "baseline_rms": 0.0318097672611475,
+            "spike_ratio": 8.852073106662278,
+            "delta_centroid_hz": 1488.4730363301874,
+            "delta_flatness": 0.35688324387761516,
+            "delta_voice_band_ratio": 0.6755484561707892,
+            "delta_high_band_ratio": 0.13801718444827837
+          },
+          "source": "heuristic"
+        }
+      ],
+      "overlays": [],
+      "visual_caption": "Static close-up of a man in an orange hoodie against a beige background.",
+      "spoken_window": "This is Los Polos He",
+      "detected_motion": {
+        "kind": "ken_burns",
+        "confidence": 0.86,
+        "zoom_rate": 0.216,
+        "pan_x": 0.001,
+        "pan_y": 0.056
+      }
+    },
+    {
+      "start_ms": 6874,
+      "end_ms": 12412,
+      "has_face": false,
+      "ocr_text": "ol\n\nb%\n\nar\n\nBy\n\n\"\n\n\\ od\n\n\\\n\n®1Y\n\nLB\n\n= 4\n\n1\n\nje)\n\n7\n\nAe\n\nIT\n\nvi",
+      "speaker_verdict": "no_face",
+      "speaker_confidence": 1,
+      "sync_conf": 0,
+      "clip_type": "broll_visual",
+      "face_bbox": null,
+      "face_region": null,
+      "text_moments": [
+        {
+          "text": "= a",
+          "bbox": {
+            "x": 0.291358024691358,
+            "y": 0.4166666666666667,
+            "w": 0.1037037037037037,
+            "h": 0.011111111111111112
+          },
+          "region": "middle_center",
+          "role": "image_text",
+          "role_confidence": 0.86
+        },
+        {
+          "text": "|",
+          "bbox": {
+            "x": 0.7925925925925926,
+            "y": 0.5638888888888889,
+            "w": 0.05185185185185185,
+            "h": 0.06666666666666667
+          },
+          "region": "middle_right",
+          "role": "unknown",
+          "role_confidence": 0.25
+        },
+        {
+          "text": "Wi",
+          "bbox": {
+            "x": 0.4740740740740741,
+            "y": 0.7694444444444445,
+            "w": 0.10617283950617284,
+            "h": 0.043055555555555555
+          },
+          "region": "bottom_center",
+          "role": "unknown",
+          "role_confidence": 0.25
+        },
+        {
+          "text": "a",
+          "bbox": {
+            "x": 0.7111111111111111,
+            "y": 0.2777777777777778,
+            "w": 0.05925925925925926,
+            "h": 0.022222222222222223
+          },
+          "region": "top_right",
+          "role": "unknown",
+          "role_confidence": 0.25
+        },
+        {
+          "text": "\\",
+          "bbox": {
+            "x": 0.5481481481481482,
+            "y": 0.2875,
+            "w": 0.019753086419753086,
+            "h": 0.02638888888888889
+          },
+          "region": "top_center",
+          "role": "unknown",
+          "role_confidence": 0.25
+        },
+        {
+          "text": "=",
+          "bbox": {
+            "x": 0.11604938271604938,
+            "y": 0.3958333333333333,
+            "w": 0.10123456790123457,
+            "h": 0.011111111111111112
+          },
+          "region": "middle_left",
+          "role": "unknown",
+          "role_confidence": 0.25
+        },
+        {
+          "text": "IT",
+          "bbox": {
+            "x": 0.7555555555555555,
+            "y": 0.8083333333333333,
+            "w": 0.04197530864197531,
+            "h": 0.016666666666666666
+          },
+          "region": "bottom_right",
+          "role": "unknown",
+          "role_confidence": 0.25
+        }
+      ],
+      "audio_rms_mean": 0.1043342043522652,
+      "audio_peak_rms": 0.24574018174333057,
+      "audio_silence_pct": 0,
+      "audio_speech_pct": 1,
+      "audio_music_pct": 0,
+      "sfx_count": 2,
+      "sfx_at_start": true,
+      "sfx_classifications": [
+        {
+          "ms": 9632,
+          "type": "vocal",
+          "confidence": 0.4865242863125313,
+          "features": {
+            "peak_rms": 0.21321484446525574,
+            "baseline_rms": 0.06948289141058922,
+            "spike_ratio": 3.068594874748717,
+            "delta_centroid_hz": 1452.2288486795333,
+            "delta_flatness": 1.0602245987736076,
+            "delta_voice_band_ratio": 0.4865242863125313,
+            "delta_high_band_ratio": 0.09310074475692466
+          },
+          "source": "heuristic"
+        },
+        {
+          "ms": 10912,
+          "type": "other",
+          "confidence": 0.3,
+          "features": {
+            "peak_rms": 0.1443835347890854,
+            "baseline_rms": 0.039847960360348225,
+            "spike_ratio": 3.6233607312247296,
+            "delta_centroid_hz": 1980.3096520273257,
+            "delta_flatness": 0.5925840163628407,
+            "delta_voice_band_ratio": 0.30098560815900033,
+            "delta_high_band_ratio": 0.230252042194028
+          },
+          "source": "heuristic"
+        }
+      ],
+      "overlays": [],
+      "visual_caption": "The video transitions from a person in mid-air catching a football to a man in an orange sweatshirt cheering, with logo cards in both frames.",
+      "spoken_window": "He recently got mobile and scored the game winning touchdown in the championship game",
+      "detected_motion": {
+        "kind": "zoom_in",
+        "confidence": 0.55,
+        "zoom_rate": 0.17,
+        "pan_x": -0.011,
+        "pan_y": -0.021
+      }
+    },
+    {
+      "start_ms": 12412,
+      "end_ms": 12746,
+      "has_face": false,
+      "ocr_text": "I\n\nL\n\nIF\n\nFa\n\ni.\n\nia\n\ni\n\naa.\n\n8\n\na\n\npy\n\ni\n\n=f\n\nol\n\nE\n\n=\n\nha\n\nL \\\n\niB\n\naa\n\n——\n\ni\n\n|\n\npi\n\nIL\n\nEz\n\n=",
+      "speaker_verdict": "no_face",
+      "speaker_confidence": 1,
+      "sync_conf": 0,
+      "clip_type": "broll_visual",
+      "face_bbox": null,
+      "face_region": null,
+      "text_moments": [
+        {
+          "text": "i",
+          "bbox": {
+            "x": 0.1308641975308642,
+            "y": 0.1375,
+            "w": 0.09382716049382717,
+            "h": 0.04027777777777778
+          },
+          "region": "top_left",
+          "role": "unknown",
+          "role_confidence": 0.25
+        },
+        {
+          "text": "=",
+          "bbox": {
+            "x": 0.1580246913580247,
+            "y": 0.9652777777777778,
+            "w": 0.019753086419753086,
+            "h": 0.006944444444444444
+          },
+          "region": "bottom_left",
+          "role": "unknown",
+          "role_confidence": 0.25
+        }
+      ],
+      "audio_rms_mean": 0.09665760670829761,
+      "audio_peak_rms": 0.26261254325149413,
+      "audio_silence_pct": 0,
+      "audio_speech_pct": 1,
+      "audio_music_pct": 0,
+      "sfx_count": 1,
+      "sfx_at_start": true,
+      "sfx_classifications": [
+        {
+          "ms": 12608,
+          "type": "vocal",
+          "confidence": 0.7785906953390931,
+          "features": {
+            "peak_rms": 0.33022594451904297,
+            "baseline_rms": 0.048170431330800054,
+            "spike_ratio": 6.855366152968145,
+            "delta_centroid_hz": 1264.8084886212755,
+            "delta_flatness": 0.26161103040064737,
+            "delta_voice_band_ratio": 0.7785906953390931,
+            "delta_high_band_ratio": 0.09590447895330262
+          },
+          "source": "heuristic"
+        }
+      ],
+      "overlays": [],
+      "visual_caption": "Dissolve transition from a blurred image with text \"GAME\" to a split screen showing a football player and a man with text \"COULD\" on a yellow background.",
+      "spoken_window": "game Could",
+      "detected_motion": {
+        "kind": "none",
+        "confidence": 0.6,
+        "zoom_rate": 0.016,
+        "pan_x": -0.003,
+        "pan_y": 0.001
+      }
+    },
+    {
+      "start_ms": 12746,
+      "end_ms": 14714,
+      "has_face": true,
+      "ocr_text": "- -\n\nre\n\nPOLLOSY\n\nal La",
+      "speaker_verdict": "speaker",
+      "speaker_confidence": 1,
+      "sync_conf": 4.1059236589800285,
+      "clip_type": "talking_head",
+      "face_bbox": {
+        "x": 0.32351628409491645,
+        "y": 0.6753241062164307,
+        "w": 0.3828914960225424,
+        "h": 0.21537508964538574
+      },
+      "face_region": "bottom_center",
+      "text_moments": [
+        {
+          "text": "- -",
+          "bbox": {
+            "x": 0.019753086419753086,
+            "y": 0.12777777777777777,
+            "w": 0.24938271604938272,
+            "h": 0.03333333333333333
+          },
+          "region": "top_left",
+          "role": "unknown",
+          "role_confidence": 0.25
+        },
+        {
+          "text": "al La",
+          "bbox": {
+            "x": 0,
+            "y": 0.8319444444444445,
+            "w": 0.9975308641975309,
+            "h": 0.16805555555555557
+          },
+          "region": "bottom_center",
+          "role": "image_text",
+          "role_confidence": 0.68
+        }
+      ],
+      "audio_rms_mean": 0.12095473523406866,
+      "audio_peak_rms": 0.2311915555048831,
+      "audio_silence_pct": 0.03225806451612903,
+      "audio_speech_pct": 0.967741935483871,
+      "audio_music_pct": 0,
+      "sfx_count": 1,
+      "sfx_at_start": true,
+      "sfx_classifications": [
+        {
+          "ms": 12832,
+          "type": "impulse_noisy",
+          "confidence": 0.7394421912683559,
+          "features": {
+            "peak_rms": 0.1601613610982895,
+            "baseline_rms": 0.05957008570432663,
+            "spike_ratio": 2.6886206256818737,
+            "delta_centroid_hz": 2353.561122048497,
+            "delta_flatness": 0.5429614608455706,
+            "delta_voice_band_ratio": 0.24689726540476922,
+            "delta_high_band_ratio": 0.32257587224622625
+          },
+          "source": "heuristic"
+        }
+      ],
+      "overlays": [],
+      "visual_caption": "Split-screen displaying a corgi with a human head holding a football above a man reacting, with text changing from \"GUARD\" to \"POLLOS?\"",
+      "spoken_window": "Could you guard Los Polos",
+      "detected_motion": {
+        "kind": "zoom_in",
+        "confidence": 0.54,
+        "zoom_rate": 0.049,
+        "pan_x": 0.002,
+        "pan_y": 0.012
+      }
+    }
+  ],
+  "hook_text": "vo ft\n\n~~\n\nSSK\n\nx\n\nIl\n\nii\n\n-\n\n4\n\nik\n\n4",
+  "hook_duration_ms": 968,
+  "median_shot_ms": 1968,
+  "cuts_per_sec": 0.4077749082506456,
+  "talking_pct": 0.2947532961805084,
+  "broll_pct": 0.7052467038194916,
+  "text_overlay_pct": 1,
+  "real_speaker_pct": 0.14285714285714285,
+  "broll_talking_head_pct": 0.14285714285714285,
+  "clip_type_distribution": {
+    "talking_head": 0.13375016990621177,
+    "broll_talking_head": 0.16100312627429658,
+    "talking_head_unknown": 0,
+    "broll_visual": 0.7052467038194916
+  },
+  "face_region_dominant": "mixed",
+  "face_region_distribution": {
+    "top_left": 0,
+    "top_center": 0.5,
+    "top_right": 0,
+    "middle_left": 0,
+    "middle_center": 0,
+    "middle_right": 0,
+    "bottom_left": 0,
+    "bottom_center": 0.5,
+    "bottom_right": 0
+  },
+  "face_size_median": 0.2039588153362274,
+  "text_region_dominant": "mixed",
+  "text_region_distribution": {
+    "top_left": 0.09090909090909091,
+    "top_center": 0.06060606060606061,
+    "top_right": 0.030303030303030304,
+    "middle_left": 0.09090909090909091,
+    "middle_center": 0.030303030303030304,
+    "middle_right": 0.12121212121212122,
+    "bottom_left": 0.06060606060606061,
+    "bottom_center": 0.45454545454545453,
+    "bottom_right": 0.06060606060606061
+  },
+  "audio_energy_mean": 0.11841591361810201,
+  "audio_energy_std": 0.017212535225992153,
+  "audio_silence_pct": 0.004314521609877799,
+  "voiceover_pct": 0.9808301946357869,
+  "music_pct": 0.014855283754335348,
+  "hook_speech": "Who is this player that is dominating 37U football This is",
+  "sfx_per_min": 32.62199266005165,
+  "cuts_with_sfx_pct": 0.5714285714285714,
+  "sfx_at_cuts_pct": 0.5,
+  "sfx_context": {
+    "signals": {
+      "sfx_count": 8,
+      "word_count": 32,
+      "sfx_per_word": 0.25,
+      "on_word_pct": 0.625,
+      "hook_density_per_s": 1.0330578512396695,
+      "body_density_per_s": 0.5092390513603957,
+      "hook_escalation": 1,
+      "hook_dominant_type": "impulse_noisy",
+      "body_dominant_type": "vocal"
+    },
+    "pattern_summary": "The video uses impulse_noisy effects for emphasis in the hook and vocal effects for key moments in the body, focusing on important claims and reveals.",
+    "rules": [
+      {
+        "trigger": "emphasis in hook",
+        "sfx_type": "impulse_noisy",
+        "example": "Who is this ⟨impulse_noisy⟩ player"
+      },
+      {
+        "trigger": "important claims",
+        "sfx_type": "vocal",
+        "example": "This is Los Polos ⟨vocal⟩"
+      },
+      {
+        "trigger": "reveals",
+        "sfx_type": "vocal",
+        "example": "scored the game winning touchdown ⟨vocal⟩"
+      }
+    ],
+    "llm": true
+  },
+  "media_overlay_pct": 0,
+  "overlays_per_min": 0,
+  "overlay_kind_distribution": null,
+  "overlay_motion_distribution": null,
+  "overlay_region_distribution": null,
+  "camera_motion_distribution": {
+    "none": 0.14285714285714285,
+    "zoom_in": 0.5714285714285714,
+    "zoom_out": 0,
+    "pan_left": 0,
+    "pan_right": 0,
+    "ken_burns": 0.2857142857142857
+  },
+  "camera_motion_dominant": "zoom_in",
+  "camera_motion_confidence": 0.6342857142857142,
+  "caption_style": {
+    "present": true,
+    "position": "bottom",
+    "chunking": "word_by_word",
+    "words_per_chunk": 1,
+    "font_size": "large",
+    "emphasis": "none",
+    "casing": "uppercase",
+    "animation": "pop",
+    "font_descriptor": "bold sans-serif with black stroke",
+    "font_family": "bebas-neue",
+    "font_family_name": "Bebas Neue",
+    "text_color": "white",
+    "text_treatment": "bordered",
+    "treatment_color": "black",
+    "highlight_color": null,
+    "has_emoji": false,
+    "style_label": "word-by-word pop",
+    "matched_preset": "hormozi",
+    "preset_label": "Hormozi",
+    "preset_confidence": 0.71
+  }
+}

@@ -70,6 +70,7 @@ function Nav() {
       <Stack.Screen name="capture/[projectId]" />
       <Stack.Screen name="player" options={{ presentation: 'modal' }} />
       <Stack.Screen name="prompt" />
+      <Stack.Screen name="broll-library" />
       <Stack.Screen name="preview/[projectId]" />
       <Stack.Screen name="collection/[id]" />
       <Stack.Screen name="swipe/[collectionId]" />

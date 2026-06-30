@@ -1,0 +1,35 @@
+{
+  "clips": [
+    {
+      "start_ms": 0,
+      "end_ms": 5958,
+      "reason": "scene 1 (6.0s)",
+      "file": "0.mp4"
+    },
+    {
+      "start_ms": 5958,
+      "end_ms": 8042,
+      "reason": "scene 2 (2.1s)",
+      "file": "1.mp4"
+    },
+    {
+      "start_ms": 8042,
+      "end_ms": 15000,
+      "reason": "scene 3 (7.0s)",
+      "file": "2.mp4"
+    },
+    {
+      "start_ms": 15500,
+      "end_ms": 19750,
+      "reason": "scene 4 (4.3s)",
+      "file": "3.mp4"
+    },
+    {
+      "start_ms": 19750,
+      "end_ms": 22167,
+      "reason": "scene 5 (2.4s)",
+      "file": "4.mp4"
+    }
+  ],
+  "source_mp4_path": "/Users/rahulpeesa/Documents/GitHub/OneTake/desktop/.library/source-videos/dca8a67a1d1be5fe.mp4"
+}

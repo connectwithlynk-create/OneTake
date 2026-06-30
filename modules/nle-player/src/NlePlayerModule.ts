@@ -1,4 +1,4 @@
-import { NativeModule, requireNativeModule } from 'expo';
+import { NativeModule, requireOptionalNativeModule } from 'expo';
 
 import {
   NleClip,
@@ -40,7 +40,20 @@ declare class NlePlayerNative extends NativeModule<NlePlayerModuleEvents> {
   setClipVolume(handle: number, clipId: string, volume: number): void;
 }
 
-const Native = requireNativeModule<NlePlayerNative>('NlePlayer');
+const Native = requireOptionalNativeModule<NlePlayerNative>('NlePlayer');
+
+export const isNlePlayerAvailable = Native != null;
+
+function unavailable(): never {
+  throw new Error(
+    'NlePlayer is not available in Expo Go. Use a development build to use the native editor player.'
+  );
+}
+
+function getNative(): NlePlayerNative {
+  if (!Native) unavailable();
+  return Native;
+}
 
 export default Native;
 
@@ -50,6 +63,7 @@ export default Native;
 export function attachNativeErrorListener(
   handler: (payload: NleNativeErrorEvent) => void
 ): () => void {
+  if (!Native) return () => {};
   const sub = Native.addListener('onNativeError', handler as never);
   return () => sub.remove();
 }
@@ -63,7 +77,7 @@ export class NlePlayer {
   private _subs: Array<{ remove(): void }> = [];
 
   constructor() {
-    this._handle = Native.create();
+    this._handle = getNative().create();
   }
 
   get handle(): number {
@@ -72,41 +86,41 @@ export class NlePlayer {
 
   setClips(clips: NleClip[]) {
     if (this._handle < 0) return;
-    Native.setClips(this._handle, clips);
+    getNative().setClips(this._handle, clips);
   }
 
   play() {
     if (this._handle < 0) return;
-    Native.play(this._handle);
+    getNative().play(this._handle);
   }
   pause() {
     if (this._handle < 0) return;
-    Native.pause(this._handle);
+    getNative().pause(this._handle);
   }
   seek(ms: number) {
     if (this._handle < 0) return;
-    Native.seek(this._handle, ms);
+    getNative().seek(this._handle, ms);
   }
   setScrubbing(on: boolean) {
     if (this._handle < 0) return;
-    Native.setScrubbing(this._handle, on);
+    getNative().setScrubbing(this._handle, on);
   }
   setClipVolume(clipId: string, volume: number) {
     if (this._handle < 0) return;
-    Native.setClipVolume(this._handle, clipId, volume);
+    getNative().setClipVolume(this._handle, clipId, volume);
   }
 
   get currentTime(): number {
     if (this._handle < 0) return 0;
-    return Native.getCurrentTime(this._handle);
+    return getNative().getCurrentTime(this._handle);
   }
   get duration(): number {
     if (this._handle < 0) return 0;
-    return Native.getDuration(this._handle);
+    return getNative().getDuration(this._handle);
   }
   get isPlaying(): boolean {
     if (this._handle < 0) return false;
-    return Native.getIsPlaying(this._handle);
+    return getNative().getIsPlaying(this._handle);
   }
 
   /** Subscribe to a player-scoped event. Native filters by handle so
@@ -123,7 +137,7 @@ export class NlePlayer {
       }
       listener(payload);
     };
-    const sub = Native.addListener(event, wrapped as never);
+    const sub = getNative().addListener(event, wrapped as never);
     this._subs.push(sub);
     return {
       remove: () => {
@@ -143,7 +157,7 @@ export class NlePlayer {
       }
     }
     this._subs = [];
-    Native.destroy(this._handle);
+    getNative().destroy(this._handle);
     this._handle = -1;
   }
 }

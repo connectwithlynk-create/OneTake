@@ -1,0 +1,20 @@
+{
+  "key": "8dfc3a816ae989fa",
+  "version": 18,
+  "created_at": 1780908420647,
+  "shot_count": 9,
+  "hook_preview": "Who's this guy that turned himself into a startup",
+  "target_label": "File: D05B0C7C-AE7F-4DAC-8824-F8F58522379B.mp4",
+  "target_kind": "local_video",
+  "target_file_path": "/Users/rahulpeesa/Downloads/D05B0C7C-AE7F-4DAC-8824-F8F58522379B.mp4",
+  "library_urls": [
+    "https://www.instagram.com/p/DYlQlfYuTc7/",
+    "https://www.instagram.com/p/DXz_iMJNjlV/",
+    "https://www.instagram.com/p/DYg26zgRiGS/",
+    "https://www.instagram.com/p/DU_3YEUEoGG/",
+    "https://www.instagram.com/reel/DYxLMnNRzQ5/?igsh=bXhtY2JlNjhsYzNm",
+    "https://www.instagram.com/reel/DYg26zgRiGS/?igsh=enl3MzA3dnFnNHNv"
+  ],
+  "allow_copyrighted": false,
+  "user_instructions": "Generate shots based on the transcript, for key moments/key words, etc. When something like \"YC\" is said, there should be a shot that starts there. Same with other key words in the transcript."
+}

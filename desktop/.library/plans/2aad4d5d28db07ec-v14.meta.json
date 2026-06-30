@@ -1,0 +1,16 @@
+{
+  "key": "2aad4d5d28db07ec",
+  "version": 14,
+  "created_at": 1780505357332,
+  "shot_count": 58,
+  "hook_preview": "I just built an AI that can read your mind",
+  "target_label": "https://www.instagram.com/p/DYP3XE0h5Og/",
+  "target_kind": "reel_url",
+  "library_urls": [
+    "https://www.instagram.com/p/DXKV8KehV9b/",
+    "https://www.instagram.com/p/DXPfhfPhjJ2/",
+    "https://www.instagram.com/p/DXFKUigDIzZ/"
+  ],
+  "allow_copyrighted": false,
+  "user_instructions": ""
+}

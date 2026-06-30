@@ -1,0 +1,1595 @@
+{
+  "shots": [
+    {
+      "start_ms": 0,
+      "end_ms": 1267,
+      "has_face": false,
+      "ocr_text": "'re building autonomous ornithopters with\n\nr-class flight times, low acoustic signatur\n\ni natural bird-like flight. This makes\n\nadyne's drones harder for humans and\n\nnter-UAS systems to detect, classify, and\n\nget.\n\ne Found\n\nSTARTUR\n\nourg’s Master's thesis is built on 2+ years c\n\nearch and development in flapping-wing\n\nnes. His work has received multiple awarc\n\nTU",
+      "speaker_verdict": "no_face",
+      "speaker_confidence": 1,
+      "sync_conf": 0,
+      "clip_type": "broll_visual",
+      "face_bbox": null,
+      "face_region": null,
+      "text_moments": [
+        {
+          "text": "'re building autonomous ornithopters with",
+          "bbox": {
+            "x": 0.0049382716049382715,
+            "y": 0.020833333333333332,
+            "w": 0.9950617283950617,
+            "h": 0.027777777777777776
+          },
+          "region": "top_center"
+        },
+        {
+          "text": "r-class flight times, low acoustic",
+          "bbox": {
+            "x": 0,
+            "y": 0.07083333333333333,
+            "w": 0.7753086419753087,
+            "h": 0.027777777777777776
+          },
+          "region": "top_center"
+        },
+        {
+          "text": "natural bird-like flight. This makes",
+          "bbox": {
+            "x": 0.03209876543209877,
+            "y": 0.11944444444444445,
+            "w": 0.8123456790123457,
+            "h": 0.027777777777777776
+          },
+          "region": "top_center"
+        },
+        {
+          "text": "drones harder for humans and",
+          "bbox": {
+            "x": 0.21728395061728395,
+            "y": 0.16805555555555557,
+            "w": 0.7358024691358025,
+            "h": 0.02361111111111111
+          },
+          "region": "top_center"
+        },
+        {
+          "text": "nter-UAS systems to detect, classify, and",
+          "bbox": {
+            "x": 0,
+            "y": 0.21805555555555556,
+            "w": 0.9876543209876543,
+            "h": 0.027777777777777776
+          },
+          "region": "top_center"
+        },
+        {
+          "text": "get.",
+          "bbox": {
+            "x": 0,
+            "y": 0.26944444444444443,
+            "w": 0.08395061728395062,
+            "h": 0.02638888888888889
+          },
+          "region": "top_left"
+        },
+        {
+          "text": "e Found",
+          "bbox": {
+            "x": 0.0049382716049382715,
+            "y": 0.7527777777777778,
+            "w": 0.2222222222222222,
+            "h": 0.027777777777777776
+          },
+          "region": "bottom_left"
+        },
+        {
+          "text": "STARTUR",
+          "bbox": {
+            "x": 0.2345679012345679,
+            "y": 0.6972222222222222,
+            "w": 0.5530864197530864,
+            "h": 0.08055555555555556
+          },
+          "region": "bottom_center"
+        },
+        {
+          "text": "Master's thesis is built on 2+ years c",
+          "bbox": {
+            "x": 0.1654320987654321,
+            "y": 0.8402777777777778,
+            "w": 0.8345679012345679,
+            "h": 0.027777777777777776
+          },
+          "region": "bottom_center"
+        },
+        {
+          "text": "earch and development in flapping-wing",
+          "bbox": {
+            "x": 0,
+            "y": 0.8888888888888888,
+            "w": 0.9777777777777777,
+            "h": 0.029166666666666667
+          },
+          "region": "bottom_center"
+        },
+        {
+          "text": "nes. His work has received multiple awarc",
+          "bbox": {
+            "x": 0,
+            "y": 0.9388888888888889,
+            "w": 1,
+            "h": 0.027777777777777776
+          },
+          "region": "bottom_center"
+        }
+      ],
+      "audio_rms_mean": 0.13974503117591494,
+      "audio_peak_rms": 0.22050236673921828,
+      "audio_silence_pct": 0,
+      "audio_speech_pct": 0.9,
+      "audio_music_pct": 0.1,
+      "sfx_count": 1,
+      "sfx_at_start": true,
+      "sfx_classifications": [
+        {
+          "ms": 64,
+          "type": "vocal",
+          "confidence": 0.4635223029010262,
+          "features": {
+            "peak_rms": 0.23420530557632446,
+            "baseline_rms": 0.01659372611902654,
+            "spike_ratio": 14.114087691719956,
+            "delta_centroid_hz": 1762.9530877060936,
+            "delta_flatness": 0.11290628333738598,
+            "delta_voice_band_ratio": 0.4635223029010262,
+            "delta_high_band_ratio": 0.0885091243705134
+          }
+        }
+      ],
+      "overlays": [],
+      "visual_caption": "Zoom in on a spinning drone propeller against a dark background, with text overlay changing from \"WHAT'S\" to \"STARTUP.\"",
+      "spoken_window": "What's this startup that's"
+    },
+    {
+      "start_ms": 1267,
+      "end_ms": 4433,
+      "has_face": false,
+      "ocr_text": "ae Sp—\n\nROBOTIC",
+      "speaker_verdict": "no_face",
+      "speaker_confidence": 1,
+      "sync_conf": 0,
+      "clip_type": "broll_visual",
+      "face_bbox": null,
+      "face_region": null,
+      "text_moments": [
+        {
+          "text": "ROBOTIC",
+          "bbox": {
+            "x": 0.28641975308641976,
+            "y": 0.7041666666666667,
+            "w": 0.4419753086419753,
+            "h": 0.06388888888888888
+          },
+          "region": "bottom_center"
+        },
+        {
+          "text": "ROBOTIC",
+          "bbox": {
+            "x": 0.24691358024691357,
+            "y": 0.6986111111111111,
+            "w": 0.5259259259259259,
+            "h": 0.075
+          },
+          "region": "bottom_center"
+        },
+        {
+          "text": "BIRDS?",
+          "bbox": {
+            "x": 0.28641975308641976,
+            "y": 0.6888888888888889,
+            "w": 0.4641975308641975,
+            "h": 0.08888888888888889
+          },
+          "region": "bottom_center"
+        }
+      ],
+      "audio_rms_mean": 0.09146066100260929,
+      "audio_peak_rms": 0.22788610183631205,
+      "audio_silence_pct": 0.020202020202020204,
+      "audio_speech_pct": 0.9797979797979798,
+      "audio_music_pct": 0,
+      "sfx_count": 2,
+      "sfx_at_start": false,
+      "sfx_classifications": [
+        {
+          "ms": 1472,
+          "type": "vocal",
+          "confidence": 0.6300962920276927,
+          "features": {
+            "peak_rms": 0.1813553273677826,
+            "baseline_rms": 0.0774062716960907,
+            "spike_ratio": 2.3429022402708193,
+            "delta_centroid_hz": 1638.6733757774944,
+            "delta_flatness": 0.6948649118669065,
+            "delta_voice_band_ratio": 0.6300962920276927,
+            "delta_high_band_ratio": 0.06644985509928282
+          }
+        },
+        {
+          "ms": 3232,
+          "type": "other",
+          "confidence": 0.3,
+          "features": {
+            "peak_rms": 0.198043555021286,
+            "baseline_rms": 0.024423350356519224,
+            "spike_ratio": 8.108779185916362,
+            "delta_centroid_hz": 2268.2252124539673,
+            "delta_flatness": 0.48237011139534913,
+            "delta_voice_band_ratio": 0.3089673547806475,
+            "delta_high_band_ratio": 0.09236890562477623
+          }
+        }
+      ],
+      "overlays": [],
+      "visual_caption": "Close-up of a robotic bird prop transitioning from a beak view to an aerial perspective, revealing wings, with a slight zoom.",
+      "spoken_window": "that's building robotic surveillance birds"
+    },
+    {
+      "start_ms": 4433,
+      "end_ms": 5833,
+      "has_face": false,
+      "ocr_text": "12:23¢\n\nHome » Companies » Ornadyne\n\nOrnadyne\n\nSPRING 2026\n\n@ ACTIVE\n\nROBOTICS\n\nDRONES\n\nAERC\n\nLOS ANGELES\n\nCompany Sha 0\n\n& https://ornadyne.com/\n\nWe're building robot birds for s",
+      "speaker_verdict": "no_face",
+      "speaker_confidence": 1,
+      "sync_conf": 0,
+      "clip_type": "broll_visual",
+      "face_bbox": null,
+      "face_region": null,
+      "text_moments": [
+        {
+          "text": "12:23¢",
+          "bbox": {
+            "x": 0.044444444444444446,
+            "y": 0.034722222222222224,
+            "w": 0.23950617283950618,
+            "h": 0.029166666666666667
+          },
+          "region": "top_left"
+        },
+        {
+          "text": "Home » Companies » Ornadyne",
+          "bbox": {
+            "x": 0.014814814814814815,
+            "y": 0.2625,
+            "w": 0.8,
+            "h": 0.029166666666666667
+          },
+          "region": "top_center"
+        },
+        {
+          "text": "Ornadyne",
+          "bbox": {
+            "x": 0.28641975308641976,
+            "y": 0.375,
+            "w": 0.45185185185185184,
+            "h": 0.05277777777777778
+          },
+          "region": "middle_center"
+        },
+        {
+          "text": "SPRING 2026",
+          "bbox": {
+            "x": 0.37777777777777777,
+            "y": 0.44722222222222224,
+            "w": 0.2938271604938272,
+            "h": 0.018055555555555554
+          },
+          "region": "middle_center"
+        },
+        {
+          "text": "@ ACTIVE",
+          "bbox": {
+            "x": 0.7555555555555555,
+            "y": 0.44166666666666665,
+            "w": 0.2419753086419753,
+            "h": 0.029166666666666667
+          },
+          "region": "middle_right"
+        },
+        {
+          "text": "ROBOTICS",
+          "bbox": {
+            "x": 0.30617283950617286,
+            "y": 0.5111111111111111,
+            "w": 0.2345679012345679,
+            "h": 0.018055555555555554
+          },
+          "region": "middle_center"
+        },
+        {
+          "text": "DRONES",
+          "bbox": {
+            "x": 0.6246913580246913,
+            "y": 0.5111111111111111,
+            "w": 0.18518518518518517,
+            "h": 0.018055555555555554
+          },
+          "region": "middle_right"
+        },
+        {
+          "text": "AERC",
+          "bbox": {
+            "x": 0.8938271604938272,
+            "y": 0.5111111111111111,
+            "w": 0.10617283950617284,
+            "h": 0.018055555555555554
+          },
+          "region": "middle_right"
+        },
+        {
+          "text": "LOS ANGELES",
+          "bbox": {
+            "x": 0.30864197530864196,
+            "y": 0.5763888888888888,
+            "w": 0.3111111111111111,
+            "h": 0.018055555555555554
+          },
+          "region": "middle_center"
+        },
+        {
+          "text": "Company 0",
+          "bbox": {
+            "x": 0.06419753086419754,
+            "y": 0.6847222222222222,
+            "w": 0.7851851851851852,
+            "h": 0.04722222222222222
+          },
+          "region": "bottom_center"
+        },
+        {
+          "text": "& https://ornadyne.com/",
+          "bbox": {
+            "x": 0.0691358024691358,
+            "y": 0.7861111111111111,
+            "w": 0.7506172839506173,
+            "h": 0.034722222222222224
+          },
+          "region": "bottom_center"
+        },
+        {
+          "text": "We're building robot birds for s",
+          "bbox": {
+            "x": 0.08148148148148149,
+            "y": 0.8805555555555555,
+            "w": 0.9185185185185185,
+            "h": 0.03611111111111111
+          },
+          "region": "bottom_center"
+        }
+      ],
+      "audio_rms_mean": 0.11201162381948483,
+      "audio_peak_rms": 0.20732764110839907,
+      "audio_silence_pct": 0.045454545454545456,
+      "audio_speech_pct": 0.9545454545454546,
+      "audio_music_pct": 0,
+      "sfx_count": 3,
+      "sfx_at_start": true,
+      "sfx_classifications": [
+        {
+          "ms": 4608,
+          "type": "vocal",
+          "confidence": 0.5883037008365568,
+          "features": {
+            "peak_rms": 0.16236133873462677,
+            "baseline_rms": 0.014103713044896722,
+            "spike_ratio": 11.511957044061917,
+            "delta_centroid_hz": 884.0346186925427,
+            "delta_flatness": 0.16388969572854528,
+            "delta_voice_band_ratio": 0.5883037008365568,
+            "delta_high_band_ratio": 0.06349190601706639
+          }
+        },
+        {
+          "ms": 4736,
+          "type": "impulse_tonal",
+          "confidence": 0.45,
+          "features": {
+            "peak_rms": 0.2307213842868805,
+            "baseline_rms": 0.09485206395387649,
+            "spike_ratio": 2.4324339889859736,
+            "delta_centroid_hz": 2417.6172925670667,
+            "delta_flatness": 0.17207664812262466,
+            "delta_voice_band_ratio": 0.03827433913203474,
+            "delta_high_band_ratio": 0.16277456065531334
+          }
+        },
+        {
+          "ms": 5472,
+          "type": "other",
+          "confidence": 0.3,
+          "features": {
+            "peak_rms": 0.1728183627128601,
+            "baseline_rms": 0.08907911568880081,
+            "spike_ratio": 1.94005476341507,
+            "delta_centroid_hz": 2452.3167950990846,
+            "delta_flatness": 0.35113283834578535,
+            "delta_voice_band_ratio": 0.20609674044976142,
+            "delta_high_band_ratio": 0.10042545331747757
+          }
+        }
+      ],
+      "overlays": [],
+      "visual_caption": "Screen recording scrolls down a company profile for \"Ornadyne,\" revealing sections and shifting focus on the company name and logo.",
+      "spoken_window": "This is Ornadyne"
+    },
+    {
+      "start_ms": 5833,
+      "end_ms": 8500,
+      "has_face": false,
+      "ocr_text": "©\n\nEnabling flapping-wing flight.\n\nORNODYNE",
+      "speaker_verdict": "no_face",
+      "speaker_confidence": 1,
+      "sync_conf": 0,
+      "clip_type": "broll_visual",
+      "face_bbox": null,
+      "face_region": null,
+      "text_moments": [
+        {
+          "text": "©",
+          "bbox": {
+            "x": 0.2839506172839506,
+            "y": 0.24583333333333332,
+            "w": 0.4271604938271605,
+            "h": 0.26944444444444443
+          },
+          "region": "middle_center"
+        },
+        {
+          "text": "Enabling flapping-wing flight.",
+          "bbox": {
+            "x": 0.01728395061728395,
+            "y": 0.6069444444444444,
+            "w": 0.9555555555555556,
+            "h": 0.03333333333333333
+          },
+          "region": "middle_center"
+        },
+        {
+          "text": "ORNODYNE",
+          "bbox": {
+            "x": 0.1925925925925926,
+            "y": 0.6986111111111111,
+            "w": 0.6419753086419753,
+            "h": 0.09861111111111111
+          },
+          "region": "bottom_center"
+        },
+        {
+          "text": "©",
+          "bbox": {
+            "x": 0.2222222222222222,
+            "y": 0.06944444444444445,
+            "w": 0.5481481481481482,
+            "h": 0.3458333333333333
+          },
+          "region": "top_center"
+        },
+        {
+          "text": "flapping-wing flig",
+          "bbox": {
+            "x": 0.25679012345679014,
+            "y": 0.5333333333333333,
+            "w": 0.7407407407407407,
+            "h": 0.043055555555555555
+          },
+          "region": "middle_center"
+        },
+        {
+          "text": "THEY",
+          "bbox": {
+            "x": 0.28641975308641976,
+            "y": 0.675,
+            "w": 0.39012345679012345,
+            "h": 0.10277777777777777
+          },
+          "region": "bottom_center"
+        },
+        {
+          "text": "ing flapping-wing f",
+          "bbox": {
+            "x": 0.01728395061728395,
+            "y": 0.45416666666666666,
+            "w": 0.9777777777777777,
+            "h": 0.05277777777777778
+          },
+          "region": "middle_center"
+        },
+        {
+          "text": "\\g flapping-wing",
+          "bbox": {
+            "x": 0,
+            "y": 0.37916666666666665,
+            "w": 0.9851851851851852,
+            "h": 0.06388888888888888
+          },
+          "region": "middle_center"
+        },
+        {
+          "text": "cop",
+          "bbox": {
+            "x": 0.35802469135802467,
+            "y": 0.6180555555555556,
+            "w": 0.22962962962962963,
+            "h": 0.15555555555555556
+          },
+          "region": "bottom_center"
+        },
+        {
+          "text": ") flapping-win",
+          "bbox": {
+            "x": 0,
+            "y": 0.3055555555555556,
+            "w": 1,
+            "h": 0.07361111111111111
+          },
+          "region": "middle_center"
+        },
+        {
+          "text": "BACKED BY",
+          "bbox": {
+            "x": 0.09876543209876543,
+            "y": 0.5430555555555555,
+            "w": 0.7679012345679013,
+            "h": 0.044444444444444446
+          },
+          "region": "middle_center"
+        },
+        {
+          "text": "Combinator",
+          "bbox": {
+            "x": 0.3432098765432099,
+            "y": 0.6569444444444444,
+            "w": 0.4444444444444444,
+            "h": 0.05416666666666667
+          },
+          "region": "bottom_center"
+        }
+      ],
+      "audio_rms_mean": 0.09535641572449699,
+      "audio_peak_rms": 0.23771164479511644,
+      "audio_silence_pct": 0,
+      "audio_speech_pct": 1,
+      "audio_music_pct": 0,
+      "sfx_count": 4,
+      "sfx_at_start": false,
+      "sfx_classifications": [
+        {
+          "ms": 6496,
+          "type": "vocal",
+          "confidence": 0.5916212019588226,
+          "features": {
+            "peak_rms": 0.07737936824560165,
+            "baseline_rms": 0.019297150168567895,
+            "spike_ratio": 4.009885789853095,
+            "delta_centroid_hz": 1246.9836183209306,
+            "delta_flatness": 0.21681414958027437,
+            "delta_voice_band_ratio": 0.5916212019588226,
+            "delta_high_band_ratio": 0.07808547683594165
+          }
+        },
+        {
+          "ms": 6656,
+          "type": "vocal",
+          "confidence": 0.4451244408161278,
+          "features": {
+            "peak_rms": 0.15170897543430328,
+            "baseline_rms": 0.05218779519200325,
+            "spike_ratio": 2.9069818886993275,
+            "delta_centroid_hz": 1429.8314358351074,
+            "delta_flatness": 0.25019517558004495,
+            "delta_voice_band_ratio": 0.4451244408161278,
+            "delta_high_band_ratio": 0.11194489607354796
+          }
+        },
+        {
+          "ms": 6816,
+          "type": "vocal",
+          "confidence": 0.4372736211082731,
+          "features": {
+            "peak_rms": 0.2647518515586853,
+            "baseline_rms": 0.11611192405223847,
+            "spike_ratio": 2.2801435228958407,
+            "delta_centroid_hz": 2010.9202192373962,
+            "delta_flatness": 0.24278278445586512,
+            "delta_voice_band_ratio": 0.4372736211082731,
+            "delta_high_band_ratio": 0.09667082111176675
+          }
+        },
+        {
+          "ms": 7680,
+          "type": "impulse_tonal",
+          "confidence": 0.45,
+          "features": {
+            "peak_rms": 0.1752239316701889,
+            "baseline_rms": 0.09253922820091248,
+            "spike_ratio": 1.893509758799362,
+            "delta_centroid_hz": 3271.978533099671,
+            "delta_flatness": 0.2905158266933054,
+            "delta_voice_band_ratio": 0.00803290481576883,
+            "delta_high_band_ratio": 0.15379624377583043
+          }
+        }
+      ],
+      "overlays": [],
+      "visual_caption": "Zoom in on the lower part of the logo card, transitioning from \"ORNODYNE\" to \"BACKED BY Y Combinator,\" with the \"YC\" logo becoming emphasized.",
+      "spoken_window": "Ornadyne and they just got into YC"
+    },
+    {
+      "start_ms": 8500,
+      "end_ms": 9633,
+      "has_face": true,
+      "ocr_text": "Introducing O\n\nPRIMARY.",
+      "speaker_verdict": "no_face",
+      "speaker_confidence": 0.9285714285714286,
+      "sync_conf": 0,
+      "clip_type": "talking_head_unknown",
+      "face_bbox": {
+        "x": -0.016297827826605937,
+        "y": 0.2970362424850464,
+        "w": 0.9132926728990343,
+        "h": 0.513641095161438
+      },
+      "face_region": "middle_center",
+      "text_moments": [
+        {
+          "text": "Introducing O",
+          "bbox": {
+            "x": 0.18024691358024691,
+            "y": 0.48333333333333334,
+            "w": 0.7432098765432099,
+            "h": 0.06388888888888888
+          },
+          "region": "middle_center"
+        },
+        {
+          "text": "PRIMARY.",
+          "bbox": {
+            "x": 0.2123456790123457,
+            "y": 0.6930555555555555,
+            "w": 0.691358024691358,
+            "h": 0.08333333333333333
+          },
+          "region": "bottom_center"
+        }
+      ],
+      "audio_rms_mean": 0.08989381743697616,
+      "audio_peak_rms": 0.18900717430984168,
+      "audio_silence_pct": 0,
+      "audio_speech_pct": 1,
+      "audio_music_pct": 0,
+      "sfx_count": 0,
+      "sfx_at_start": false,
+      "sfx_classifications": [],
+      "overlays": [],
+      "visual_caption": "Text transition from \"than THEIRs unseen\" to \"O1 CLIENT,\" with a slight zoom in on the words, maintaining a dark background.",
+      "spoken_window": "Their primary client"
+    },
+    {
+      "start_ms": 9633,
+      "end_ms": 10533,
+      "has_face": false,
+      "ocr_text": "=, YC Launch screen\n\ndyne has\n\nf YC to bui\n\nr military\n\nCGOVERNMENT",
+      "speaker_verdict": "no_face",
+      "speaker_confidence": 1,
+      "sync_conf": 0,
+      "clip_type": "broll_visual",
+      "face_bbox": null,
+      "face_region": null,
+      "text_moments": [
+        {
+          "text": "=, YC Launch screen",
+          "bbox": {
+            "x": 0,
+            "y": 0.07222222222222222,
+            "w": 0.9901234567901235,
+            "h": 0.05138888888888889
+          },
+          "region": "top_center"
+        },
+        {
+          "text": "dyne has",
+          "bbox": {
+            "x": 0,
+            "y": 0.24027777777777778,
+            "w": 0.8765432098765432,
+            "h": 0.10555555555555556
+          },
+          "region": "top_center"
+        },
+        {
+          "text": "f YC to bui",
+          "bbox": {
+            "x": 0,
+            "y": 0.37916666666666665,
+            "w": 0.980246913580247,
+            "h": 0.0875
+          },
+          "region": "middle_center"
+        },
+        {
+          "text": "r military",
+          "bbox": {
+            "x": 0,
+            "y": 0.5194444444444445,
+            "w": 0.8691358024691358,
+            "h": 0.10694444444444444
+          },
+          "region": "middle_center"
+        },
+        {
+          "text": "CGOVERNMENT",
+          "bbox": {
+            "x": 0.012345679012345678,
+            "y": 0.6833333333333333,
+            "w": 0.9012345679012346,
+            "h": 0.09305555555555556
+          },
+          "region": "bottom_center"
+        }
+      ],
+      "audio_rms_mean": 0.11209216091445237,
+      "audio_peak_rms": 0.20185789721050512,
+      "audio_silence_pct": 0,
+      "audio_speech_pct": 1,
+      "audio_music_pct": 0,
+      "sfx_count": 1,
+      "sfx_at_start": false,
+      "sfx_classifications": [
+        {
+          "ms": 10048,
+          "type": "vocal",
+          "confidence": 0.41443931881033075,
+          "features": {
+            "peak_rms": 0.19822578132152557,
+            "baseline_rms": 0.07841518834233284,
+            "spike_ratio": 2.527900340634805,
+            "delta_centroid_hz": 2341.7802664929873,
+            "delta_flatness": 0.31436271182046494,
+            "delta_voice_band_ratio": 0.41443931881033075,
+            "delta_high_band_ratio": 0.13666237133500247
+          }
+        }
+      ],
+      "overlays": [],
+      "visual_caption": "Text reveals the message \"Ornadyne has graduated out of YC to build birds for military reconnaissance,\" with a zoom-in effect focusing on the word \"GOVERNMENT.\"",
+      "spoken_window": "client is the government and"
+    },
+    {
+      "start_ms": 10533,
+      "end_ms": 11233,
+      "has_face": false,
+      "ocr_text": "Ornadyne\n\nOrnadyne\n\nFounded:\n\n2026\n\nBatch:\n\nSpring 2026\n\nTeam Size:\n\n2\n\nStatus:\n\n® Active\n\nLocation:\n\nLos Angeles, CA\n\nPrimary Partner:\n\nAaron Epstein\n\n@\n\nBTHEIR\n\na\n\nthis\n\nop\n\nwant\n\n[7] Mak\n\nPirie\n\nource",
+      "speaker_verdict": "no_face",
+      "speaker_confidence": 1,
+      "sync_conf": 0,
+      "clip_type": "broll_visual",
+      "face_bbox": null,
+      "face_region": null,
+      "text_moments": [
+        {
+          "text": "Ornadyne",
+          "bbox": {
+            "x": 0.345679012345679,
+            "y": 0.15416666666666667,
+            "w": 0.30864197530864196,
+            "h": 0.03611111111111111
+          },
+          "region": "top_center"
+        },
+        {
+          "text": "Ornadyne",
+          "bbox": {
+            "x": 0.06666666666666667,
+            "y": 0.2611111111111111,
+            "w": 0.24938271604938272,
+            "h": 0.030555555555555555
+          },
+          "region": "top_left"
+        },
+        {
+          "text": "Founded:",
+          "bbox": {
+            "x": 0.06666666666666667,
+            "y": 0.3402777777777778,
+            "w": 0.18024691358024691,
+            "h": 0.018055555555555554
+          },
+          "region": "middle_left"
+        },
+        {
+          "text": "2026",
+          "bbox": {
+            "x": 0.8320987654320988,
+            "y": 0.3402777777777778,
+            "w": 0.10123456790123457,
+            "h": 0.018055555555555554
+          },
+          "region": "middle_right"
+        },
+        {
+          "text": "Batch:",
+          "bbox": {
+            "x": 0.06666666666666667,
+            "y": 0.3902777777777778,
+            "w": 0.12098765432098765,
+            "h": 0.018055555555555554
+          },
+          "region": "middle_left"
+        },
+        {
+          "text": "Spring 2026",
+          "bbox": {
+            "x": 0.6938271604938272,
+            "y": 0.3902777777777778,
+            "w": 0.23950617283950618,
+            "h": 0.02361111111111111
+          },
+          "region": "middle_right"
+        },
+        {
+          "text": "Team Size:",
+          "bbox": {
+            "x": 0.06666666666666667,
+            "y": 0.44166666666666665,
+            "w": 0.20493827160493827,
+            "h": 0.018055555555555554
+          },
+          "region": "middle_left"
+        },
+        {
+          "text": "2",
+          "bbox": {
+            "x": 0.9135802469135802,
+            "y": 0.44166666666666665,
+            "w": 0.019753086419753086,
+            "h": 0.018055555555555554
+          },
+          "region": "middle_right"
+        },
+        {
+          "text": "Status:",
+          "bbox": {
+            "x": 0.06666666666666667,
+            "y": 0.4930555555555556,
+            "w": 0.1308641975308642,
+            "h": 0.018055555555555554
+          },
+          "region": "middle_left"
+        },
+        {
+          "text": "® Active",
+          "bbox": {
+            "x": 0.7728395061728395,
+            "y": 0.4930555555555556,
+            "w": 0.16049382716049382,
+            "h": 0.018055555555555554
+          },
+          "region": "middle_right"
+        },
+        {
+          "text": "Location:",
+          "bbox": {
+            "x": 0.06666666666666667,
+            "y": 0.5444444444444444,
+            "w": 0.18024691358024691,
+            "h": 0.018055555555555554
+          },
+          "region": "middle_left"
+        },
+        {
+          "text": "Los Angeles, CA",
+          "bbox": {
+            "x": 0.6172839506172839,
+            "y": 0.5430555555555555,
+            "w": 0.3160493827160494,
+            "h": 0.02361111111111111
+          },
+          "region": "middle_right"
+        },
+        {
+          "text": "Primary Partner:",
+          "bbox": {
+            "x": 0.06666666666666667,
+            "y": 0.5944444444444444,
+            "w": 0.32839506172839505,
+            "h": 0.022222222222222223
+          },
+          "region": "middle_left"
+        },
+        {
+          "text": "Aaron Epstein",
+          "bbox": {
+            "x": 0.6592592592592592,
+            "y": 0.5944444444444444,
+            "w": 0.2716049382716049,
+            "h": 0.022222222222222223
+          },
+          "region": "middle_right"
+        },
+        {
+          "text": "this",
+          "bbox": {
+            "x": 0.39012345679012345,
+            "y": 0.8833333333333333,
+            "w": 0.044444444444444446,
+            "h": 0.016666666666666666
+          },
+          "region": "bottom_center"
+        },
+        {
+          "text": "op",
+          "bbox": {
+            "x": 0.5530864197530864,
+            "y": 0.8888888888888888,
+            "w": 0.044444444444444446,
+            "h": 0.016666666666666666
+          },
+          "region": "bottom_center"
+        },
+        {
+          "text": "want",
+          "bbox": {
+            "x": 0.6493827160493827,
+            "y": 0.8847222222222222,
+            "w": 0.09382716049382717,
+            "h": 0.015277777777777777
+          },
+          "region": "bottom_right"
+        },
+        {
+          "text": "Mak",
+          "bbox": {
+            "x": 0.16790123456790124,
+            "y": 0.8833333333333333,
+            "w": 0.0691358024691358,
+            "h": 0.016666666666666666
+          },
+          "region": "bottom_left"
+        },
+        {
+          "text": "ource",
+          "bbox": {
+            "x": 0.6172839506172839,
+            "y": 0.9888888888888889,
+            "w": 0.0962962962962963,
+            "h": 0.009722222222222222
+          },
+          "region": "bottom_center"
+        }
+      ],
+      "audio_rms_mean": 0.09547343338135365,
+      "audio_peak_rms": 0.13805674067479834,
+      "audio_silence_pct": 0,
+      "audio_speech_pct": 1,
+      "audio_music_pct": 0,
+      "sfx_count": 0,
+      "sfx_at_start": false,
+      "sfx_classifications": [],
+      "overlays": [],
+      "visual_caption": "Static view of the 'Ornadyne' company profile card, displaying relevant company details with no motion.",
+      "spoken_window": "and their main"
+    },
+    {
+      "start_ms": 11233,
+      "end_ms": 13233,
+      "has_face": false,
+      "ocr_text": "an\n\nne\n\n2026\n\nSpring 2026\n\n2\n\n© Active\n\nLos Angeles, CA\n\nartner:\n\nAaron Epstein\n\ne somethin\n\npeople want.",
+      "speaker_verdict": "no_face",
+      "speaker_confidence": 1,
+      "sync_conf": 0,
+      "clip_type": "broll_visual",
+      "face_bbox": null,
+      "face_region": null,
+      "text_moments": [
+        {
+          "text": "ne",
+          "bbox": {
+            "x": 0,
+            "y": 0.1388888888888889,
+            "w": 0.09135802469135802,
+            "h": 0.020833333333333332
+          },
+          "region": "top_left"
+        },
+        {
+          "text": "2026",
+          "bbox": {
+            "x": 0.7876543209876543,
+            "y": 0.23472222222222222,
+            "w": 0.13580246913580246,
+            "h": 0.025
+          },
+          "region": "top_right"
+        },
+        {
+          "text": "Spring 2026",
+          "bbox": {
+            "x": 0.6,
+            "y": 0.30416666666666664,
+            "w": 0.3234567901234568,
+            "h": 0.030555555555555555
+          },
+          "region": "top_right"
+        },
+        {
+          "text": "2",
+          "bbox": {
+            "x": 0.8962962962962963,
+            "y": 0.37222222222222223,
+            "w": 0.027160493827160494,
+            "h": 0.025
+          },
+          "region": "middle_right"
+        },
+        {
+          "text": "Active",
+          "bbox": {
+            "x": 0.762962962962963,
+            "y": 0.44166666666666665,
+            "w": 0.16296296296296298,
+            "h": 0.025
+          },
+          "region": "middle_right"
+        },
+        {
+          "text": "Los Angeles, CA",
+          "bbox": {
+            "x": 0.4962962962962963,
+            "y": 0.5097222222222222,
+            "w": 0.4271604938271605,
+            "h": 0.03194444444444444
+          },
+          "region": "middle_right"
+        },
+        {
+          "text": "Aaron Epstein",
+          "bbox": {
+            "x": 0.5530864197530864,
+            "y": 0.5791666666666667,
+            "w": 0.37037037037037035,
+            "h": 0.030555555555555555
+          },
+          "region": "middle_right"
+        },
+        {
+          "text": "e somethin",
+          "bbox": {
+            "x": 0.0024691358024691358,
+            "y": 0.9680555555555556,
+            "w": 0.2814814814814815,
+            "h": 0.025
+          },
+          "region": "bottom_left"
+        },
+        {
+          "text": "people want.",
+          "bbox": {
+            "x": 0.345679012345679,
+            "y": 0.9694444444444444,
+            "w": 0.3358024691358025,
+            "h": 0.02361111111111111
+          },
+          "region": "bottom_center"
+        },
+        {
+          "text": "2026",
+          "bbox": {
+            "x": 0.7481481481481481,
+            "y": 0.1388888888888889,
+            "w": 0.16790123456790124,
+            "h": 0.030555555555555555
+          },
+          "region": "top_right"
+        },
+        {
+          "text": "Spring 2026",
+          "bbox": {
+            "x": 0.5160493827160494,
+            "y": 0.225,
+            "w": 0.4,
+            "h": 0.03888888888888889
+          },
+          "region": "top_right"
+        },
+        {
+          "text": "2",
+          "bbox": {
+            "x": 0.8814814814814815,
+            "y": 0.30972222222222223,
+            "w": 0.0345679012345679,
+            "h": 0.030555555555555555
+          },
+          "region": "top_right"
+        },
+        {
+          "text": "® Active",
+          "bbox": {
+            "x": 0.6469135802469136,
+            "y": 0.3958333333333333,
+            "w": 0.2716049382716049,
+            "h": 0.029166666666666667
+          },
+          "region": "middle_right"
+        },
+        {
+          "text": "Los Angeles, CA",
+          "bbox": {
+            "x": 0.38765432098765434,
+            "y": 0.4791666666666667,
+            "w": 0.528395061728395,
+            "h": 0.03888888888888889
+          },
+          "region": "middle_center"
+        },
+        {
+          "text": "Aaron Epstein",
+          "bbox": {
+            "x": 0.4567901234567901,
+            "y": 0.5652777777777778,
+            "w": 0.4567901234567901,
+            "h": 0.0375
+          },
+          "region": "middle_right"
+        },
+        {
+          "text": "IS}",
+          "bbox": {
+            "x": 0.43209876543209874,
+            "y": 0.6916666666666667,
+            "w": 0.15555555555555556,
+            "h": 0.09027777777777778
+          },
+          "region": "bottom_center"
+        },
+        {
+          "text": "2026",
+          "bbox": {
+            "x": 0.7086419753086419,
+            "y": 0.044444444444444446,
+            "w": 0.2,
+            "h": 0.03611111111111111
+          },
+          "region": "top_right"
+        },
+        {
+          "text": "Spring 2026",
+          "bbox": {
+            "x": 0.42962962962962964,
+            "y": 0.14583333333333334,
+            "w": 0.47901234567901235,
+            "h": 0.04583333333333333
+          },
+          "region": "top_right"
+        },
+        {
+          "text": "2",
+          "bbox": {
+            "x": 0.8666666666666667,
+            "y": 0.24722222222222223,
+            "w": 0.04197530864197531,
+            "h": 0.034722222222222224
+          },
+          "region": "top_right"
+        },
+        {
+          "text": "® Active",
+          "bbox": {
+            "x": 0.5876543209876544,
+            "y": 0.3486111111111111,
+            "w": 0.32098765432098764,
+            "h": 0.03611111111111111
+          },
+          "region": "middle_right"
+        },
+        {
+          "text": "Los Angeles, CA",
+          "bbox": {
+            "x": 0.27901234567901234,
+            "y": 0.4486111111111111,
+            "w": 0.6296296296296297,
+            "h": 0.04722222222222222
+          },
+          "region": "middle_center"
+        },
+        {
+          "text": "Aaron Epstein",
+          "bbox": {
+            "x": 0.36049382716049383,
+            "y": 0.5513888888888889,
+            "w": 0.5456790123456791,
+            "h": 0.044444444444444446
+          },
+          "region": "middle_center"
+        },
+        {
+          "text": "Spring 2026",
+          "bbox": {
+            "x": 0.345679012345679,
+            "y": 0.06666666666666667,
+            "w": 0.5530864197530864,
+            "h": 0.05277777777777778
+          },
+          "region": "top_center"
+        },
+        {
+          "text": "2",
+          "bbox": {
+            "x": 0.8518518518518519,
+            "y": 0.18333333333333332,
+            "w": 0.04938271604938271,
+            "h": 0.041666666666666664
+          },
+          "region": "top_right"
+        },
+        {
+          "text": "® Active",
+          "bbox": {
+            "x": 0.5259259259259259,
+            "y": 0.30277777777777776,
+            "w": 0.37530864197530867,
+            "h": 0.04027777777777778
+          },
+          "region": "top_right"
+        },
+        {
+          "text": "Los Angeles, CA",
+          "bbox": {
+            "x": 0.16790123456790124,
+            "y": 0.41944444444444445,
+            "w": 0.7308641975308642,
+            "h": 0.05416666666666667
+          },
+          "region": "middle_center"
+        },
+        {
+          "text": "Aaron Epstein",
+          "bbox": {
+            "x": 0.2641975308641975,
+            "y": 0.5375,
+            "w": 0.6345679012345679,
+            "h": 0.05277777777777778
+          },
+          "region": "middle_center"
+        },
+        {
+          "text": "Spring",
+          "bbox": {
+            "x": 0.2691358024691358,
+            "y": 0,
+            "w": 0.32592592592592595,
+            "h": 0.05555555555555555
+          },
+          "region": "top_center"
+        },
+        {
+          "text": "2",
+          "bbox": {
+            "x": 0.8395061728395061,
+            "y": 0.12638888888888888,
+            "w": 0.05432098765432099,
+            "h": 0.04722222222222222
+          },
+          "region": "top_right"
+        },
+        {
+          "text": "® Active",
+          "bbox": {
+            "x": 0.4740740740740741,
+            "y": 0.25972222222222224,
+            "w": 0.4222222222222222,
+            "h": 0.04722222222222222
+          },
+          "region": "top_right"
+        },
+        {
+          "text": "Los Angeles, CA",
+          "bbox": {
+            "x": 0.0691358024691358,
+            "y": 0.39166666666666666,
+            "w": 0.8222222222222222,
+            "h": 0.06111111111111111
+          },
+          "region": "middle_center"
+        },
+        {
+          "text": "Aaron Epstein",
+          "bbox": {
+            "x": 0.17777777777777778,
+            "y": 0.525,
+            "w": 0.7135802469135802,
+            "h": 0.058333333333333334
+          },
+          "region": "middle_center"
+        }
+      ],
+      "audio_rms_mean": 0.08826742149228056,
+      "audio_peak_rms": 0.20404840386173007,
+      "audio_silence_pct": 0.031746031746031744,
+      "audio_speech_pct": 0.9682539682539683,
+      "audio_music_pct": 0,
+      "sfx_count": 4,
+      "sfx_at_start": true,
+      "sfx_classifications": [
+        {
+          "ms": 11392,
+          "type": "vocal",
+          "confidence": 0.489570827512355,
+          "features": {
+            "peak_rms": 0.09904125332832336,
+            "baseline_rms": 0.05606015205383301,
+            "spike_ratio": 1.7666961237139849,
+            "delta_centroid_hz": 1738.8470907209517,
+            "delta_flatness": 0.2290381340294803,
+            "delta_voice_band_ratio": 0.489570827512355,
+            "delta_high_band_ratio": 0.16903491848529967
+          }
+        },
+        {
+          "ms": 11648,
+          "type": "vocal",
+          "confidence": 0.6614971168547015,
+          "features": {
+            "peak_rms": 0.13960224390029907,
+            "baseline_rms": 0.009438432529568672,
+            "spike_ratio": 14.790829246588762,
+            "delta_centroid_hz": 823.9163085396963,
+            "delta_flatness": 0.5113901551127014,
+            "delta_voice_band_ratio": 0.6614971168547015,
+            "delta_high_band_ratio": 0.012307950820001867
+          }
+        },
+        {
+          "ms": 11776,
+          "type": "impulse_tonal",
+          "confidence": 0.45,
+          "features": {
+            "peak_rms": 0.2172866016626358,
+            "baseline_rms": 0.10660876154899597,
+            "spike_ratio": 2.038168331622291,
+            "delta_centroid_hz": 2293.439151291907,
+            "delta_flatness": 0.16924011054667235,
+            "delta_voice_band_ratio": 0.2866970679549379,
+            "delta_high_band_ratio": 0.10690949378355107
+          }
+        },
+        {
+          "ms": 12320,
+          "type": "impulse_tonal",
+          "confidence": 0.45,
+          "features": {
+            "peak_rms": 0.19554933905601501,
+            "baseline_rms": 0.05214560300111771,
+            "spike_ratio": 3.750063817496243,
+            "delta_centroid_hz": 2248.6625795809873,
+            "delta_flatness": 0.2832590690252997,
+            "delta_voice_band_ratio": 0.2668542265214827,
+            "delta_high_band_ratio": 0.15136022126916598
+          }
+        }
+      ],
+      "overlays": [],
+      "visual_caption": "Fast scroll down a LinkedIn profile, stopping on the name \"Aaron Epstein\" with an animated text overlay saying \"EPSTEIN.\"",
+      "spoken_window": "main investor is FC"
+    },
+    {
+      "start_ms": 13233,
+      "end_ms": 17319,
+      "has_face": true,
+      "ocr_text": "STARTUP?\n\n>\n\n<>",
+      "speaker_verdict": "speaker",
+      "speaker_confidence": 1,
+      "sync_conf": 4.4720652708067785,
+      "clip_type": "talking_head",
+      "face_bbox": {
+        "x": 0.281939008500841,
+        "y": 0.590446412563324,
+        "w": 0.4690962579515243,
+        "h": 0.2638655185699463
+      },
+      "face_region": "bottom_center",
+      "text_moments": [
+        {
+          "text": "SUPPORT;",
+          "bbox": {
+            "x": 0.2518518518518518,
+            "y": 0.30277777777777776,
+            "w": 0.5308641975308642,
+            "h": 0.075
+          },
+          "region": "middle_center"
+        },
+        {
+          "text": "po",
+          "bbox": {
+            "x": 0.34814814814814815,
+            "y": 0.4708333333333333,
+            "w": 0.41728395061728396,
+            "h": 0.14444444444444443
+          },
+          "region": "middle_center"
+        },
+        {
+          "text": "UP",
+          "bbox": {
+            "x": 0.42962962962962964,
+            "y": 0.3,
+            "w": 0.16296296296296298,
+            "h": 0.08055555555555556
+          },
+          "region": "middle_center"
+        },
+        {
+          "text": "STARTURZ",
+          "bbox": {
+            "x": 0.18518518518518517,
+            "y": 0.29444444444444445,
+            "w": 0.6444444444444445,
+            "h": 0.14722222222222223
+          },
+          "region": "middle_center"
+        },
+        {
+          "text": "STARTUP?",
+          "bbox": {
+            "x": 0.20987654320987653,
+            "y": 0.3013888888888889,
+            "w": 0.5728395061728395,
+            "h": 0.07777777777777778
+          },
+          "region": "middle_center"
+        },
+        {
+          "text": "<>",
+          "bbox": {
+            "x": 0.5530864197530864,
+            "y": 0.6430555555555556,
+            "w": 0.07407407407407407,
+            "h": 0.020833333333333332
+          },
+          "region": "middle_center"
+        }
+      ],
+      "audio_rms_mean": 0.08245221744621088,
+      "audio_peak_rms": 0.2025691459910168,
+      "audio_silence_pct": 0.109375,
+      "audio_speech_pct": 0.890625,
+      "audio_music_pct": 0,
+      "sfx_count": 3,
+      "sfx_at_start": false,
+      "sfx_classifications": [
+        {
+          "ms": 13824,
+          "type": "vocal",
+          "confidence": 0.9200657786379732,
+          "features": {
+            "peak_rms": 0.21887369453907013,
+            "baseline_rms": 0.07210344910621642,
+            "spike_ratio": 3.0355509653448722,
+            "delta_centroid_hz": 986.13329355407,
+            "delta_flatness": 0.4904716188868926,
+            "delta_voice_band_ratio": 0.9200657786379732,
+            "delta_high_band_ratio": 0.03708269250382979
+          }
+        },
+        {
+          "ms": 14880,
+          "type": "vocal",
+          "confidence": 0.7408119516829849,
+          "features": {
+            "peak_rms": 0.16113637387752533,
+            "baseline_rms": 0.08521937787532806,
+            "spike_ratio": 1.890841941057822,
+            "delta_centroid_hz": 1484.9789360339469,
+            "delta_flatness": 0.28832952823419966,
+            "delta_voice_band_ratio": 0.7408119516829849,
+            "delta_high_band_ratio": 0.1592342245810545
+          }
+        },
+        {
+          "ms": 15296,
+          "type": "vocal",
+          "confidence": 0.8700305612667135,
+          "features": {
+            "peak_rms": 0.09948737919330597,
+            "baseline_rms": 0.025054662972688675,
+            "spike_ratio": 3.970812910225699,
+            "delta_centroid_hz": 1007.4409045512238,
+            "delta_flatness": 0.5745780329054945,
+            "delta_voice_band_ratio": 0.8700305612667135,
+            "delta_high_band_ratio": 0.06361190765662281
+          }
+        }
+      ],
+      "overlays": [],
+      "visual_caption": "Transition from a surprised expression to an excited expression with text changing from \"SUPPORT\" to \"STARTUP?\" against a bright green background.",
+      "spoken_window": "Would you support this up and coming startup"
+    }
+  ],
+  "hook_text": "'re building autonomous ornithopters with\n\nr-class flight times, low acoustic signatur\n\ni natural bird-like flight. This makes\n\nadyne's drones harder for humans and\n\nnter-UAS systems to detect, classify, and\n\nget.\n\ne Found\n\nSTARTUR\n\nourg’s Master's thesis is built on 2+ years c\n\nearch and development in flapping-wing\n\nnes. His work has received multiple awarc\n\nTU",
+  "hook_duration_ms": 1267,
+  "median_shot_ms": 1400,
+  "cuts_per_sec": 0.4619204342052082,
+  "talking_pct": 0.30134534326462264,
+  "broll_pct": 0.6986546567353773,
+  "text_overlay_pct": 1,
+  "real_speaker_pct": 0.1111111111111111,
+  "broll_talking_head_pct": 0,
+  "clip_type_distribution": {
+    "talking_head": 0.23592586177031005,
+    "broll_talking_head": 0,
+    "talking_head_unknown": 0.0654194814943126,
+    "broll_visual": 0.6986546567353774
+  },
+  "face_region_dominant": "mixed",
+  "face_region_distribution": {
+    "top_left": 0,
+    "top_center": 0,
+    "top_right": 0,
+    "middle_left": 0,
+    "middle_center": 0.5,
+    "middle_right": 0,
+    "bottom_left": 0,
+    "bottom_center": 0.5,
+    "bottom_right": 0
+  },
+  "face_size_median": 0.3887533068656921,
+  "text_region_dominant": "mixed",
+  "text_region_distribution": {
+    "top_left": 0.0392156862745098,
+    "top_center": 0.11764705882352941,
+    "top_right": 0.11764705882352941,
+    "middle_left": 0.058823529411764705,
+    "middle_center": 0.2647058823529412,
+    "middle_right": 0.1568627450980392,
+    "bottom_left": 0.029411764705882353,
+    "bottom_center": 0.20588235294117646,
+    "bottom_right": 0.00980392156862745
+  },
+  "audio_energy_mean": 0.09589190415927507,
+  "audio_energy_std": 0.016759031657476012,
+  "audio_silence_pct": 0.03683782395565697,
+  "voiceover_pct": 0.9558465111676181,
+  "music_pct": 0.007315664876724984,
+  "hook_speech": "What's this startup that's building robotic surveillance birds This is",
+  "sfx_per_min": 62.3592586177031,
+  "cuts_with_sfx_pct": 0.3333333333333333,
+  "sfx_at_cuts_pct": 0.16666666666666666,
+  "media_overlay_pct": 0,
+  "overlays_per_min": 0,
+  "overlay_kind_distribution": null,
+  "overlay_motion_distribution": null,
+  "overlay_region_distribution": null,
+  "caption_style": {
+    "present": true,
+    "position": "center",
+    "chunking": "word_by_word",
+    "words_per_chunk": 1,
+    "font_size": "large",
+    "emphasis": "active_word_highlight",
+    "casing": "uppercase",
+    "animation": "pop",
+    "font_descriptor": "bold sans-serif with no stroke",
+    "font_family": "anton",
+    "font_family_name": "Anton",
+    "text_color": "yellow",
+    "text_treatment": "clear",
+    "treatment_color": null,
+    "highlight_color": null,
+    "has_emoji": false,
+    "style_label": "word-by-word karaoke highlight",
+    "matched_preset": "",
+    "preset_label": "Hormozi",
+    "preset_confidence": 0.86,
+    "preset_id": "hormozi"
+  }
+}

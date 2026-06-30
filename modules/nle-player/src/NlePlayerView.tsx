@@ -1,11 +1,14 @@
 import { requireNativeView } from 'expo';
 import * as React from 'react';
+import { View } from 'react-native';
 
-import { NlePlayer } from './NlePlayerModule';
+import { isNlePlayerAvailable, NlePlayer } from './NlePlayerModule';
 import { NlePlayerViewProps } from './NlePlayer.types';
 
 const NativeView: React.ComponentType<NlePlayerViewProps> =
-  requireNativeView('NlePlayer');
+  isNlePlayerAvailable
+    ? requireNativeView('NlePlayer')
+    : ({ style }) => <View style={style} />;
 
 /** Renders a native surface bound to a specific NlePlayer instance. */
 export default function NlePlayerView({

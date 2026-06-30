@@ -160,6 +160,7 @@ import {
   hydratePlanSpokenWords,
   transcriptTextScore,
 } from './analyze/subtitle-backfill';
+import { ensureEditContract, validateEditContract } from './analyze/edit-contract';
 import {
   synthesize,
   type SceneAnimation,
@@ -680,6 +681,32 @@ function topCounts(values: string[], max = 4): string[] {
     .map(([label, count]) => `${count}/${values.length} ${label}`);
 }
 
+function layer2ScriptDirectives(analyses: ReelAnalysisResult[], max = 6): string[] {
+  const directives: string[] = [];
+  for (const analysis of analyses) {
+    for (const shot of analysis.shots) {
+      const spoken = shot.spoken_window.replace(/\s+/g, ' ').trim();
+      if (!spoken) continue;
+      if (shot.overlays.length > 0) {
+        for (const overlay of shot.overlays) {
+          const overlaySpoken =
+            overlay.spoken_window?.replace(/\s+/g, ' ').trim() || spoken;
+          directives.push(
+            `When "${overlaySpoken.slice(0, 90)}" is said, show a ${overlay.kind.replace(/_/g, ' ')} visual overlay at ${overlay.region}.`,
+          );
+          if (directives.length >= max) return directives;
+        }
+      } else if (/overlay|overlaid|foreground|insert|card|screenshot|poster|flyer|invitation|slide|top media|bottom media/i.test(shot.visual_caption ?? '')) {
+        directives.push(
+          `When "${spoken.slice(0, 90)}" is said, show Layer 2 media matching: ${shot.visual_caption?.replace(/\s+/g, ' ').slice(0, 120)}.`,
+        );
+        if (directives.length >= max) return directives;
+      }
+    }
+  }
+  return directives;
+}
+
 function buildStrictAnalysisBrief(input: {
   style: ReelAnalysisResult[];
   content: ReelAnalysisResult[];
@@ -730,6 +757,7 @@ function buildStrictAnalysisBrief(input: {
   const sfxPerMin = style.length
     ? style.reduce((sum, a) => sum + a.sfx_per_min, 0) / style.length
     : 0;
+  const layer2Directives = layer2ScriptDirectives(style);
 
   return {
     summary:
@@ -762,6 +790,14 @@ function buildStrictAnalysisBrief(input: {
           `Match text/caption density around ${pct(textPct)} of shots unless the target content clearly needs fewer.`,
           `Match sound design around ${sfxPerMin.toFixed(1)} SFX/min; place hits on the same kind of moments as the references.`,
         ],
+      },
+      {
+        title: 'Strict Layer 2 Script Triggers',
+        tag: 'visual overlays matched to spoken beats',
+        directives:
+          layer2Directives.length > 0
+            ? layer2Directives
+            : ['When the target script mentions a concrete entity, product, event, metric, post, or page, place the matching Layer 2 visual at that spoken beat rather than choosing overlays randomly.'],
       },
     ],
     script_map: [],
@@ -904,7 +940,7 @@ async function synthesizePlan(
   let cached = loadCachedPlan(cacheKey);
   if (cached) {
     const hydrated = hydratePlanSpokenWords(cached, words);
-    cached = hydrated.plan;
+    cached = ensureEditContract(hydrated.plan);
     if (targetPreviewPath) cached.target_video_path = targetPreviewPath;
     if (hydrated.changed || cached.target_video_path) saveCachedPlan(cacheKey, cached);
     emit({
@@ -970,8 +1006,9 @@ async function synthesizePlan(
   await verifyOptionLikelihoods(plan, (msg) => {
     emit({ stage: 'verifying', message: msg });
   });
+  const finalPlan = ensureEditContract(plan, editingBrief);
 
-  saveCachedPlan(cacheKey, plan, {
+  saveCachedPlan(cacheKey, finalPlan, {
     target_label: describeTarget(target),
     target_kind: target.kind,
     target_file_path:
@@ -982,9 +1019,9 @@ async function synthesizePlan(
   });
   emit({
     stage: 'done',
-    message: `Plan ready — ${plan.shots.length} shot(s).`,
+    message: `Plan ready — ${finalPlan.shots.length} shot(s).`,
   });
-  return plan;
+  return finalPlan;
 }
 
 /** File picker for the local-video target mode. Returns the absolute
@@ -2021,9 +2058,11 @@ app.whenReady().then(() => {
       if (!plan) return null;
       const meta = loadCachedPlanMeta(key);
       const spokenBackfill = backfillPlanSpokenWords(plan);
-      plan = spokenBackfill.plan;
+      plan = ensureEditContract(spokenBackfill.plan);
       plan = await backfillTargetVideoPath(key, plan);
-      if (spokenBackfill.changed || plan.target_video_path) saveCachedPlan(key, plan);
+      if (spokenBackfill.changed || plan.target_video_path || !spokenBackfill.plan.edit_contract) {
+        saveCachedPlan(key, plan);
+      }
       lastPlanCacheKey = key;
       const cKey = curationCacheKey(plan);
       const curation = loadCachedCuration(cKey);
@@ -2058,7 +2097,13 @@ app.whenReady().then(() => {
         };
       }
       try {
-        saveCachedPlan(lastPlanCacheKey, plan);
+        const planToSave = plan.edit_contract
+          ? {
+              ...plan,
+              contract_validation: validateEditContract(plan, plan.edit_contract),
+            }
+          : ensureEditContract(plan);
+        saveCachedPlan(lastPlanCacheKey, planToSave);
         return { ok: true };
       } catch (err) {
         return {

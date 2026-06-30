@@ -161,6 +161,8 @@ export interface TextMoment {
   text: string;
   bbox: NormBBox;
   region: FrameRegion;
+  role?: 'subtitle' | 'image_text' | 'title' | 'unknown';
+  role_confidence?: number;
 }
 
 export type CaptionPosition =
@@ -254,6 +256,63 @@ export interface SfxCollectionPattern {
   n_reels: number;
 }
 
+export interface ClipnosisPatternCount {
+  label: string;
+  count: number;
+  pct: number;
+  example_shots: number[];
+}
+
+export interface ClipnosisScriptVisualRule {
+  trigger_keywords: string[];
+  visual_response: string;
+  layer: 'L1' | 'L2' | 'L3';
+  shot_idxs: number[];
+  examples: string[];
+}
+
+export interface ClipnosisStyleSignature {
+  version: 1;
+  engine: 'clipnosis-signature-v1';
+  summary: string;
+  confidence: number;
+  shot_count: number;
+  duration_ms: number;
+  rhythm: {
+    median_shot_ms: number;
+    cuts_per_sec: number;
+    tempo: 'staccato' | 'fast' | 'medium' | 'slow';
+    duration_sequence: string[];
+  };
+  grammar: {
+    structure_sequence: string[];
+    layout_sequence: string[];
+    layer_sequence: string[];
+    rhythm_sequence: string[];
+  };
+  layers: {
+    l1_media: ClipnosisPatternCount[];
+    l2_visuals: ClipnosisPatternCount[];
+    l3_text: ClipnosisPatternCount[];
+  };
+  script_visual_rules: ClipnosisScriptVisualRule[];
+  caption_system: {
+    present: boolean;
+    description: string;
+  };
+  motion_system: {
+    moving_pct: number | null;
+    dominant: string | null;
+    sequence: string[];
+  };
+  sound_system: {
+    sfx_per_min: number;
+    cut_hit_pct: number;
+    description: string;
+  };
+  reproduction_rules: string[];
+}
+
 export interface ReelAnalysisResult {
   shots: ReelShot[];
   hook_text: string | null;
@@ -296,6 +355,7 @@ export interface ReelAnalysisResult {
   camera_motion_dominant: CameraMotionKind | 'mixed' | null;
   camera_motion_confidence: number | null;
   caption_style: CaptionStyleProfile | null;
+  style_signature: ClipnosisStyleSignature | null;
 }
 
 export interface HookArchetype {
@@ -544,6 +604,81 @@ export interface StructureSection {
   };
 }
 
+export type EditContractSeverity = 'warning' | 'error';
+
+export interface EditContractRule {
+  id: string;
+  label: string;
+  requirement: string;
+  rationale?: string;
+}
+
+export interface EditContractSection {
+  role: string;
+  start_ms: number;
+  end_ms: number;
+  shot_count: number;
+  layout_pattern: string;
+  shot_type_pattern: string;
+  caption_pattern: string;
+  overlay_pattern: string;
+  motion_pattern: string;
+  sfx_pattern: string;
+}
+
+export interface EditShotContract {
+  shot_idx: number;
+  start_ms: number;
+  end_ms: number;
+  structure_role: string;
+  script_trigger: string;
+  l1_media: string;
+  l2_visual_overlay: string;
+  l3_captions: string;
+  layout: {
+    fit: BrollFit;
+    position: FrameRegion;
+    aspect: BrollAspect;
+    scale: number;
+  };
+  motion: string;
+  sfx: string | null;
+  source_category: string;
+  source_method: AssetMethod;
+  source_instruction: string;
+  requirements: string[];
+}
+
+export interface EditContract {
+  version: 1;
+  summary: string;
+  source: {
+    structure_confidence: 'high' | 'medium' | 'low';
+    brief_ai_generated?: boolean;
+  };
+  global_rules: EditContractRule[];
+  sections: EditContractSection[];
+  shots: EditShotContract[];
+}
+
+export interface EditContractIssue {
+  severity: EditContractSeverity;
+  rule_id: string;
+  shot_idx?: number;
+  message: string;
+  expected?: string;
+  actual?: string;
+}
+
+export interface EditContractValidation {
+  ok: boolean;
+  score: number;
+  passed: number;
+  total: number;
+  issues: EditContractIssue[];
+  checked_at: number;
+}
+
 export interface SuggestedEdit {
   total_duration_ms: number;
   shots: ShotPlan[];
@@ -578,6 +713,8 @@ export interface SuggestedEdit {
   music_volume?: number;
   /** Original target video's own audio gain, 0-4 (default 1; >1 boosts). */
   narration_volume?: number;
+  edit_contract?: EditContract;
+  contract_validation?: EditContractValidation;
 }
 
 export interface SfxOverride {

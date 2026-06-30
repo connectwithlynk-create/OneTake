@@ -11,6 +11,8 @@
 
 import OpenAI from 'openai';
 
+const MODEL = process.env.ONETAKE_ANALYZE_MODEL?.trim() || 'gpt-4o';
+
 /** One inferred hook pattern this creator reuses. */
 export interface HookArchetype {
   /** Template with `<placeholders>` for the varying part(s),
@@ -74,7 +76,7 @@ export async function clusterHooks(
 
   try {
     const resp = await client.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: MODEL,
       max_tokens: 1024,
       response_format: { type: 'json_object' },
       messages: [

@@ -6,30 +6,60 @@
 // persistence. The renderer (or any downstream consumer) calls this
 // after the analyzer has produced per-reel results.
 import type { ReelAnalysisResult } from './analyze';
+import {
+  summarizeCaptionStyles,
+  type CaptionStyleSummary,
+} from './caption-style';
 import { clusterHooks, type HookArchetype } from './hook-cluster';
+import {
+  detectOverlayPattern,
+  type OverlayPattern,
+} from './overlay-pattern';
 import { SFX_TYPES, type SfxType } from './sfx-classify';
+import type { SfxContextSignals, SfxContextRule } from './sfx-context';
 import {
   CLIP_TYPES,
   FRAME_REGIONS,
   OVERLAY_KINDS,
   OVERLAY_MOTIONS,
+  CAMERA_MOTION_KINDS,
   type ClipType,
   type FrameRegion,
   type OverlayKind,
   type OverlayMotion,
+  type CameraMotionKind,
   type ReelShot,
 } from './types';
 
 export type { HookArchetype } from './hook-cluster';
+export type {
+  OverlayPattern,
+  OverlayPatternEntry,
+} from './overlay-pattern';
 
 /** Bump when the fingerprint shape or aggregation semantics change. */
-export const FINGERPRINT_VERSION = 2;
+export const FINGERPRINT_VERSION = 4;
 
 /** One canonical "beat" the creator uses — derived by grouping shots
  *  across the collection by clip_type and computing per-bucket stats.
  *  The autocut consumes this to slot user clips at matching durations
  *  / with matching text/face properties; script gen uses it to keep
  *  beats aligned to the creator's typical rhythm. */
+/** Collection-level SFX-in-context pattern: how the creator uses sound
+ *  effects relative to the spoken script + structure, aggregated across
+ *  reels. Feeds the synthesis SFX-placement guidance + export placement. */
+export interface SfxCollectionPattern {
+  /** Reel-averaged context signals (cadence, on-word %, hook escalation). */
+  signals: SfxContextSignals;
+  /** Placement rules aggregated across reels, ranked by how many reels
+   *  exhibited each (deduped by trigger + sfx_type). */
+  rules: (SfxContextRule & { reel_count: number })[];
+  /** Per-reel natural-language summaries (model-written first). */
+  summaries: string[];
+  /** Number of reels that contributed an sfx_context. */
+  n_reels: number;
+}
+
 export interface FingerprintBeat {
   clip_type: ClipType;
   /** Median shot duration for shots of this clip_type, in ms. */
@@ -101,6 +131,30 @@ export interface CollectionFingerprint {
   /** Dominant grid cell when one wins >50% of overlays collection-wide,
    *  else 'mixed'. Null when no overlays. */
   overlay_region_dominant: FrameRegion | 'mixed' | null;
+  /** LLM-derived media-overlay PATTERN — recurring overlay behaviors
+   *  mapped to the script: which type, where it sits, how often, in what
+   *  spoken context, with what motion. NEVER includes text captions.
+   *  Drives where/when the synthesis engine assigns media overlays.
+   *  Null when no media overlays, no ANTHROPIC/OPENAI key, or the call
+   *  failed; callers fall back to the aggregate distributions above. */
+  overlay_pattern: OverlayPattern | null;
+
+  // ---- Camera motion (optical flow) ----
+  /** Fraction of shots in each measured camera-motion bucket
+   *  (none / zoom_in / zoom_out / pan_left / pan_right / ken_burns),
+   *  averaged across reels that had any motion estimate. Null when none
+   *  did (e.g. ANALYZE_SKIP_MOTION). */
+  camera_motion_distribution: Record<CameraMotionKind, number> | null;
+  /** Dominant motion bucket when one wins >50% collection-wide, else
+   *  'mixed'. Null when no estimates. 'none' can win — a static-hold
+   *  creator. */
+  camera_motion_dominant: CameraMotionKind | 'mixed' | null;
+  /** Fraction of shots that carry ANY camera motion (kind !== 'none'),
+   *  averaged across reels with estimates. The "does this creator move
+   *  the frame" signal. Null when no estimates. */
+  camera_motion_pct: number | null;
+  /** Mean detection confidence across reels with estimates, [0,1]. */
+  camera_motion_confidence: number | null;
 
   // ---- Audio pillar ----
   voiceover_pct: number;
@@ -124,6 +178,18 @@ export interface CollectionFingerprint {
   sfx_type_distribution: Record<SfxType, number>;
   /** Total SFX onsets in the collection used to compute the distribution. */
   sfx_classified_total: number;
+  /** Named AudioSet event labels (from PANNs CNN14) and their share of
+   *  model-classified onsets, descending. This is the "creator uses
+   *  whooshes + dings + claps" signal at real-name granularity, beyond
+   *  the 6 coarse buckets. Empty when no onsets were model-classified
+   *  (model absent -> heuristic-only). */
+  sfx_label_distribution: { label: string; fraction: number; count: number }[];
+  /** How the collection uses SFX RELATIVE to the spoken transcript +
+   *  structure: averaged cadence/escalation signals, deduped placement
+   *  rules, and the per-reel natural-language summaries. Drives the
+   *  synthesis SFX-placement guidance. Null when no reel had usable
+   *  audio+transcript. See sfx-context.ts. */
+  sfx_pattern: SfxCollectionPattern | null;
 
   // ---- Hooks ----
   /** Spoken hook (Whisper transcript of the first ~5s of each reel),
@@ -137,6 +203,15 @@ export interface CollectionFingerprint {
    *  Null when clustering wasn't run (no API key) or failed. When
    *  null, callers should fall back to hook_speeches. */
   hook_archetypes: HookArchetype[] | null;
+
+  // ---- Spoken-word captions (burned-in subtitle style) ----
+  /** Aggregated spoken-word caption style across the collection — what
+   *  fraction of reels burn in captions, plus the majority position /
+   *  chunking / emphasis / casing / animation and example font/style
+   *  labels. Drives the caption look the synthesis engine should mirror.
+   *  Reels with no caption profile (no API key / failed pass) are simply
+   *  excluded from the denominator. */
+  caption_style: CaptionStyleSummary;
 
   // ---- Beat template (autocut / script-gen bridge) ----
   beat_template: FingerprintBeat[];
@@ -215,6 +290,91 @@ function collectSfxTypeDistribution(
   return { dist, total };
 }
 
+/** Aggregate per-reel sfx_context into one collection-level pattern:
+ *  reel-averaged signals, frequency-ranked placement rules, and the
+ *  per-reel summaries (model-written first). Null when no reel had one. */
+function collectSfxPattern(
+  reels: ReelAnalysisResult[],
+): SfxCollectionPattern | null {
+  const ctxs = reels
+    .map((r) => r.sfx_context)
+    .filter((c): c is NonNullable<typeof c> => c != null);
+  if (ctxs.length === 0) return null;
+
+  const n = ctxs.length;
+  const avg = (sel: (s: SfxContextSignals) => number): number =>
+    ctxs.reduce((a, c) => a + sel(c.signals), 0) / n;
+  const mode = (
+    sel: (s: SfxContextSignals) => SfxType | null,
+  ): SfxType | null => {
+    const counts = new Map<SfxType, number>();
+    for (const c of ctxs) {
+      const t = sel(c.signals);
+      if (t) counts.set(t, (counts.get(t) ?? 0) + 1);
+    }
+    let best: SfxType | null = null;
+    let max = 0;
+    for (const [t, k] of counts) if (k > max) ((max = k), (best = t));
+    return best;
+  };
+
+  const signals: SfxContextSignals = {
+    sfx_count: avg((s) => s.sfx_count),
+    word_count: avg((s) => s.word_count),
+    sfx_per_word: avg((s) => s.sfx_per_word),
+    on_word_pct: avg((s) => s.on_word_pct),
+    hook_density_per_s: avg((s) => s.hook_density_per_s),
+    body_density_per_s: avg((s) => s.body_density_per_s),
+    hook_escalation: avg((s) => s.hook_escalation),
+    hook_dominant_type: mode((s) => s.hook_dominant_type),
+    body_dominant_type: mode((s) => s.body_dominant_type),
+  };
+
+  // Dedupe rules by trigger(lowercased) + sfx_type, counting reels.
+  const ruleMap = new Map<string, SfxContextRule & { reel_count: number }>();
+  for (const c of ctxs) {
+    for (const r of c.rules) {
+      const key = `${r.trigger.toLowerCase()}|${r.sfx_type}`;
+      const existing = ruleMap.get(key);
+      if (existing) existing.reel_count++;
+      else ruleMap.set(key, { ...r, reel_count: 1 });
+    }
+  }
+  const rules = [...ruleMap.values()]
+    .sort((a, b) => b.reel_count - a.reel_count)
+    .slice(0, 6);
+
+  const summaries = ctxs
+    .slice()
+    .sort((a, b) => Number(b.llm) - Number(a.llm))
+    .map((c) => c.pattern_summary)
+    .filter((s, i, arr) => s && arr.indexOf(s) === i);
+
+  return { signals, rules, summaries, n_reels: n };
+}
+
+/** Tally model-assigned AudioSet labels across the collection into a
+ *  descending name->fraction list. Heuristic-only events (no `label`)
+ *  are skipped — they're already covered by the coarse-bucket
+ *  distribution. */
+function collectSfxLabelDistribution(
+  allShots: ReelShot[],
+): { label: string; fraction: number; count: number }[] {
+  const counts = new Map<string, number>();
+  let total = 0;
+  for (const shot of allShots) {
+    for (const ev of shot.sfx_classifications) {
+      if (ev.source !== 'model' || !ev.label) continue;
+      counts.set(ev.label, (counts.get(ev.label) ?? 0) + 1);
+      total++;
+    }
+  }
+  if (total === 0) return [];
+  return [...counts.entries()]
+    .map(([label, count]) => ({ label, count, fraction: count / total }))
+    .sort((a, b) => b.count - a.count);
+}
+
 /** Group all shots across reels by clip_type and compute per-bucket
  *  median duration + has_text/face/speaker probabilities. */
 function buildBeatTemplate(allShots: ReelShot[]): FingerprintBeat[] {
@@ -265,9 +425,13 @@ export async function assembleFingerprintWithHooks(
   reels: ReelAnalysisResult[],
 ): Promise<CollectionFingerprint> {
   const fp = assembleFingerprint(reels);
-  if (fp.hook_speeches.length === 0) return fp;
-  const archetypes = await clusterHooks(fp.hook_speeches);
-  return { ...fp, hook_archetypes: archetypes };
+  // Hook archetypes + media-overlay pattern are both best-effort LLM
+  // passes; run them in parallel and attach whatever succeeds.
+  const [archetypes, overlayPattern] = await Promise.all([
+    fp.hook_speeches.length > 0 ? clusterHooks(fp.hook_speeches) : null,
+    detectOverlayPattern(reels),
+  ]);
+  return { ...fp, hook_archetypes: archetypes, overlay_pattern: overlayPattern };
 }
 
 export function assembleFingerprint(
@@ -320,6 +484,27 @@ export function assembleFingerprint(
     FRAME_REGIONS,
   );
 
+  // Camera-motion aggregates — average per-reel motion distributions over
+  // only the reels that produced an estimate. camera_motion_pct is the
+  // share of non-'none' buckets in the averaged distribution.
+  const motionReels = reels.filter(
+    (r) => r.camera_motion_distribution !== null,
+  );
+  const cameraMotionDist = meanDistribution(
+    motionReels.map(
+      (r) => r.camera_motion_distribution as Record<CameraMotionKind, number>,
+    ),
+    CAMERA_MOTION_KINDS,
+  );
+  const cameraMotionPct = cameraMotionDist
+    ? 1 - cameraMotionDist.none
+    : null;
+  const motionConfs = motionReels
+    .map((r) => r.camera_motion_confidence)
+    .filter((v): v is number => v !== null);
+  const cameraMotionConfidence =
+    motionConfs.length > 0 ? mean(motionConfs) : null;
+
   return {
     fingerprint_version: FINGERPRINT_VERSION,
     computed_at: Date.now(),
@@ -347,6 +532,14 @@ export function assembleFingerprint(
     overlay_motion_distribution: overlayMotionDist,
     overlay_region_distribution: overlayRegionDist,
     overlay_region_dominant: pickDominant(overlayRegionDist),
+    // LLM-derived; filled in by assembleFingerprintWithHooks. The pure
+    // function leaves it null.
+    overlay_pattern: null,
+
+    camera_motion_distribution: cameraMotionDist,
+    camera_motion_dominant: pickDominant(cameraMotionDist),
+    camera_motion_pct: cameraMotionPct,
+    camera_motion_confidence: cameraMotionConfidence,
 
     voiceover_pct: mean(reels.map((r) => r.voiceover_pct)),
     music_pct: mean(reels.map((r) => r.music_pct)),
@@ -357,7 +550,12 @@ export function assembleFingerprint(
     sfx_at_cuts_pct: mean(reels.map((r) => r.sfx_at_cuts_pct)),
     ...(() => {
       const { dist, total } = collectSfxTypeDistribution(allShots);
-      return { sfx_type_distribution: dist, sfx_classified_total: total };
+      return {
+        sfx_type_distribution: dist,
+        sfx_classified_total: total,
+        sfx_label_distribution: collectSfxLabelDistribution(allShots),
+        sfx_pattern: collectSfxPattern(reels),
+      };
     })(),
 
     hook_speeches: reels
@@ -370,6 +568,8 @@ export function assembleFingerprint(
     // available; pure-function callers get null and can fall back to
     // hook_speeches.
     hook_archetypes: null,
+
+    caption_style: summarizeCaptionStyles(reels.map((r) => r.caption_style)),
 
     beat_template: buildBeatTemplate(allShots),
   };

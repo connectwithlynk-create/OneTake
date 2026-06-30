@@ -149,6 +149,70 @@ CREATE TABLE IF NOT EXISTS overlays (
   updated_at INTEGER NOT NULL DEFAULT 0,
   sync_status TEXT NOT NULL DEFAULT 'local'
 );
+
+CREATE TABLE IF NOT EXISTS media_libraries (
+  id TEXT PRIMARY KEY NOT NULL,
+  provider TEXT NOT NULL,
+  provider_root_id TEXT NOT NULL,
+  provider_root_name TEXT NOT NULL,
+  catalog_file_id TEXT,
+  embeddings_file_id TEXT,
+  change_cursor TEXT,
+  status TEXT NOT NULL DEFAULT 'active',
+  error TEXT,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS media_assets (
+  id TEXT PRIMARY KEY NOT NULL,
+  library_id TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  source TEXT NOT NULL,
+  provider TEXT NOT NULL,
+  provider_file_id TEXT NOT NULL,
+  provider_revision_id TEXT,
+  provider_web_url TEXT,
+  name TEXT NOT NULL,
+  mime_type TEXT NOT NULL,
+  content_hash TEXT,
+  duration_ms INTEGER,
+  width INTEGER,
+  height INTEGER,
+  fps REAL,
+  size_bytes INTEGER,
+  thumbnail_file_id TEXT,
+  proxy_file_id TEXT,
+  analysis_status TEXT NOT NULL DEFAULT 'pending',
+  analysis_error TEXT,
+  description TEXT,
+  tags_json TEXT,
+  objects_json TEXT,
+  transcript TEXT,
+  ocr_text TEXT,
+  embedding_ref TEXT,
+  last_seen_at INTEGER NOT NULL,
+  analyzed_at INTEGER,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS media_segments (
+  id TEXT PRIMARY KEY NOT NULL,
+  asset_id TEXT NOT NULL,
+  start_ms INTEGER NOT NULL,
+  end_ms INTEGER NOT NULL,
+  thumbnail_file_id TEXT,
+  description TEXT,
+  tags_json TEXT,
+  objects_json TEXT,
+  transcript TEXT,
+  ocr_text TEXT,
+  embedding_ref TEXT,
+  score REAL,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
 `;
 
 /**
@@ -166,6 +230,12 @@ const INDEX_STMTS = [
   // keeps the analysis dispatcher cheap even with thousands of rows.
   'CREATE INDEX IF NOT EXISTS idx_insp_analysis_status ON inspiration(analysis_status)',
   'CREATE INDEX IF NOT EXISTS idx_overlays_project ON overlays(project_id)',
+  'CREATE UNIQUE INDEX IF NOT EXISTS idx_media_libraries_provider_root ON media_libraries(provider, provider_root_id)',
+  'CREATE UNIQUE INDEX IF NOT EXISTS idx_media_assets_provider_file ON media_assets(provider, provider_file_id)',
+  'CREATE INDEX IF NOT EXISTS idx_media_assets_library ON media_assets(library_id)',
+  'CREATE INDEX IF NOT EXISTS idx_media_assets_status ON media_assets(analysis_status)',
+  'CREATE INDEX IF NOT EXISTS idx_media_segments_asset ON media_segments(asset_id)',
+  'CREATE INDEX IF NOT EXISTS idx_media_segments_bounds ON media_segments(asset_id, start_ms, end_ms)',
 ];
 
 export function getDb(): Promise<SQLite.SQLiteDatabase> {
@@ -252,6 +322,7 @@ async function migrate(db: SQLite.SQLiteDatabase) {
   // projects: caption settings (enabled + style preset)
   await addColumn(db, 'projects', 'captions_enabled', 'INTEGER NOT NULL DEFAULT 1');
   await addColumn(db, 'projects', 'caption_style', "TEXT NOT NULL DEFAULT 'karaoke'");
+  await addColumn(db, 'projects', 'caption_font', "TEXT NOT NULL DEFAULT 'display'");
   // projects: per-clip-boundary transitions, beat-detection markers, and
   // the project's voiceover/voice-enhance global config.
   await addColumn(db, 'projects', 'transitions_json', 'TEXT');

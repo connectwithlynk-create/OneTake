@@ -1,4 +1,4 @@
-// Motion-aware per-shot captioning via OpenAI vision (gpt-4o-mini).
+// Motion-aware per-shot captioning via OpenAI vision.
 //
 // For each shot we send the FIRST and LAST sample frames to the
 // vision LLM with a comparison prompt. The model describes what's
@@ -15,7 +15,7 @@
 // the caption.
 import OpenAI from 'openai';
 
-const MODEL = 'gpt-4o-mini';
+const MODEL = process.env.ONETAKE_ANALYZE_MODEL?.trim() || 'gpt-4o';
 const MAX_TOKENS = 160;
 
 /** Pool size for concurrent captioning calls. Rate-limit bound. */
@@ -79,15 +79,13 @@ export interface ShotFramesForCaption {
 
 function imagePart(jpegBase64: string): {
   type: 'image_url';
-  image_url: { url: string; detail: 'low' };
+  image_url: { url: string; detail: 'high' };
 } {
   return {
     type: 'image_url',
     image_url: {
       url: `data:image/jpeg;base64,${jpegBase64}`,
-      // 'low' detail = single 512px tile; cheap and plenty for
-      // short-form reel caption granularity.
-      detail: 'low',
+      detail: 'high',
     },
   };
 }

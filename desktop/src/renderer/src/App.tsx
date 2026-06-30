@@ -13,6 +13,7 @@ import type {
   CuratorClarificationRequest,
   CuratorTurnEvent,
   EditingBrief,
+  EditContractValidation,
   ExportProgressEvent,
   ExportReelResponse,
   ExtractClipsResponse,
@@ -69,6 +70,141 @@ type BrollPlacement = ShotOption['placement'];
 type AddClipResult =
   | { ok: false }
   | { ok: true; added: number; foundButDuplicate?: boolean };
+
+function normalizeContractValue(value: string | null | undefined): string {
+  return String(value ?? '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
+function validatePlanContractLocal(
+  plan: SuggestedEdit,
+): EditContractValidation | null {
+  const contract = plan.edit_contract;
+  if (!contract) return plan.contract_validation ?? null;
+  const issues: EditContractValidation['issues'] = [];
+  let total = 0;
+  let passed = 0;
+  const check = (ok: boolean): void => {
+    total++;
+    if (ok) passed++;
+  };
+  const warn = (
+    rule_id: string,
+    message: string,
+    expected?: string,
+    actual?: string,
+    shot_idx?: number,
+  ): void => {
+    issues.push({
+      severity: 'warning',
+      rule_id,
+      message,
+      expected,
+      actual,
+      shot_idx,
+    });
+  };
+  const checkSame = (
+    rule_id: string,
+    expected: string,
+    actual: string,
+    message: string,
+    shot_idx?: number,
+  ): void => {
+    const ok = normalizeContractValue(expected) === normalizeContractValue(actual);
+    check(ok);
+    if (!ok) warn(rule_id, message, expected, actual, shot_idx);
+  };
+
+  check(plan.shots.length === contract.shots.length);
+  if (plan.shots.length !== contract.shots.length) {
+    issues.push({
+      severity: 'error',
+      rule_id: 'shot_count',
+      message: 'Shot count drifted from the edit contract.',
+      expected: String(contract.shots.length),
+      actual: String(plan.shots.length),
+    });
+  }
+
+  const expectedDuration = contract.shots[contract.shots.length - 1]?.end_ms ?? 0;
+  if (expectedDuration > 0) {
+    const ok = Math.abs(plan.total_duration_ms - expectedDuration) <= 1200;
+    check(ok);
+    if (!ok) {
+      warn(
+        'duration',
+        'Total duration drifted by more than 1.2s.',
+        `${expectedDuration}ms`,
+        `${plan.total_duration_ms}ms`,
+      );
+    }
+  }
+
+  const byIdx = new Map(plan.shots.map((shot) => [shot.shot_idx, shot]));
+  for (const expected of contract.shots) {
+    const shot = byIdx.get(expected.shot_idx);
+    check(!!shot);
+    if (!shot) {
+      issues.push({
+        severity: 'error',
+        rule_id: 'shot_present',
+        shot_idx: expected.shot_idx,
+        message: 'Contract shot is missing from the plan.',
+      });
+      continue;
+    }
+    checkSame(
+      'structure_role',
+      expected.structure_role,
+      shot.structure_role,
+      'Structure role no longer matches the contract.',
+      shot.shot_idx,
+    );
+    checkSame(
+      'layout_fit',
+      expected.layout.fit,
+      shot.placement.fit,
+      'Layout fit no longer matches the contract.',
+      shot.shot_idx,
+    );
+    checkSame(
+      'layout_position',
+      expected.layout.position,
+      shot.placement.position,
+      'Layout position no longer matches the contract.',
+      shot.shot_idx,
+    );
+    checkSame(
+      'source_method',
+      expected.source_method,
+      shot.asset.method,
+      'Source method changed from the contract.',
+      shot.shot_idx,
+    );
+    if (expected.motion && expected.motion !== 'none') {
+      checkSame(
+        'motion',
+        expected.motion,
+        shot.scene_animation,
+        'Motion preset changed from the contract.',
+        shot.shot_idx,
+      );
+    }
+  }
+
+  const hasError = issues.some((issue) => issue.severity === 'error');
+  return {
+    ok: !hasError,
+    score: total > 0 ? Math.round((passed / total) * 100) : 100,
+    passed,
+    total,
+    issues,
+    checked_at: plan.contract_validation?.checked_at ?? Date.now(),
+  };
+}
 
 export type PreviewMediaLayer = {
   src: string;
@@ -1346,7 +1482,7 @@ function shotRoleLabel(shot: ReelAnalysisResult['shots'][number]): string {
 }
 
 function shotLayoutCue(shot: ReelAnalysisResult['shots'][number]): string | null {
-  const text = `${shot.visual_caption ?? ''} ${shot.ocr_text ?? ''}`.toLowerCase();
+  const text = `${shot.visual_caption ?? ''}`.toLowerCase();
   if (/\b(top|bottom)\b/.test(text) && /\b(split|panel|half|above|below)\b/.test(text)) {
     return 'top/bottom split';
   }
@@ -1367,7 +1503,7 @@ function shotLayoutCue(shot: ReelAnalysisResult['shots'][number]): string | null
 }
 
 function shotStructureKind(shot: ReelAnalysisResult['shots'][number]): string {
-  const text = `${shot.visual_caption ?? ''} ${shot.ocr_text ?? ''}`.toLowerCase();
+  const text = `${shot.visual_caption ?? ''}`.toLowerCase();
   const hasOverlay = shot.overlays.length > 0;
   const overlayKinds = new Set(shot.overlays.map((o) => o.kind));
   if (/\b(top|upper)\b/.test(text) && /\b(media|image|video|screenshot|panel|half)\b/.test(text)) {
@@ -1398,6 +1534,168 @@ function shotStructureKind(shot: ReelAnalysisResult['shots'][number]): string {
       : 'b-roll talking full frame';
   }
   return 'full-screen b-roll';
+}
+
+type ParsedLayeredVisual = {
+  base: string | null;
+  overlay: string | null;
+};
+
+const OVERLAY_MEDIA_WORD_RE =
+  /\b(invitation|flyer|poster|card|slide|screenshot|screen grab|tweet|post|profile|article|headline|document|chart|graph|logo|badge|sticker|callout|panel)\b/i;
+const BACKGROUND_MEDIA_WORD_RE =
+  /\b(crowd|scene|background|room|stage|conference|audience|person|man|woman|speaker|host|presenter|interview|talking|webcam|video)\b/i;
+
+function cleanLayerPhrase(text: string): string {
+  return text
+    .replace(/^(?:static|moving|animated)\s+/i, '')
+    .replace(/^(?:image|video|shot|frame)\s+(?:showing|of)\s+/i, '')
+    .replace(/\s+/g, ' ')
+    .replace(/[.。]\s*$/, '')
+    .trim();
+}
+
+function parseLayeredVisualDescription(
+  caption: string | null | undefined,
+): ParsedLayeredVisual {
+  const text = caption?.replace(/\s+/g, ' ').trim() ?? '';
+  if (!text) return { base: null, overlay: null };
+
+  const patterns: RegExp[] = [
+    /^(.*?)\s+(?:is\s+)?overlaid\s+on\s+(.*)$/i,
+    /^(.*?)\s+(?:is\s+)?overlaid\s+over\s+(.*)$/i,
+    /^(.*?)\s+(?:sits|appears|floats)\s+(?:on|over|above)\s+(.*)$/i,
+    /^(.*?)\s+(?:in|at)\s+(?:the\s+)?(?:foreground|corner)\s+(?:over|on)\s+(.*)$/i,
+  ];
+  for (const pattern of patterns) {
+    const match = text.match(pattern);
+    if (!match) continue;
+    const overlay = cleanLayerPhrase(match[1]);
+    const base = cleanLayerPhrase(match[2]);
+    return {
+      base: base || null,
+      overlay: overlay || null,
+    };
+  }
+
+  return { base: text, overlay: null };
+}
+
+function visualCaptionLooksLikeOverlayOnly(
+  shot: ReelAnalysisResult['shots'][number],
+): boolean {
+  const caption = shot.visual_caption ?? '';
+  if (!caption) return false;
+  if (parseLayeredVisualDescription(caption).overlay) return false;
+  const structure = shotStructureKind(shot);
+  return (
+    OVERLAY_MEDIA_WORD_RE.test(caption) &&
+    (/top media|bottom media|split|overlay|PiP|actual-size screenshot/i.test(structure) ||
+      /\b(top|bottom|overlaid|overlay|foreground|card|panel|invitation|flyer|poster|slide)\b/i.test(caption))
+  );
+}
+
+function inferredOverlayOwnsTextRegion(
+  shot: ReelAnalysisResult['shots'][number],
+  region: FrameRegion | null | undefined,
+): boolean {
+  if (!region || !inferredVisualLayerCue(shot)) return false;
+  if (shot.overlays.length > 0) {
+    return shot.overlays.some((overlay) => overlay.region === region);
+  }
+  const row = region.split('_')[0];
+  const structure = shotStructureKind(shot);
+  const layout = shotLayoutCue(shot) ?? '';
+  if (/top media|actual-size screenshot/i.test(structure)) {
+    return row === 'top' || row === 'middle';
+  }
+  if (/bottom media/i.test(structure)) {
+    return row === 'middle' || row === 'bottom';
+  }
+  if (/split|top\/bottom/i.test(`${structure} ${layout}`)) {
+    return true;
+  }
+  if (visualCaptionLooksLikeOverlayOnly(shot)) {
+    return row === 'top' || row === 'middle';
+  }
+  return false;
+}
+
+function inferredVisualLayerCue(
+  shot: ReelAnalysisResult['shots'][number],
+): string | null {
+  const text = `${shot.visual_caption ?? ''}`.toLowerCase();
+  const layout = shotLayoutCue(shot);
+  const structure = shotStructureKind(shot);
+  const parsed = parseLayeredVisualDescription(shot.visual_caption);
+  if (shot.overlays.length > 0) {
+    const kinds = [...new Set(shot.overlays.map((o) => overlayPresetLabel(o.kind)))];
+    return kinds.join(' + ');
+  }
+  if (parsed.overlay) return 'foreground visual overlay';
+  if (/pip|picture[\s-]*in[\s-]*picture|corner/.test(text) || /pip/i.test(structure)) {
+    return 'PiP/corner media';
+  }
+  if (/top\/bottom split|split layout|split/.test(layout ?? structure)) {
+    return 'split-panel media';
+  }
+  if (/top media|bottom media/.test(structure)) {
+    return structure;
+  }
+  if (
+    /\b(overlaid|overlay|floating|foreground|insert|card|sticker|badge|logo|callout|invitation|flyer|poster|slide)\b/.test(text) ||
+    /\boverlay shot\b/.test(structure)
+  ) {
+    return 'foreground visual overlay';
+  }
+  if (
+    /\b(screenshot|screen grab|tweet|post|profile|article|headline|document|chart|graph)\b/.test(text) &&
+    (shot.clip_type === 'talking_head' ||
+      shot.clip_type === 'broll_talking_head' ||
+      /\b(face|talking|speaker|webcam)\b/.test(text))
+  ) {
+    return 'screenshot/card over talking media';
+  }
+  return null;
+}
+
+function inferredVisualLayerDetail(
+  shot: ReelAnalysisResult['shots'][number],
+): string | null {
+  const cue = inferredVisualLayerCue(shot);
+  if (!cue) return null;
+  const parsed = parseLayeredVisualDescription(shot.visual_caption);
+  if (parsed.overlay) {
+    return `${cue}: ${clipText(parsed.overlay, 76)}${parsed.base ? ` over ${clipText(parsed.base, 76)}` : ''}`;
+  }
+  const visual = parsed.base ? `: ${clipText(parsed.base, 96)}` : '';
+  return `${cue}${visual}`;
+}
+
+function scriptContextLabel(text: string | null | undefined): string | null {
+  const clean = text?.replace(/\s+/g, ' ').trim() ?? '';
+  if (!clean) return null;
+  const trimmed = clean.replace(/^["'“”]+|["'“”]+$/g, '');
+  if (!trimmed) return null;
+  return `when "${clipText(trimmed, 72)}" is said`;
+}
+
+function layer2ScriptContext(
+  shot: ReelAnalysisResult['shots'][number],
+): string | null {
+  const overlaySpoken = (shot.overlays ?? [])
+    .map((overlay) => overlay.spoken_window?.trim())
+    .find((text): text is string => !!text);
+  return scriptContextLabel(overlaySpoken || shot.spoken_window);
+}
+
+function layer2ScriptDetail(
+  shot: ReelAnalysisResult['shots'][number],
+): string | null {
+  const detail = inferredVisualLayerDetail(shot);
+  if (!detail) return null;
+  const context = layer2ScriptContext(shot);
+  return context ? `${context}, show ${detail}` : `show ${detail}`;
 }
 
 function layoutOutcomes(
@@ -1473,6 +1771,162 @@ function consistentShotStructureOutcomes(
     choices: [...new Set(choices)].slice(0, 5),
     details,
   };
+}
+
+function layerOutcomes(
+  rows: (LibraryRow & { analysis: ReelAnalysisResult })[],
+): { choices: string[]; details: string[]; scriptPatterns: string[] } {
+  if (rows.length === 0) {
+    return {
+      choices: [
+        'Layer 1 Media: infer the base visual track from ready references.',
+        'Layer 2 Visual overlays: keep separate from text/captions.',
+        'Layer 3 Text/captions: capture subtitles, OCR text, titles, and text overlays.',
+      ],
+      details: ['No hydrated references are ready yet.'],
+      scriptPatterns: ['No Layer 2 script pattern available yet.'],
+    };
+  }
+  const mediaMix = topDistributionItems(
+    rows,
+    (analysis) => analysis.clip_type_distribution,
+    (kind) => CLIP_META[kind as ClipType]?.label ?? kind.replace(/_/g, ' '),
+    3,
+  );
+  const visualOverlayMix = topDistributionItems(
+    rows,
+    (analysis) => analysis.overlay_kind_distribution,
+    overlayPresetLabel,
+    3,
+  );
+  const captioned = rows.filter((r) => r.analysis.caption_style?.present).length;
+  let subtitleShots = 0;
+  let nonImageTextShots = 0;
+  let textTotalShots = 0;
+  for (const row of rows) {
+    for (const shot of row.analysis.shots) {
+      textTotalShots += 1;
+      if (shot.text_moments.some((m) => m.role === 'subtitle')) {
+        subtitleShots += 1;
+      }
+      if (
+        shot.text_moments.some(
+          (m) => m.role !== 'image_text' && isMeaningfulLayerText(m.text),
+        )
+      ) {
+        nonImageTextShots += 1;
+      }
+    }
+  }
+  const subtitlePct =
+    textTotalShots > 0 ? subtitleShots / textTotalShots : 0;
+  const nonImageTextPct =
+    textTotalShots > 0 ? nonImageTextShots / textTotalShots : 0;
+  let layer2Shots = 0;
+  const layer2Counts = new Map<string, number>();
+  const layer2Examples = new Map<string, string>();
+  const layer2ScriptExamples: string[] = [];
+  let totalShots = 0;
+  for (const row of rows) {
+    for (const shot of row.analysis.shots) {
+      totalShots += 1;
+      const cue = inferredVisualLayerCue(shot);
+      if (!cue) continue;
+      layer2Shots += 1;
+      layer2Counts.set(cue, (layer2Counts.get(cue) ?? 0) + 1);
+      const layerDetail = inferredVisualLayerDetail(shot);
+      if (!layer2Examples.has(cue) && layerDetail) {
+        layer2Examples.set(cue, clipText(layerDetail, 72));
+      }
+      const scriptDetail = layer2ScriptDetail(shot);
+      if (scriptDetail) layer2ScriptExamples.push(scriptDetail);
+    }
+  }
+  const inferredLayer2Pct = totalShots > 0 ? layer2Shots / totalShots : 0;
+  const detectedOverlayPct = meanNumber(
+    rows.map((r) => r.analysis.media_overlay_pct ?? 0),
+  );
+  const avgMediaOverlay = Math.max(inferredLayer2Pct, detectedOverlayPct);
+  const inferredLayer2Mix = [...layer2Counts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([cue, count]) => {
+      const example = layer2Examples.get(cue);
+      return `${cue} ${formatPct(count / Math.max(1, totalShots))}${example ? `, e.g. ${example}` : ''}`;
+    });
+  const firstCaption = rows.find((r) => r.analysis.caption_style?.present)
+    ?.analysis.caption_style;
+  const captionPreset =
+    firstCaption?.preset_label ||
+    firstCaption?.matched_preset ||
+    firstCaption?.style_label ||
+    null;
+
+  const choices = [
+    `Layer 1 Media: build the base track from ${mediaMix.join(' · ') || 'mixed full-screen visuals'}.`,
+    avgMediaOverlay > 0.04
+      ? `Layer 2 Visual overlays: add ${inferredLayer2Mix.join(' · ') || visualOverlayMix.join(' · ') || 'detected/inferred visual overlays'} on about ${formatPct(avgMediaOverlay)} of shots.`
+      : 'Layer 2 Visual overlays: keep this mostly empty; references do not rely on graphics/PiP/stickers.',
+    captioned > 0 && subtitlePct > 0
+      ? `Layer 3 Text/captions: reproduce spoken subtitles on about ${formatPct(subtitlePct)} of shots${captionPreset ? ` with ${captionPreset}` : ''}; do not treat in-image text as caption style.`
+      : nonImageTextPct > 0.02
+        ? `Layer 3 Text/captions: reproduce independent title/text overlays on about ${formatPct(nonImageTextPct)} of shots; ignore in-image text for caption style.`
+        : 'Layer 3 Text/captions: keep text off unless needed for clarity.',
+  ];
+
+  const scriptPatterns =
+    layer2ScriptExamples.length > 0
+      ? [...new Set(layer2ScriptExamples)].slice(0, 5)
+      : ['No repeated Layer 2 script trigger detected yet.'];
+
+  const details = rows.map((row) => {
+    const a = row.analysis;
+    const rowMedia = topDistributionItems(
+      [row],
+      (analysis) => analysis.clip_type_distribution,
+      (kind) => CLIP_META[kind as ClipType]?.label ?? kind.replace(/_/g, ' '),
+      2,
+    ).join(' · ') || 'mixed media';
+    const rowOverlays = topDistributionItems(
+      [row],
+      (analysis) => analysis.overlay_kind_distribution,
+      overlayPresetLabel,
+      2,
+    ).join(' · ');
+    const inferred = row.analysis.shots
+      .map(inferredVisualLayerDetail)
+      .filter((cue): cue is string => !!cue);
+    const inferredCounts = new Map<string, number>();
+    for (const cue of inferred) {
+      inferredCounts.set(cue, (inferredCounts.get(cue) ?? 0) + 1);
+    }
+    const inferredMix = [...inferredCounts.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 2)
+      .map(([cue, count]) => `${cue} (${count}/${row.analysis.shots.length})`)
+      .join(' · ');
+    const cap = a.caption_style?.present
+      ? `${a.caption_style.position}, ${a.caption_style.chunking}, ${a.caption_style.animation}`
+      : 'no spoken subtitle style';
+    const textExamples = row.analysis.shots
+      .flatMap((shot) =>
+        (shot.text_moments ?? [])
+          .filter((m) => m.role !== 'image_text')
+          .map((m) => m.text),
+      )
+      .filter(isMeaningfulLayerText)
+      .map((text) => clipText(text, 44))
+      .slice(0, 2)
+      .join(' · ');
+    const rowScriptExamples = row.analysis.shots
+      .map(layer2ScriptDetail)
+      .filter((item): item is string => !!item)
+      .slice(0, 2)
+      .join(' · ');
+    return `${reelDisplayName(row)}: L1 ${rowMedia}; L2 ${inferredMix || rowOverlays || 'none'}${rowScriptExamples ? `; script map: ${rowScriptExamples}` : ''}; L3 text/captions ${cap}${textExamples ? `; examples: ${textExamples}` : ''}.`;
+  });
+
+  return { choices, details, scriptPatterns };
 }
 
 function structureSequenceItems(
@@ -1669,6 +2123,7 @@ function InspirationAnalysisPanel({
   const structureSourceRows = structureRows.length > 0 ? structureRows : ready;
   const layoutSummary = layoutOutcomes(structureSourceRows);
   const consistentStructure = consistentShotStructureOutcomes(structureSourceRows);
+  const layerSummary = layerOutcomes(metricsRows);
   const styleChoices = [
     dominant
       ? `Use ${dominant.label.toLowerCase()} as the main on-screen format.`
@@ -1702,6 +2157,7 @@ function InspirationAnalysisPanel({
     `Source pattern: ${contentSourceSummary.details.slice(0, 2).join(' · ') || 'No dominant content source detected yet.'}`,
     `Shot structure: ${consistentStructure.choices.slice(0, 2).join(' · ') || 'No single repeated shot layout dominates.'}`,
     `Layout mix: ${layoutSummary.details.slice(0, 2).join(' · ') || 'No dominant layout detected yet.'}`,
+    `Layering: ${layerSummary.choices.join(' ')}`,
     `Style mix: ${shotMix.join(' · ') || 'mixed'}; ${captioned}/${metricsRows.length} references use captions; SFX ${avgSfx.toFixed(1)}/min.`,
   ];
   const editPreview = editPreviewOutcomes({
@@ -1792,6 +2248,25 @@ function InspirationAnalysisPanel({
           </details>
         </div>
         <div className="ia-outcome">
+          <b>Layer outcome</b>
+          <ul>
+            {layerSummary.choices.map((choice) => (
+              <li key={choice}>{choice}</li>
+            ))}
+          </ul>
+          <details className="ia-readmore">
+            <summary>Read more</summary>
+            <ul>
+              {layerSummary.scriptPatterns.map((detail) => (
+                <li key={detail}>{detail}</li>
+              ))}
+              {layerSummary.details.map((detail) => (
+                <li key={detail}>{detail}</li>
+              ))}
+            </ul>
+          </details>
+        </div>
+        <div className="ia-outcome">
           <b>Content outcome</b>
           <ul>
             {contentChoices.map((choice) => (
@@ -1867,10 +2342,27 @@ function InspirationAnalysisPanel({
               ))}
             </ul>
           </div>
+          <div className="ia-review-card">
+            <b>Layer plan</b>
+            <ul>
+              {layerSummary.choices.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+              {layerSummary.scriptPatterns.slice(0, 3).map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          </div>
         </div>
         <details className="ia-all-reels">
           <summary>Read more</summary>
           <ul>
+            {layerSummary.details.map((detail) => (
+              <li key={detail}>{detail}</li>
+            ))}
+            {layerSummary.scriptPatterns.map((detail) => (
+              <li key={detail}>{detail}</li>
+            ))}
             {consistentStructure.details.map((detail) => (
               <li key={detail}>{detail}</li>
             ))}
@@ -1932,6 +2424,7 @@ interface PlanTopActions {
   onStop: () => void;
   curating: boolean;
   regeneratingPlan: boolean;
+  agentRunningElsewhere: boolean;
   canRegeneratePlan: boolean;
   curatingProgress?: { completed: number; total: number };
   onPreview: () => void;
@@ -1982,6 +2475,8 @@ interface WorkflowProject {
   id: string;
   title: string;
   createdAt: number;
+  stage: Stage;
+  busy: Busy;
   targetMode: TargetMode;
   targetUrl: string;
   targetScript: string;
@@ -2005,6 +2500,8 @@ function blankProject(title = 'Untitled reel'): WorkflowProject {
     id: crypto.randomUUID(),
     title,
     createdAt: Date.now(),
+    stage: 'inspire',
+    busy: null,
     targetMode: 'local_video',
     targetUrl: '',
     targetScript: '',
@@ -2028,9 +2525,44 @@ function projectFromFile(filePath: string): WorkflowProject {
   const p = blankProject(topicFromPath(filePath));
   return {
     ...p,
+    stage: 'target',
     targetFile: filePath,
     status: { kind: 'ready', label: 'Ready to plan' },
   };
+}
+
+function projectTargetReady(project: WorkflowProject): boolean {
+  return (
+    (project.targetMode === 'reel_url' && project.targetUrl.trim().length > 0) ||
+    (project.targetMode === 'script' && project.targetScript.trim().length > 0) ||
+    (project.targetMode === 'local_video' && project.targetFile !== null)
+  );
+}
+
+function projectStepProgress(
+  project: WorkflowProject,
+  readyInspirationCount: number,
+): StageProgress {
+  return {
+    inspire: readyInspirationCount > 0,
+    target: projectTargetReady(project),
+    plan: project.plan !== null,
+    review: project.curation !== null,
+  };
+}
+
+function projectStatusStage(project: WorkflowProject): Stage {
+  if (project.curation) return 'review';
+  if (
+    project.plan ||
+    project.status.kind === 'planned' ||
+    project.status.kind === 'agent' ||
+    project.status.kind === 'needs_input'
+  ) {
+    return 'plan';
+  }
+  if (projectTargetReady(project)) return 'target';
+  return 'inspire';
 }
 
 function topicFromPath(filePath: string): string {
@@ -2220,7 +2752,14 @@ function WorkflowView({
     const p = blankProject('Untitled reel');
     return [p];
   });
-  const [activeProjectId, setActiveProjectId] = useState<string>(() => projects[0].id);
+  const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
+  const activeProjectIdRef = React.useRef<string | null>(activeProjectId);
+  const synthJobProjectIdRef = React.useRef<string | null>(null);
+  const curateJobProjectIdRef = React.useRef<string | null>(null);
+
+  useEffect(() => {
+    activeProjectIdRef.current = activeProjectId;
+  }, [activeProjectId]);
 
   // Subscribe to curate progress events. Each completed shot is
   // upserted into the curation state immediately so its clips render
@@ -2228,8 +2767,28 @@ function WorkflowView({
   useEffect(() => {
     const unsubscribe = window.api.onCurateProgress(
       ({ curation: c, completed, total }) => {
-        setProgress({ completed, total, latest: c });
-        setCuration((prev) => upsertShotCuration(prev, c));
+        const projectId = curateJobProjectIdRef.current;
+        if (projectId) {
+          setProjects((prev) =>
+            prev.map((project) =>
+              project.id === projectId
+                ? {
+                    ...project,
+                    progress: { completed, total, latest: c },
+                    curation: upsertShotCuration(project.curation, c),
+                    status: {
+                      kind: 'agent',
+                      label: `Agent running ${completed}/${total}`,
+                    },
+                  }
+                : project,
+            ),
+          );
+        }
+        if (!projectId || activeProjectIdRef.current === projectId) {
+          setProgress({ completed, total, latest: c });
+          setCuration((prev) => upsertShotCuration(prev, c));
+        }
       },
     );
     return unsubscribe;
@@ -2326,7 +2885,19 @@ function WorkflowView({
       return undefined;
     }
     const unsubscribe = window.api.onCurateShotPartial(({ curation: c }) => {
-      setCuration((prev) => upsertShotCuration(prev, c));
+      const projectId = curateJobProjectIdRef.current;
+      if (projectId) {
+        setProjects((prev) =>
+          prev.map((project) =>
+            project.id === projectId
+              ? { ...project, curation: upsertShotCuration(project.curation, c) }
+              : project,
+          ),
+        );
+      }
+      if (!projectId || activeProjectIdRef.current === projectId) {
+        setCuration((prev) => upsertShotCuration(prev, c));
+      }
     });
     return unsubscribe;
   }, []);
@@ -2334,7 +2905,17 @@ function WorkflowView({
   // Subscribe to synthesis progress events (milestones + streaming).
   useEffect(() => {
     const unsubscribe = window.api.onSynthesizeProgress((p) => {
-      setSynthProgress(p);
+      const projectId = synthJobProjectIdRef.current;
+      if (projectId) {
+        setProjects((prev) =>
+          prev.map((project) =>
+            project.id === projectId ? { ...project, synthProgress: p } : project,
+          ),
+        );
+      }
+      if (!projectId || activeProjectIdRef.current === projectId) {
+        setSynthProgress(p);
+      }
     });
     return unsubscribe;
   }, []);
@@ -2428,7 +3009,8 @@ function WorkflowView({
   // result_summary replaces the pre-emission inline.
   useEffect(() => {
     const unsubscribe = window.api.onCuratorTurn((event) => {
-      setTurnsByShot((prev) => {
+      const projectId = curateJobProjectIdRef.current;
+      const mergeTurn = (prev: Map<number, CuratorTurnEvent[]>) => {
         const next = new Map(prev);
         const existing = next.get(event.shot_idx) ?? [];
         const sameTurnIdx = existing.findIndex((t) => t.turn === event.turn);
@@ -2440,7 +3022,19 @@ function WorkflowView({
           next.set(event.shot_idx, [...existing, event]);
         }
         return next;
-      });
+      };
+      if (projectId) {
+        setProjects((prev) =>
+          prev.map((project) =>
+            project.id === projectId
+              ? { ...project, turnsByShot: mergeTurn(project.turnsByShot) }
+              : project,
+          ),
+        );
+      }
+      if (!projectId || activeProjectIdRef.current === projectId) {
+        setTurnsByShot(mergeTurn);
+      }
     });
     return unsubscribe;
   }, []);
@@ -2459,11 +3053,28 @@ function WorkflowView({
   // clicks an option and we invoke replyCuratorClarification.
   useEffect(() => {
     const unsubscribe = window.api.onCuratorClarification((req) => {
-      setPendingClarifications((prev) => {
+      const projectId = curateJobProjectIdRef.current;
+      const addRequest = (prev: Map<number, CuratorClarificationRequest>) => {
         const next = new Map(prev);
         next.set(req.shot_idx, req);
         return next;
-      });
+      };
+      if (projectId) {
+        setProjects((prev) =>
+          prev.map((project) =>
+            project.id === projectId
+              ? {
+                  ...project,
+                  pendingClarifications: addRequest(project.pendingClarifications),
+                  status: { kind: 'needs_input', label: 'Task needed' },
+                }
+              : project,
+          ),
+        );
+      }
+      if (!projectId || activeProjectIdRef.current === projectId) {
+        setPendingClarifications(addRequest);
+      }
     });
     return unsubscribe;
   }, []);
@@ -2815,6 +3426,7 @@ function WorkflowView({
     reuseLastTarget?: boolean;
     remixProfile?: RemixProfile | null;
   }): Promise<void> => {
+    const projectId = activeProjectId;
     const ready = library.filter(
       (r): r is LibraryRow & { analysis: ReelAnalysisResult } =>
         r.status === 'ready' && !!r.analysis,
@@ -2830,11 +3442,31 @@ function WorkflowView({
       setError(target);
       return;
     }
+    if (!projectId) {
+      setError('Open a project tab before synthesizing an edit plan.');
+      return;
+    }
     setBusy('synthesizing');
+    synthJobProjectIdRef.current = projectId;
     if (!opts?.keepExistingPlan) setPlan(null);
     setCuration(null);
     setError(null);
     setSynthProgress(null);
+    setProjects((prev) =>
+      prev.map((project) =>
+        project.id === projectId
+          ? {
+              ...project,
+              busy: 'synthesizing',
+              stage: 'target',
+              plan: opts?.keepExistingPlan ? project.plan : null,
+              curation: null,
+              synthProgress: null,
+              status: { kind: 'planning', label: 'Planning' },
+            }
+          : project,
+      ),
+    );
     const remixProfile = opts?.remixProfile ?? selectedRemixProfile;
     const baseUserInstructions =
       opts?.userInstructionsOverride ?? userInstructions;
@@ -2864,7 +3496,7 @@ function WorkflowView({
         userInstructions: effectiveUserInstructions,
         reuseLastTarget: opts?.reuseLastTarget,
       });
-      setPlan(
+      const nextPlan: SuggestedEdit =
         (target?.kind ?? targetMode) === 'local_video'
           ? {
               ...synth,
@@ -2872,9 +3504,33 @@ function WorkflowView({
               target_video_path:
                 targetPreviewVideoPath ?? synth.target_video_path ?? targetFile,
             }
-          : { ...synth, reel_id: reelId },
+          : { ...synth, reel_id: reelId };
+      const nextTitle = topicFromPlan(nextPlan, projects.find((p) => p.id === projectId)?.title ?? 'Untitled reel');
+      setProjects((prev) =>
+        prev.map((project) =>
+          project.id === projectId
+            ? {
+                ...project,
+                title: nextTitle,
+                busy: null,
+                stage: 'plan',
+                planTarget: target ?? project.planTarget,
+                plan: nextPlan,
+                curation: null,
+                progress: null,
+                synthProgress: null,
+                status: { kind: 'planned', label: 'Plan ready' },
+              }
+            : project,
+        ),
       );
-      if (target) setPlanTarget(target);
+      if (activeProjectIdRef.current === projectId) {
+        setPlan(nextPlan);
+        if (target) setPlanTarget(target);
+        setCuration(null);
+        setProgress(null);
+        setStage('plan');
+      }
       // Log the synthesis inputs against this reel (instructions + target).
       const targetDesc =
         typeof target === 'object' && target
@@ -2892,9 +3548,24 @@ function WorkflowView({
       );
       refreshPastPlans();
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      const message = e instanceof Error ? e.message : String(e);
+      setProjects((prev) =>
+        prev.map((project) =>
+          project.id === projectId
+            ? {
+                ...project,
+                busy: null,
+                status: { kind: 'error', label: 'Needs attention' },
+              }
+            : project,
+        ),
+      );
+      if (activeProjectIdRef.current === projectId) setError(message);
     } finally {
-      setBusy(null);
+      if (synthJobProjectIdRef.current === projectId) {
+        synthJobProjectIdRef.current = null;
+      }
+      if (activeProjectIdRef.current === projectId) setBusy(null);
     }
   };
 
@@ -2924,6 +3595,8 @@ function WorkflowView({
       expandedShots,
       pendingClarifications,
       clarificationTyping,
+      stage,
+      busy,
       status: activeProjectStatus,
     };
     const queue = projects
@@ -2953,6 +3626,17 @@ function WorkflowView({
     setBusy('batch_synthesizing');
     setError(null);
     setSynthProgress(null);
+    setProjects((prev) =>
+      prev.map((project) =>
+        queue.some((queued) => queued.id === project.id)
+          ? {
+              ...project,
+              busy: 'batch_synthesizing',
+              status: { kind: 'planning', label: 'Batch planning' },
+            }
+          : project,
+      ),
+    );
     try {
       for (let i = 0; i < queue.length; i++) {
         const project = queue[i];
@@ -2975,6 +3659,7 @@ function WorkflowView({
         };
         const reelId = project.plan?.reel_id ?? crypto.randomUUID();
         try {
+          synthJobProjectIdRef.current = project.id;
           const synth = await window.api.synthesizePlan({
             library: ready.map((r) => ({
               url: r.url,
@@ -3000,6 +3685,8 @@ function WorkflowView({
                 ? {
                     ...p,
                     title: nextTitle,
+                    busy: null,
+                    stage: 'plan',
                     planTarget: target,
                     plan: nextPlan,
                     curation: null,
@@ -3010,7 +3697,7 @@ function WorkflowView({
                 : p,
             ),
           );
-          if (project.id === activeProjectId) {
+          if (activeProjectIdRef.current === project.id) {
             setPlanTarget(target);
             setPlan(nextPlan);
             setCuration(null);
@@ -3031,11 +3718,19 @@ function WorkflowView({
           setProjects((prev) =>
             prev.map((p) =>
               p.id === project.id
-                ? { ...p, status: { kind: 'error', label: 'Needs attention' } }
+                ? {
+                    ...p,
+                    busy: null,
+                    status: { kind: 'error', label: 'Needs attention' },
+                  }
                 : p,
             ),
           );
-          if (project.id === activeProjectId) setError(msg);
+          if (activeProjectIdRef.current === project.id) setError(msg);
+        } finally {
+          if (synthJobProjectIdRef.current === project.id) {
+            synthJobProjectIdRef.current = null;
+          }
         }
       }
       await refreshPastPlans();
@@ -3043,6 +3738,13 @@ function WorkflowView({
     } finally {
       setBusy(null);
       setBatchProgress(null);
+      setProjects((prev) =>
+        prev.map((project) =>
+          project.busy === 'batch_synthesizing'
+            ? { ...project, busy: null }
+            : project,
+        ),
+      );
     }
   };
 
@@ -3145,8 +3847,14 @@ function WorkflowView({
 
   const approveCurate = async (force = false, userPrompt?: string): Promise<void> => {
     if (!plan) return;
+    const projectId = activeProjectId;
+    if (!projectId) {
+      setError('Open a project tab before running the agent.');
+      return;
+    }
     if (userPrompt) recordPrompt('curate', userPrompt);
     setBusy('curating');
+    curateJobProjectIdRef.current = projectId;
     if (force) setCuration(null);
     setProgress({ completed: 0, total: plan.shots.length });
     setTurnsByShot(new Map());
@@ -3154,14 +3862,64 @@ function WorkflowView({
     setPendingClarifications(new Map());
     setClarificationTyping(new Map());
     setError(null);
+    setProjects((prev) =>
+      prev.map((project) =>
+        project.id === projectId
+          ? {
+              ...project,
+              busy: 'curating',
+              stage: 'plan',
+              curation: force ? null : project.curation,
+              progress: { completed: 0, total: plan.shots.length },
+              turnsByShot: new Map(),
+              expandedShots: new Set(),
+              pendingClarifications: new Map(),
+              clarificationTyping: new Map(),
+              status: { kind: 'agent', label: `Agent running 0/${plan.shots.length}` },
+            }
+          : project,
+      ),
+    );
     try {
       const result = await window.api.curatePlan(plan, { force, userPrompt });
-      setCuration(result);
-      setProgress(null);
+      setProjects((prev) =>
+        prev.map((project) =>
+          project.id === projectId
+            ? {
+                ...project,
+                busy: null,
+                stage: 'review',
+                curation: result,
+                progress: null,
+                status: { kind: 'done', label: 'Curated' },
+              }
+            : project,
+        ),
+      );
+      if (activeProjectIdRef.current === projectId) {
+        setCuration(result);
+        setProgress(null);
+        setStage('review');
+      }
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      const message = e instanceof Error ? e.message : String(e);
+      setProjects((prev) =>
+        prev.map((project) =>
+          project.id === projectId
+            ? {
+                ...project,
+                busy: null,
+                status: { kind: 'error', label: 'Needs attention' },
+              }
+            : project,
+        ),
+      );
+      if (activeProjectIdRef.current === projectId) setError(message);
     } finally {
-      setBusy(null);
+      if (curateJobProjectIdRef.current === projectId) {
+        curateJobProjectIdRef.current = null;
+      }
+      if (activeProjectIdRef.current === projectId) setBusy(null);
     }
   };
 
@@ -3484,7 +4242,18 @@ function WorkflowView({
     (targetMode === 'reel_url' && targetUrl.trim().length > 0) ||
     (targetMode === 'script' && targetScript.trim().length > 0) ||
     (targetMode === 'local_video' && targetFile !== null);
-  const canBuildPlan = !busy && readyCount > 0 && targetReady;
+  const projectAgentRunning =
+    busy === 'synthesizing' ||
+    busy === 'batch_synthesizing' ||
+    busy === 'curating' ||
+    projects.some(
+      (project) =>
+        project.busy === 'synthesizing' ||
+        project.busy === 'batch_synthesizing' ||
+        project.busy === 'curating',
+    );
+  const canBuildPlan =
+    !busy && !projectAgentRunning && readyCount > 0 && targetReady;
   const batchReadyCount = projects.filter(
     (project) =>
       project.targetMode === 'local_video' &&
@@ -3492,8 +4261,8 @@ function WorkflowView({
       !project.plan,
   ).length;
   const canBatchBuildPlans =
-    !busy && readyCount > 0 && batchReadyCount > 1;
-  const canCurate = !busy && plan !== null;
+    !busy && !projectAgentRunning && readyCount > 0 && batchReadyCount > 1;
+  const canCurate = !busy && !projectAgentRunning && plan !== null;
   const activeProjectStatus = useMemo(
     () =>
       computeProjectStatus({
@@ -3509,6 +4278,7 @@ function WorkflowView({
   );
 
   useEffect(() => {
+    if (!activeProjectId) return;
     setProjects((prev) =>
       prev.map((project) => {
         if (project.id !== activeProjectId) return project;
@@ -3520,6 +4290,8 @@ function WorkflowView({
               : project.title;
         return {
           ...project,
+          busy,
+          stage: stage === 'dashboard' ? project.stage : stage,
           title: topicFromPlan(plan, fallbackTitle),
           targetMode,
           targetUrl,
@@ -3550,7 +4322,9 @@ function WorkflowView({
     plan,
     planTarget,
     progress,
+    stage,
     synthProgress,
+    busy,
     targetFile,
     targetMode,
     targetPreviewVideoPath,
@@ -3579,9 +4353,30 @@ function WorkflowView({
     setExpandedShots(project.expandedShots);
     setPendingClarifications(project.pendingClarifications);
     setClarificationTyping(project.clarificationTyping);
+    setBusy(project.busy);
     setError(null);
-    setStage(project.plan ? 'plan' : 'target');
+    setStage(projectStatusStage(project));
   };
+
+  const showDashboard = (): void => {
+    setActiveProjectId(null);
+    setBusy(null);
+    setError(null);
+    setStage('dashboard');
+  };
+
+  useEffect(() => {
+    if (stage === 'dashboard' && activeProjectId) {
+      setActiveProjectId(null);
+      setBusy(null);
+    }
+  }, [activeProjectId, stage]);
+
+  useEffect(() => {
+    if (!activeProjectId && stage !== 'dashboard') {
+      setStage('dashboard');
+    }
+  }, [activeProjectId, setStage, stage]);
 
   const addProjectsFromFiles = (files: string[]): void => {
     const uniqueFiles = files.filter(
@@ -3610,8 +4405,9 @@ function WorkflowView({
     setExpandedShots(new Set());
     setPendingClarifications(new Map());
     setClarificationTyping(new Map());
+    setBusy(first.busy);
     setError(null);
-    setStage('target');
+    setStage(first.stage);
     setPasteToast(
       `Created ${nextProjects.length} ${nextProjects.length === 1 ? 'project' : 'projects'} from batch upload.`,
     );
@@ -3637,8 +4433,9 @@ function WorkflowView({
     setExpandedShots(new Set());
     setPendingClarifications(new Map());
     setClarificationTyping(new Map());
+    setBusy(fresh.busy);
     setError(null);
-    setStage('target');
+    setStage(fresh.stage);
   };
 
   const saveWorkspace = async (): Promise<void> => {
@@ -3711,15 +4508,46 @@ function WorkflowView({
                 {projects.length} {projects.length === 1 ? 'video' : 'videos'} loaded
               </div>
             </div>
-            <span className={`project-tabs-live status-${activeProjectStatus.kind}`}>
+            <span className={`project-tabs-live status-${activeProjectId ? activeProjectStatus.kind : 'empty'}`}>
               <span className="project-tab-dot" aria-hidden="true" />
-              {activeProjectStatus.label}
+              {activeProjectId ? activeProjectStatus.label : 'Dashboard'}
             </span>
           </div>
           <div className="project-tabs-scroll">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeProjectId === null}
+              className={`project-tab project-tab-dashboard ${activeProjectId === null ? 'active' : ''} status-empty`}
+              onClick={showDashboard}
+              title="Workspace dashboard"
+            >
+              <span className="project-tab-index">▦</span>
+              <span className="project-tab-main">
+                <span className="project-tab-title">Dashboard</span>
+                <span className="project-tab-status">
+                  <span className="project-tab-dot" aria-hidden="true" />
+                  No tab selected
+                </span>
+              </span>
+            </button>
             {projects.map((project, index) => {
               const status =
                 project.id === activeProjectId ? activeProjectStatus : project.status;
+              const tabProject: WorkflowProject =
+                project.id === activeProjectId
+                  ? {
+                      ...project,
+                      stage,
+                      targetMode,
+                      targetUrl,
+                      targetScript,
+                      targetFile,
+                      plan,
+                      curation,
+                    }
+                  : project;
+              const tabProgress = projectStepProgress(tabProject, readyCount);
               return (
                 <button
                   key={project.id}
@@ -3728,7 +4556,6 @@ function WorkflowView({
                   aria-selected={project.id === activeProjectId}
                   className={`project-tab ${project.id === activeProjectId ? 'active' : ''} status-${status.kind}`}
                   onClick={() => activateProject(project.id)}
-                  disabled={busy !== null && project.id !== activeProjectId}
                   title={`${project.title} — ${status.label}`}
                 >
                   <span className="project-tab-index">
@@ -3740,6 +4567,19 @@ function WorkflowView({
                       <span className="project-tab-dot" aria-hidden="true" />
                       {status.label}
                     </span>
+                    <span className="project-tab-flow" aria-hidden="true">
+                      {STAGES.map((step) => (
+                        <span
+                          key={step.id}
+                          className={`project-tab-step ${tabProject.stage === step.id ? 'active' : ''} ${tabProgress[step.id] ? 'done' : ''}`}
+                          title={step.title}
+                        >
+                          {tabProgress[step.id] && tabProject.stage !== step.id
+                            ? '✓'
+                            : step.num}
+                        </span>
+                      ))}
+                    </span>
                   </span>
                 </button>
               );
@@ -3750,7 +4590,7 @@ function WorkflowView({
               type="button"
               className="queue-action"
               onClick={createNewProject}
-              disabled={busy !== null}
+              disabled={busy === 'hydrating'}
             >
               + New
             </button>
@@ -3758,7 +4598,7 @@ function WorkflowView({
               type="button"
               className="queue-action queue-action-primary"
               onClick={() => void pickBatchFiles()}
-              disabled={busy !== null}
+              disabled={busy === 'hydrating'}
             >
               Batch upload…
             </button>
@@ -4584,7 +5424,8 @@ function WorkflowView({
               onStop: stopCurate,
               curating: busy === 'curating',
               regeneratingPlan: busy === 'synthesizing',
-              canRegeneratePlan: plan !== null && !busy,
+              agentRunningElsewhere: projectAgentRunning && !busy,
+              canRegeneratePlan: plan !== null && !busy && !projectAgentRunning,
               curatingProgress: progress
                 ? { completed: progress.completed, total: progress.total }
                 : undefined,
@@ -5346,6 +6187,10 @@ function PlanReview({
     [curation, pastedMedia],
   );
   const devtools = React.useContext(DevtoolsContext);
+  const contractValidation = useMemo(
+    () => validatePlanContractLocal(plan),
+    [plan],
+  );
 
   // SFX timeline shown (and dragged) on the top timeline bar. Resolved by
   // main from hand-edited events if present, else the transcript+inspiration
@@ -6019,6 +6864,17 @@ function PlanReview({
             <span className={`conf conf-${plan.structure_confidence}`}>
               ✓ {plan.structure_confidence}
             </span>
+            {contractValidation && (
+              <>
+                <span className="sep">·</span>
+                <span
+                  className={`contract-score ${contractValidation.issues.length > 0 ? 'warn' : 'ok'}`}
+                  title={`${contractValidation.passed}/${contractValidation.total} contract checks passed`}
+                >
+                  Contract {contractValidation.score}%
+                </span>
+              </>
+            )}
           </div>
           {selectedShot && (
             <div className="plan2-script" title={selectedScript}>
@@ -6072,7 +6928,9 @@ function PlanReview({
                 className="btn"
                 onClick={() => setRepromptOpen((open) => !open)}
                 disabled={
-                  topActions.curating || topActions.regeneratingPlan
+                  topActions.curating ||
+                  topActions.regeneratingPlan ||
+                  topActions.agentRunningElsewhere
                 }
                 title="Add details and regenerate the whole shot plan"
               >
@@ -6103,9 +6961,14 @@ function PlanReview({
                       topActions.onCurateAll(false);
                     }
                   }}
-                  disabled={!hasCuratedMedia && shotsNeedingMedia === 0}
+                  disabled={
+                    topActions.agentRunningElsewhere ||
+                    (!hasCuratedMedia && shotsNeedingMedia === 0)
+                  }
                   title={
-                    hasCuratedMedia
+                    topActions.agentRunningElsewhere
+                      ? 'Another project agent is running in the background'
+                      : hasCuratedMedia
                       ? 'Recurate the transcript media library from scratch'
                       : shotsNeedingMedia === 0
                         ? 'All shots have media'
@@ -6483,6 +7346,12 @@ function PlanReview({
           </div>
         </div>
       </div>
+
+      <EditContractPanel
+        plan={plan}
+        validation={contractValidation}
+        selectedShotIdx={selectedShotIdx}
+      />
 
       {/* Structure + patterns metadata — tucked into a collapsed
           disclosure below the detail box so it doesn't push the
@@ -6985,6 +7854,120 @@ function SectionRow({ section }: { section: StructureSection }): React.JSX.Eleme
           ))}
       </div>
     </div>
+  );
+}
+
+function EditContractPanel({
+  plan,
+  validation,
+  selectedShotIdx,
+}: {
+  plan: SuggestedEdit;
+  validation: EditContractValidation | null;
+  selectedShotIdx: number | null;
+}): React.JSX.Element | null {
+  const contract = plan.edit_contract;
+  if (!contract) return null;
+  const selected =
+    contract.shots.find((shot) => shot.shot_idx === selectedShotIdx) ??
+    contract.shots[0] ??
+    null;
+  const issues = validation?.issues ?? [];
+  const selectedIssues = selected
+    ? issues.filter((issue) => issue.shot_idx === selected.shot_idx)
+    : [];
+  const globalIssues = issues.filter((issue) => issue.shot_idx == null);
+  const score = validation?.score ?? plan.contract_validation?.score ?? 100;
+  const ok = issues.length === 0;
+
+  return (
+    <details className="plan-meta plan-contract" open={!ok}>
+      <summary>
+        <span className="label">Edit contract</span>
+        <span className="text-muted">
+          {score}% match
+          {issues.length > 0 &&
+            ` · ${issues.length} issue${issues.length === 1 ? '' : 's'}`}
+        </span>
+      </summary>
+      <div className="contract-body">
+        <div className="contract-summary">
+          <span className={`contract-badge ${ok ? 'ok' : 'warn'}`}>
+            {ok ? 'Passing' : 'Needs review'}
+          </span>
+          <span>{contract.summary}</span>
+        </div>
+        <div className="contract-grid">
+          <section className="contract-section">
+            <h4>Global rules</h4>
+            <ul>
+              {contract.global_rules.slice(0, 6).map((rule) => (
+                <li key={rule.id}>
+                  <b>{rule.label}</b>
+                  <span>{rule.requirement}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+          {selected && (
+            <section className="contract-section">
+              <h4>Selected shot</h4>
+              <dl>
+                <div>
+                  <dt>Trigger</dt>
+                  <dd>{selected.script_trigger || '(silent beat)'}</dd>
+                </div>
+                <div>
+                  <dt>L1 media</dt>
+                  <dd>{selected.l1_media}</dd>
+                </div>
+                <div>
+                  <dt>L2 visual</dt>
+                  <dd>{selected.l2_visual_overlay}</dd>
+                </div>
+                <div>
+                  <dt>L3 captions</dt>
+                  <dd>{selected.l3_captions}</dd>
+                </div>
+                <div>
+                  <dt>Layout</dt>
+                  <dd>
+                    {selected.layout.fit} · {selected.layout.position}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Source</dt>
+                  <dd>
+                    {selected.source_category} via {selected.source_method}
+                  </dd>
+                </div>
+              </dl>
+            </section>
+          )}
+          <section className="contract-section">
+            <h4>Validation</h4>
+            {issues.length === 0 ? (
+              <p className="contract-empty">Current plan matches the contract.</p>
+            ) : (
+              <ul>
+                {[...globalIssues, ...selectedIssues, ...issues.filter((issue) => issue.shot_idx !== selected?.shot_idx && issue.shot_idx != null)]
+                  .slice(0, 8)
+                  .map((issue, i) => (
+                    <li key={`${issue.rule_id}-${issue.shot_idx ?? 'global'}-${i}`}>
+                      <b>
+                        {issue.shot_idx != null
+                          ? `Shot ${issue.shot_idx + 1}`
+                          : issue.rule_id}
+                      </b>
+                      <span>{issue.message}</span>
+                    </li>
+                  ))}
+              </ul>
+            )}
+          </section>
+        </div>
+      </div>
+    </details>
   );
 }
 
@@ -13016,6 +13999,118 @@ function RegionGlyph({
   );
 }
 
+function regionLabel(region: FrameRegion | null | undefined): string {
+  return region ? region.replace(/_/g, ' ') : 'unknown region';
+}
+
+function isMeaningfulLayerText(text: string): boolean {
+  const clean = text.replace(/\s+/g, ' ').trim();
+  if (clean.length < 3) return false;
+  if (!/[A-Za-z0-9]/.test(clean)) return false;
+  if (/^[^\p{L}\p{N}]+$/u.test(clean)) return false;
+  if (/^[£$€¥]?\d{1,2}[.,]?$/.test(clean)) return false;
+  if (/^[A-Za-z]{1,2}$/.test(clean)) return false;
+  return true;
+}
+
+type ShotLayerBreakdown = {
+  media: string[];
+  overlays: string[];
+  captions: string[];
+};
+
+function shotLayerBreakdown(
+  shot: ReelAnalysisResult['shots'][number],
+): ShotLayerBreakdown {
+  const parsedVisual = parseLayeredVisualDescription(shot.visual_caption);
+  const overlayOnlyVisual = visualCaptionLooksLikeOverlayOnly(shot);
+  const media: string[] = [
+    parsedVisual.overlay || overlayOnlyVisual
+      ? 'Base media'
+      : CLIP_META[shot.clip_type]?.label ?? shot.clip_type.replace(/_/g, ' '),
+  ];
+  if (parsedVisual.base && !overlayOnlyVisual) {
+    media.push(clipText(parsedVisual.base, 118));
+  } else if (overlayOnlyVisual) {
+    media.push('underlying/background video not separately identified');
+  }
+  const baseLooksPersonLike =
+    parsedVisual.base &&
+    /\b(face|person|man|woman|speaker|talking|interview|host|presenter)\b/i.test(
+      parsedVisual.base,
+    );
+  if (
+    shot.face_region &&
+    !overlayOnlyVisual &&
+    (!parsedVisual.overlay || baseLooksPersonLike)
+  ) {
+    media.push(`face framed ${regionLabel(shot.face_region)}`);
+  }
+  if (shot.detected_motion && shot.detected_motion.kind !== 'none') {
+    media.push(
+      `${MOTION_META[shot.detected_motion.kind].label} media motion`,
+    );
+  }
+
+  const overlays: string[] = [];
+  for (const overlay of shot.overlays ?? []) {
+    const context = scriptContextLabel(overlay.spoken_window || shot.spoken_window);
+    overlays.push(
+      `${overlay.kind.replace(/_/g, ' ')} ${regionLabel(overlay.region)} · ${overlay.motion}${context ? ` · ${context}` : ''}`,
+    );
+  }
+  const inferredOverlay = inferredVisualLayerDetail(shot);
+  if (inferredOverlay && overlays.length === 0) {
+    const context = layer2ScriptContext(shot);
+    overlays.push(
+      `inferred ${inferredOverlay}${context ? ` · ${context}` : ''}`,
+    );
+  }
+
+  const captions: string[] = [];
+  const embeddedOverlayText: string[] = [];
+  for (const text of shot.text_moments ?? []) {
+    if (!isMeaningfulLayerText(text.text)) continue;
+    if (
+      text.role === 'image_text' ||
+      inferredOverlayOwnsTextRegion(shot, text.region)
+    ) {
+      embeddedOverlayText.push(
+        `${regionLabel(text.region)}: "${clipText(text.text, 42)}"`,
+      );
+      continue;
+    }
+    const label =
+      text.role === 'subtitle'
+        ? 'subtitle'
+        : text.role === 'title'
+          ? 'title/text overlay'
+          : 'text overlay';
+    captions.push(
+      `${label} ${regionLabel(text.region)}: "${clipText(text.text, 52)}"`,
+    );
+  }
+  if (embeddedOverlayText.length > 0) {
+    overlays.push(
+      `embedded text in visual overlay: ${embeddedOverlayText.slice(0, 4).join(' · ')}`,
+    );
+  }
+  if (
+    shot.ocr_text &&
+    captions.length === 0 &&
+    isMeaningfulLayerText(shot.ocr_text) &&
+    !visualCaptionLooksLikeOverlayOnly(shot)
+  ) {
+    captions.push(`OCR text overlay: "${clipText(shot.ocr_text, 64)}"`);
+  }
+
+  return {
+    media,
+    overlays: overlays.length ? overlays : ['No visual overlay detected'],
+    captions: captions.length ? captions : ['No text/caption layer detected'],
+  };
+}
+
 function msRange(startMs: number, endMs: number): string {
   const s = (startMs / 1000).toFixed(1);
   const e = (endMs / 1000).toFixed(1);
@@ -13737,6 +14832,64 @@ function AnalyzeDashboard({
     .map((shot, idx) => ({ shot, idx }))
     .filter(({ shot }) => TALKING_TYPES.includes(shot.clip_type));
 
+  const layerReview = React.useMemo(() => {
+    const shotLayers = a.shots.map((shot) => shotLayerBreakdown(shot));
+    const mediaCounts = new Map<string, number>();
+    const overlayKinds = new Map<string, number>();
+    const captionPlacements = new Map<string, number>();
+    let textOverlayShots = 0;
+    let mediaOverlayShots = 0;
+    let noOverlayShots = 0;
+    let noCaptionShots = 0;
+
+    for (const shot of a.shots) {
+      const mediaLabel =
+        CLIP_META[shot.clip_type]?.label ?? shot.clip_type.replace(/_/g, ' ');
+      mediaCounts.set(mediaLabel, (mediaCounts.get(mediaLabel) ?? 0) + 1);
+      const captionLikeText = (shot.text_moments ?? []).filter(
+        (text) => text.role !== 'image_text' && isMeaningfulLayerText(text.text),
+      );
+      if (captionLikeText.length > 0) textOverlayShots += 1;
+      const inferredOverlay = inferredVisualLayerCue(shot);
+      if (inferredOverlay) {
+        mediaOverlayShots += 1;
+      } else {
+        noOverlayShots += 1;
+      }
+      if (captionLikeText.length === 0) {
+        noCaptionShots += 1;
+      }
+      for (const text of captionLikeText) {
+        const label = regionLabel(text.region);
+        captionPlacements.set(label, (captionPlacements.get(label) ?? 0) + 1);
+      }
+      for (const overlay of shot.overlays ?? []) {
+        const label = `${overlay.kind.replace(/_/g, ' ')} ${regionLabel(overlay.region)}`;
+        overlayKinds.set(label, (overlayKinds.get(label) ?? 0) + 1);
+      }
+      if (inferredOverlay && (shot.overlays ?? []).length === 0) {
+        const detail = inferredVisualLayerDetail(shot);
+        const label = detail
+          ? detail.replace(/^inferred\s+/i, '').split(':')[0]
+          : inferredOverlay;
+        overlayKinds.set(label, (overlayKinds.get(label) ?? 0) + 1);
+      }
+    }
+
+    return {
+      shotLayers,
+      mediaCounts: [...mediaCounts.entries()].sort((x, y) => y[1] - x[1]),
+      overlayKinds: [...overlayKinds.entries()].sort((x, y) => y[1] - x[1]),
+      captionPlacements: [...captionPlacements.entries()].sort(
+        (x, y) => y[1] - x[1],
+      ),
+      textOverlayShots,
+      mediaOverlayShots,
+      noOverlayShots,
+      noCaptionShots,
+    };
+  }, [a.shots]);
+
   // The SFX onset closest to the current playback position (within a small
   // window) — drives the on-video badge + the highlighted timeline marker.
   const SFX_BADGE_WINDOW_MS = 220;
@@ -13898,6 +15051,75 @@ function AnalyzeDashboard({
           <ReelBrief reel={reel} a={a} />
         ) : (
           <>
+        {a.style_signature && (
+          <section className="az-section">
+            <h3 className="az-section-title">
+              Clipnosis signature{' '}
+              <span className="az-section-count">
+                proprietary edit fingerprint · {Math.round(a.style_signature.confidence * 100)}% confidence
+              </span>
+            </h3>
+            <div className="az-signature-panel">
+              <div className="az-signature-summary">
+                {a.style_signature.summary}
+              </div>
+              <div className="az-signature-kpis">
+                <span>
+                  Tempo <b>{a.style_signature.rhythm.tempo}</b>
+                </span>
+                <span>
+                  Shots <b>{a.style_signature.shot_count}</b>
+                </span>
+                <span>
+                  Median <b>{(a.style_signature.rhythm.median_shot_ms / 1000).toFixed(1)}s</b>
+                </span>
+                <span>
+                  Cuts/sec <b>{a.style_signature.rhythm.cuts_per_sec.toFixed(2)}</b>
+                </span>
+              </div>
+              <div className="az-signature-grid">
+                <div>
+                  <span className="az-signature-label">Layer grammar</span>
+                  <div className="az-signature-tokens">
+                    {a.style_signature.grammar.layer_sequence.slice(0, 6).map((token) => (
+                      <span key={token}>{token}</span>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <span className="az-signature-label">Layout grammar</span>
+                  <div className="az-signature-tokens">
+                    {a.style_signature.grammar.layout_sequence.slice(0, 6).map((token) => (
+                      <span key={token}>{token}</span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              {a.style_signature.script_visual_rules.length > 0 && (
+                <div className="az-signature-rules">
+                  <span className="az-signature-label">Script to visual rules</span>
+                  {a.style_signature.script_visual_rules.slice(0, 4).map((rule, idx) => (
+                    <div className="az-signature-rule" key={`${rule.visual_response}-${idx}`}>
+                      <b>
+                        when {rule.trigger_keywords.join(', ') || 'matched beat'}
+                      </b>
+                      <span>show {rule.visual_response}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="az-signature-rules">
+                <span className="az-signature-label">Reproduction rules</span>
+                {a.style_signature.reproduction_rules.slice(0, 6).map((rule, idx) => (
+                  <div className="az-signature-rule" key={idx}>
+                    <span>{rule}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
+
         <section className="az-section">
           <h3 className="az-section-title">Pacing &amp; build</h3>
           <div className="az-stats">
@@ -13929,6 +15151,120 @@ function AnalyzeDashboard({
               bar={a.real_speaker_pct}
               barColor="var(--az-purple)"
             />
+          </div>
+        </section>
+
+        <section className="az-section">
+          <h3 className="az-section-title">
+            Layer split{' '}
+            <span className="az-section-count">
+              media, visual overlays, text/captions
+            </span>
+          </h3>
+          <div className="az-layer-panel">
+            <div className="az-layer-summary">
+              <div className="az-layer-summary-col">
+                <span className="az-layer-kicker">Layer 1 · Media</span>
+                <div className="az-layer-chips">
+                  {layerReview.mediaCounts.slice(0, 4).map(([label, count]) => (
+                    <span key={label} className="az-layer-chip">
+                      {label}
+                      <b>{count}/{a.shots.length}</b>
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <div className="az-layer-summary-col">
+                <span className="az-layer-kicker">Layer 2 · Visual overlay</span>
+                <div className="az-layer-chips">
+                  <span className="az-layer-chip">
+                    visual layer
+                    <b>{layerReview.mediaOverlayShots}/{a.shots.length}</b>
+                  </span>
+                  <span className="az-layer-chip">
+                    none
+                    <b>{layerReview.noOverlayShots}/{a.shots.length}</b>
+                  </span>
+                </div>
+                {layerReview.overlayKinds.length > 0 && (
+                  <p className="az-layer-note">
+                    Common overlay placements:{' '}
+                    {layerReview.overlayKinds
+                      .slice(0, 3)
+                      .map(([label, count]) => `${label} (${count})`)
+                      .join(', ')}
+                  </p>
+                )}
+              </div>
+              <div className="az-layer-summary-col">
+                <span className="az-layer-kicker">Layer 3 · Text/captions</span>
+                <div className="az-layer-chips">
+                  <span className="az-layer-chip">
+                    text/captions
+                    <b>{layerReview.textOverlayShots}/{a.shots.length}</b>
+                  </span>
+                  <span className="az-layer-chip">
+                    none
+                    <b>{layerReview.noCaptionShots}/{a.shots.length}</b>
+                  </span>
+                </div>
+                {layerReview.captionPlacements.length > 0 && (
+                  <p className="az-layer-note">
+                    Common caption placements:{' '}
+                    {layerReview.captionPlacements
+                      .slice(0, 3)
+                      .map(([label, count]) => `${label} (${count})`)
+                      .join(', ')}
+                  </p>
+                )}
+              </div>
+            </div>
+            <div className="az-layer-shots">
+              {a.shots.map((shot, idx) => {
+                const layers = layerReview.shotLayers[idx];
+                const meta = CLIP_META[shot.clip_type];
+                return (
+                  <button
+                    key={idx}
+                    type="button"
+                    className={`az-layer-shot ${idx === activeShotIdx ? 'active' : ''}`}
+                    style={{ ['--layer-shot-color' as string]: meta.color }}
+                    onClick={() => seekToShot(idx)}
+                  >
+                    <span className="az-layer-shot-head">
+                      <span>Shot {idx + 1}</span>
+                      <span>{msRange(shot.start_ms, shot.end_ms)}</span>
+                    </span>
+                    <span className="az-layer-stack">
+                      <span className="az-layer-row">
+                        <span className="az-layer-name">L1 Media</span>
+                        <span className="az-layer-items">
+                          {layers.media.map((item, i) => (
+                            <span key={i}>{item}</span>
+                          ))}
+                        </span>
+                      </span>
+                      <span className="az-layer-row">
+                        <span className="az-layer-name">L2 Visual Overlay</span>
+                        <span className="az-layer-items">
+                          {layers.overlays.map((item, i) => (
+                            <span key={i}>{item}</span>
+                          ))}
+                        </span>
+                      </span>
+                      <span className="az-layer-row">
+                        <span className="az-layer-name">L3 Text/Captions</span>
+                        <span className="az-layer-items">
+                          {layers.captions.map((item, i) => (
+                            <span key={i}>{item}</span>
+                          ))}
+                        </span>
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </section>
 

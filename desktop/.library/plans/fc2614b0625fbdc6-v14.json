@@ -1,0 +1,863 @@
+{
+  "total_duration_ms": 13672,
+  "shots": [
+    {
+      "shot_idx": 0,
+      "start_ms": 0,
+      "end_ms": 3149,
+      "duration_ms": 3149,
+      "spoken_during": "How is millions? This",
+      "structure_role": "hook",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.95,
+          "likelihood": 0.95,
+          "broll_description": "Close-up of Cluely's app interface showing its key features",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://cluely.com",
+              "focus": "app interface highlight"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "zoom in 1.1x over the shot"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "contain",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "close-up of an app's interface showing its key features",
+          "rationale": "Starting with a close-up conveys the uniqueness and key features of the app."
+        },
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.95,
+          "broll_description": "Screen recording of Cluely's website showing their value proposition",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://cluely.com/value",
+              "focus": "value proposition section"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Showcases the website's direct narrative about its worth."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.6,
+          "likelihood": 0.95,
+          "broll_description": "Screenshot of Cluely's homepage hero section or logo lockup",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://cluely.com",
+              "focus": "homepage hero"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Using the homepage hero section as a fallback is almost guaranteed acquirable."
+        }
+      ],
+      "broll_description": "Close-up of Cluely's app interface showing its key features",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://cluely.com",
+          "focus": "app interface highlight"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "zoom in 1.1x over the shot"
+      },
+      "placement": {
+        "aspect": "16:9",
+        "fit": "contain",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "close-up of an app's interface showing its key features",
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DYg26zgRiGS/",
+        "shot_idx": 0,
+        "pattern": "Opening with an app feature highlights its unique selling proposition."
+      },
+      "text_overlay": "How is a cheating app worth millions?",
+      "text_position": "middle_center",
+      "animation_cue": "zoom in 1.1x over the shot",
+      "sfx_cue": "vocal hit on cut in",
+      "clip_type": "broll_visual",
+      "rationale": "Sets the reel's structure by posing the initial intriguing question.",
+      "selected_media": [
+        {
+          "url": "capture://files/b10b702725bc0891.mp4",
+          "kind": "video",
+          "origin": "original_candidate",
+          "from_candidate_url": "capture://files/b10b702725bc0891.mp4",
+          "reason": "Recording captures a close-up view of Cluely's app interface, showcasing its key features as requested."
+        }
+      ]
+    },
+    {
+      "shot_idx": 5,
+      "start_ms": 3149,
+      "end_ms": 4882,
+      "duration_ms": 1733,
+      "spoken_during": "is Cluely. Cluely. It mogs",
+      "structure_role": "intro",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.89,
+          "likelihood": 0.95,
+          "broll_description": "Cluely's app in action, showcasing its interview simulation",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://cluely.com/features",
+              "focus": "app usage demo"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "type-on text"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "contain",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "close-up of an app's interface showing its key features",
+          "rationale": "Visualizes the app's functional capability within its introduction."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.65,
+          "likelihood": 0.95,
+          "broll_description": "Screen recording of Cluely's official blog detailing features",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://cluely.com/blog",
+              "focus": "feature highlights"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "pip",
+            "position": "bottom_right",
+            "scale": 0.5
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Straightforward yet reliable fallback by focusing on a descriptive blog."
+        }
+      ],
+      "broll_description": "Cluely's app in action, showcasing its interview simulation",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://cluely.com/features",
+          "focus": "app usage demo"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "type-on text"
+      },
+      "placement": {
+        "aspect": "16:9",
+        "fit": "contain",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "close-up of an app's interface showing its key features",
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DYxLMnNRzQ5/",
+        "shot_idx": 0,
+        "pattern": "In-depth focus on functionality embedded in the introduction."
+      },
+      "text_overlay": "Cluely. It mogs",
+      "text_position": "middle_center",
+      "animation_cue": "type-on text",
+      "sfx_cue": "silent open",
+      "clip_type": "talking_head_unknown",
+      "rationale": "Presents engaging insights through an active visualization.",
+      "selected_media": [
+        {
+          "url": "clips://files/89598250882e26c1/1.mp4",
+          "kind": "video",
+          "origin": "extract_clip",
+          "from_candidate_url": "https://www.youtube.com/watch?v=qHg3_4bU1Dw",
+          "reason": "scene 2 (10.0s)",
+          "start_ms": 30364,
+          "end_ms": 40364
+        }
+      ]
+    },
+    {
+      "shot_idx": 6,
+      "start_ms": 4882,
+      "end_ms": 7879,
+      "duration_ms": 2997,
+      "spoken_during": "mogs interviews and hands you aura. After",
+      "structure_role": "intro",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.88,
+          "likelihood": 0.95,
+          "broll_description": "Simulated Cluely interview module screen showcase",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://cluely.com/demo",
+              "focus": "interview module"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "zoom in 1.2x over the shot"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "contain",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "close-up of an app's interface showing its key features",
+          "rationale": "Simulated screens offer the projected capability in a snapshot."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.58,
+          "likelihood": 0.95,
+          "broll_description": "Recorded video preview of Cluely interview mode from homepage",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://cluely.com",
+              "focus": "video preview"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "pip",
+            "position": "bottom_right",
+            "scale": 0.5
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Fallback to a readily available video segment on the homepage."
+        }
+      ],
+      "broll_description": "Simulated Cluely interview module screen showcase",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://cluely.com/demo",
+          "focus": "interview module"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "zoom in 1.2x over the shot"
+      },
+      "placement": {
+        "aspect": "16:9",
+        "fit": "contain",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "close-up of an app's interface showing its key features",
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DYg26zgRiGS/",
+        "shot_idx": 4,
+        "pattern": "Comprehensive highlights of interactive features during intros."
+      },
+      "text_overlay": "mogs interviews and hands you aura. After",
+      "text_position": "bottom_center",
+      "animation_cue": "zoom in 1.2x over the shot",
+      "sfx_cue": "silent open",
+      "clip_type": "talking_head_unknown",
+      "rationale": "Continuing to captivate with a demonstration of key app functionality.",
+      "selected_media": [
+        {
+          "url": "clips://files/4abe07ca1fb46261/3.mp4",
+          "kind": "video",
+          "origin": "extract_clip",
+          "from_candidate_url": "https://www.instagram.com/reel/DYSkyTWRDj5",
+          "reason": "scene 4 (4.3s)",
+          "start_ms": 15500,
+          "end_ms": 19750
+        }
+      ]
+    },
+    {
+      "shot_idx": 7,
+      "start_ms": 7879,
+      "end_ms": 8687,
+      "duration_ms": 808,
+      "spoken_during": "After it went",
+      "structure_role": "body",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.85,
+          "likelihood": 0.95,
+          "broll_description": "Viral impact illustrated with Cluely's social media metrics",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://twitter.com/cluelyapp",
+              "focus": "engagement metrics"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "zoom in 1.05x over the shot"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "contain",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screenshot of the subject's social media profile",
+          "rationale": "Conveys the viral nature through direct engagement figures."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.63,
+          "likelihood": 0.95,
+          "broll_description": "Snapshot of Cluely's rapid rise in social media followers",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://facebook.com/cluely",
+              "focus": "follower growth"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "split_top",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screenshot of the subject's social media profile",
+          "rationale": "Figures suggesting virality through platform engagement."
+        }
+      ],
+      "broll_description": "Viral impact illustrated with Cluely's social media metrics",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://twitter.com/cluelyapp",
+          "focus": "engagement metrics"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "zoom in 1.05x over the shot"
+      },
+      "placement": {
+        "aspect": "16:9",
+        "fit": "contain",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "screenshot of the subject's social media profile",
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/reel/DYxLMnNRzQ5/?igsh=bXhtY2JlNjhsYzNm",
+        "shot_idx": 1,
+        "pattern": "Focus on gauging public success via social spikes or analytics."
+      },
+      "text_overlay": "After it went",
+      "text_position": "top_center",
+      "animation_cue": "zoom in 1.05x over the shot",
+      "sfx_cue": "whoosh whoosh",
+      "clip_type": "broll_talking_head",
+      "rationale": "Illustrates social proof and involves viewers in virality context.",
+      "selected_media": [
+        {
+          "url": "capture://files/ce3c8ba62f9f268e-0.png",
+          "kind": "image",
+          "origin": "page_screenshot",
+          "from_candidate_url": "https://x.com/cluely?lang=en",
+          "reason": "This heading directly relates to Cluely's posts, which are essential for illustrating social media metrics."
+        }
+      ]
+    },
+    {
+      "shot_idx": 9,
+      "start_ms": 9427,
+      "end_ms": 11111,
+      "duration_ms": 1684,
+      "spoken_during": "Andreessen backed it. Would",
+      "structure_role": "body",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.85,
+          "likelihood": 0.95,
+          "broll_description": "Animated sequence depicting success narrative post-investment",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://cluely.com/progress",
+              "focus": "timeline since investment"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "pan left to right"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "contain",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "close-up of an app's interface showing its key features",
+          "rationale": "Animation effectively narrates the cause and effect post-investment."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.58,
+          "likelihood": 0.95,
+          "broll_description": "Page segment showing Cluely's growth statistics after funding",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://cluely.com/funding",
+              "focus": "growth stats section"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "split_top",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "General fallback pointing to key statistics linking growth to funding."
+        }
+      ],
+      "broll_description": "Animated sequence depicting success narrative post-investment",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://cluely.com/progress",
+          "focus": "timeline since investment"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "pan left to right"
+      },
+      "placement": {
+        "aspect": "16:9",
+        "fit": "contain",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "close-up of an app's interface showing its key features",
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/reel/DYxLMnNRzQ5/?igsh=bXhtY2JlNjhsYzNm",
+        "shot_idx": 6,
+        "pattern": "Deep dives into achievements related to subsequent funding measures."
+      },
+      "text_overlay": "Andreessen backed it. Would",
+      "text_position": "middle_center",
+      "animation_cue": "pan left to right",
+      "sfx_cue": "whoosh whoosh",
+      "clip_type": "broll_talking_head",
+      "rationale": "Broadens the topic scope through animated achievement visualizations.",
+      "selected_media": [
+        {
+          "url": "capture://files/11738c00c49dc342-1.png",
+          "kind": "image",
+          "origin": "page_screenshot",
+          "from_candidate_url": "https://finance.yahoo.com/news/cluely-arr-doubled-week-7m-223348521.html",
+          "reason": "This heading discusses a significant increase in ARR, directly relating to the success narrative."
+        }
+      ]
+    },
+    {
+      "shot_idx": 10,
+      "start_ms": 11111,
+      "end_ms": 13672,
+      "duration_ms": 2561,
+      "spoken_during": "Would you let it carry your date?",
+      "structure_role": "cta",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.93,
+          "likelihood": 0.95,
+          "broll_description": "Cluely's date video.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://cluely.com/mobile",
+              "focus": "question prompt"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "zoom in 1.1x over the shot"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "split_top",
+            "position": "top_center",
+            "scale": 0.5
+          },
+          "source_type": "close-up of an app's interface showing its key features",
+          "rationale": "Direct CTA draws engagement with an interactive app query."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.65,
+          "likelihood": 0.95,
+          "broll_description": "Screen recording of Cluely's homepage with an evocative message",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://cluely.com",
+              "focus": "homepage message"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Fallback to the homepage's prominent CTA for broad appeal."
+        }
+      ],
+      "broll_description": "Cluely's date video.",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://cluely.com/mobile",
+          "focus": "question prompt"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "zoom in 1.1x over the shot"
+      },
+      "placement": {
+        "aspect": "16:9",
+        "fit": "split_top",
+        "position": "top_center",
+        "scale": 0.5
+      },
+      "source_type": "close-up of an app's interface showing its key features",
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/reel/DYlQlfYuTc7/",
+        "shot_idx": 0,
+        "pattern": "CTA element uses app interface touchpoints to create engagement."
+      },
+      "text_overlay": "Would you let it carry your date?",
+      "text_position": "bottom_center",
+      "animation_cue": "zoom in 1.1x over the shot",
+      "sfx_cue": "vocal",
+      "clip_type": "talking_head",
+      "rationale": "Harnesses direct interactivity to fulfill the call-to-action focus.",
+      "selected_media": [
+        {
+          "url": "capture://files/009472bca045b1da-0.png",
+          "kind": "image",
+          "origin": "video_frame",
+          "from_candidate_url": "https://www.instagram.com/reel/DY-IdPWuoFE",
+          "reason": "This scene likely shows the startup Cluelea, which is relevant to the date video.",
+          "timestamp_ms": 26467
+        }
+      ]
+    }
+  ],
+  "structure_sections": [
+    {
+      "role": "hook",
+      "script_template": "How is a <descriptor> that <bold claim>?",
+      "target_fill": "How is a cheating app worth millions?",
+      "target_start_ms": 0,
+      "target_end_ms": 2390,
+      "shot_count": 4,
+      "visual_signature": {
+        "dominant_clip_type": "broll_visual",
+        "placement_pattern": "fullbleed 9:16",
+        "text_overlay_pattern": "large center caption big font",
+        "sfx_pattern": "vocal hit on cut in",
+        "motion_pattern": "zoom-in over the shot",
+        "scene_elements": []
+      }
+    },
+    {
+      "role": "intro",
+      "script_template": "This is <subject>, and it <one-line action>.",
+      "target_fill": "This is Cluely. It mogs interviews and hands you aura.",
+      "target_start_ms": 2390,
+      "target_end_ms": 7880,
+      "shot_count": 3,
+      "visual_signature": {
+        "dominant_clip_type": "talking_head_unknown",
+        "placement_pattern": "PiP bottom right",
+        "text_overlay_pattern": "small bottom strip",
+        "sfx_pattern": "silent open",
+        "motion_pattern": "type-on text",
+        "scene_elements": []
+      }
+    },
+    {
+      "role": "body",
+      "script_template": "<claim 1>. <claim 2>. <claim N>.",
+      "target_fill": "After it went viral, Andreessen backed it.",
+      "target_start_ms": 7880,
+      "target_end_ms": 11110,
+      "shot_count": 3,
+      "visual_signature": {
+        "dominant_clip_type": "broll_talking_head",
+        "placement_pattern": "split-screen top",
+        "text_overlay_pattern": "none",
+        "sfx_pattern": "whoosh whoosh",
+        "motion_pattern": "static cut",
+        "scene_elements": []
+      }
+    },
+    {
+      "role": "cta",
+      "script_template": "Would you <ask>?",
+      "target_fill": "Would you let it carry your date?",
+      "target_start_ms": 11110,
+      "target_end_ms": 13670,
+      "shot_count": 2,
+      "visual_signature": {
+        "dominant_clip_type": "talking_head",
+        "placement_pattern": "fullbleed 9:16",
+        "text_overlay_pattern": "large center caption big font",
+        "sfx_pattern": "vocal hit on cut in",
+        "motion_pattern": "zoom-in over the shot",
+        "scene_elements": []
+      }
+    }
+  ],
+  "structure_confidence": "high",
+  "structure_rationale": "The template follows a consistent structure across multiple inspiration reels, clearly outlining an opening question, an introduction, a narrative body, and a call-to-action.",
+  "structure_alternatives": null,
+  "content_source_patterns": [
+    "close-up of an app's interface showing its key features",
+    "screen recording of the subject's website",
+    "screenshot of the subject's social media profile"
+  ],
+  "style_summary": "- reel 1: 15.7s, 21 shots, cuts/sec=1.27, text=95%, SFX=61/min\n- reel 2: 14.7s, 7 shots, cuts/sec=0.41, text=100%, SFX=33/min\n- reel 3: 17.2s, 9 shots, cuts/sec=0.46, text=100%, SFX=63/min\n- reel 4: 12.5s, 8 shots, cuts/sec=0.56, text=100%, SFX=29/min\n- reel 5: 13.5s, 11 shots, cuts/sec=0.74, text=100%, SFX=58/min\n- reel 6: 17.2s, 9 shots, cuts/sec=0.46, text=100%, SFX=63/min",
+  "content_sources": [
+    "https://www.instagram.com/p/DYlQlfYuTc7/",
+    "https://www.instagram.com/p/DYg26zgRiGS/",
+    "https://www.instagram.com/reel/DYxLMnNRzQ5/?igsh=bXhtY2JlNjhsYzNm",
+    "https://www.instagram.com/reel/DYg26zgRiGS/?igsh=enl3MzA3dnFnNHNv"
+  ],
+  "target_metrics": {
+    "fingerprint_version": 2,
+    "computed_at": 1780121100775,
+    "n_reels": 3,
+    "n_shots": 41,
+    "median_shot_ms": 800,
+    "cuts_per_sec": 0.824773034674918,
+    "clip_type_distribution": {
+      "talking_head": 0.18879615960103024,
+      "broll_talking_head": 0.15212545748307824,
+      "talking_head_unknown": 0.23018327944028208,
+      "broll_visual": 0.42889510347560944
+    },
+    "real_speaker_pct": 0.14381914381914382,
+    "broll_talking_head_pct": 0.10678210678210677,
+    "face_size_median": 0.38286084681749344,
+    "face_region_distribution": {
+      "top_left": 0,
+      "top_center": 0.2111111111111111,
+      "top_right": 0.027777777777777776,
+      "middle_left": 0.027777777777777776,
+      "middle_center": 0.4444444444444444,
+      "middle_right": 0,
+      "bottom_left": 0.027777777777777776,
+      "bottom_center": 0.2611111111111111,
+      "bottom_right": 0
+    },
+    "face_region_dominant": "mixed",
+    "text_overlay_pct": 0.9841269841269842,
+    "text_region_distribution": {
+      "top_left": 0.07886671593988669,
+      "top_center": 0.11313993594481399,
+      "top_right": 0.06004804138950479,
+      "middle_left": 0.09960704607046071,
+      "middle_center": 0.24571199802907118,
+      "middle_right": 0.09450726779995072,
+      "bottom_left": 0.0722690317812269,
+      "bottom_center": 0.1902648435575265,
+      "bottom_right": 0.04558511948755851
+    },
+    "text_region_dominant": "mixed",
+    "media_overlay_pct": 0.046176046176046176,
+    "overlays_per_min": 4.0186759877647065,
+    "overlay_kind_distribution": {
+      "image": 0.75,
+      "sticker": 0,
+      "gif": 0,
+      "pip_video": 0.25,
+      "emoji_graphic": 0
+    },
+    "overlay_motion_distribution": {
+      "static": 0.75,
+      "animated": 0.25
+    },
+    "overlay_region_distribution": {
+      "top_left": 0,
+      "top_center": 0,
+      "top_right": 0,
+      "middle_left": 0,
+      "middle_center": 0.25,
+      "middle_right": 0.25,
+      "bottom_left": 0.5,
+      "bottom_center": 0,
+      "bottom_right": 0
+    },
+    "overlay_region_dominant": "mixed",
+    "voiceover_pct": 0.9435582225394666,
+    "music_pct": 0.032620378021250764,
+    "audio_silence_pct": 0.023821399439282593,
+    "audio_energy_mean": 0.10428770224085625,
+    "sfx_per_min": 60.46126471431764,
+    "cuts_with_sfx_pct": 0.481962481962482,
+    "sfx_at_cuts_pct": 0.46901709401709396,
+    "sfx_type_distribution": {
+      "impulse_tonal": 0.3404255319148936,
+      "impulse_noisy": 0.0425531914893617,
+      "sweep": 0,
+      "vocal": 0.48936170212765956,
+      "sustained": 0,
+      "other": 0.1276595744680851
+    },
+    "sfx_classified_total": 47,
+    "hook_speeches": [
+      "Who's the Stanford student that thinks he's Steve Jobs This is Tony and he's building",
+      "'re building autonomous ornithopters with\n\nr-class flight times, low acoustic signatur\n\ni natural bird-like flight. This makes\n\nadyne's drones harder for humans and\n\nnter-UAS systems to detect, classify, and\n\nget.\n\ne Found\n\nSTARTUR\n\nourg’s Master's thesis is built on 2+ years c\n\nearch and development in flapping-wing\n\nnes. His work has received multiple awarc\n\nTU",
+      "my official ley\n\no stanford university,\n\n~\n\n» -"
+    ],
+    "hook_texts": [
+      "<\n\n&\n\nWHO\n\niS\n\nZZ. —",
+      "'re building autonomous ornithopters with\n\nr-class flight times, low acoustic signatur\n\ni natural bird-like flight. This makes\n\nadyne's drones harder for humans and\n\nnter-UAS systems to detect, classify, and\n\nget.\n\ne Found\n\nSTARTUR\n\nourg’s Master's thesis is built on 2+ years c\n\nearch and development in flapping-wing\n\nnes. His work has received multiple awarc\n\nTU",
+      "my official ley\n\no stanford university,\n\n~\n\n» -"
+    ],
+    "hook_archetypes": null,
+    "beat_template": [
+      {
+        "clip_type": "broll_visual",
+        "n_shots": 17,
+        "duration_p50_ms": 734,
+        "has_text_p": 0.9411764705882353,
+        "has_face_p": 0,
+        "is_speaker_p": 0
+      },
+      {
+        "clip_type": "talking_head_unknown",
+        "n_shots": 15,
+        "duration_p50_ms": 566,
+        "has_text_p": 1,
+        "has_face_p": 1,
+        "is_speaker_p": 0
+      },
+      {
+        "clip_type": "talking_head",
+        "n_shots": 5,
+        "duration_p50_ms": 800,
+        "has_text_p": 1,
+        "has_face_p": 1,
+        "is_speaker_p": 1
+      },
+      {
+        "clip_type": "broll_talking_head",
+        "n_shots": 4,
+        "duration_p50_ms": 1434,
+        "has_text_p": 1,
+        "has_face_p": 1,
+        "is_speaker_p": 0
+      }
+    ]
+  }
+}

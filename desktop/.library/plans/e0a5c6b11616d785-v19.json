@@ -1,0 +1,1964 @@
+{
+  "total_duration_ms": 15672,
+  "shots": [
+    {
+      "shot_idx": 0,
+      "start_ms": 0,
+      "end_ms": 892,
+      "duration_ms": 892,
+      "spoken_during": "Who's this guy that",
+      "structure_role": "hook",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.95,
+          "likelihood": 0.95,
+          "broll_description": "Static close-up of Thomas's logo with eye-catching transition text at the top.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://thomas-ai.com",
+              "focus": "hero section with company logo"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "zoom in 1.1x over the shot"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "contain",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Thomas's logo effectively sets the theme and catches the viewer's attention right at the hook."
+        },
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.95,
+          "broll_description": "Overlay of Thomas's social media announcement with textual emphasis on the word 'guy'.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://twitter.com/thomasai",
+              "focus": "last social media post"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "1:1",
+            "fit": "pip",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screenshot of the subject's social media profile",
+          "rationale": "Using a social media post sets a modern and relatable tone while highlighting Thomas's brand."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.6,
+          "likelihood": 0.95,
+          "broll_description": "Screen recording of the homepage focusing on the tagline 'turn yourself into a startup'.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://thomas-ai.com",
+              "focus": "homepage with startup tagline"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Safe fallback utilizing website's existing public content to introduce Thomas synonymous with the startup theme."
+        }
+      ],
+      "broll_description": "Static close-up of Thomas's logo with eye-catching transition text at the top.",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://thomas-ai.com",
+          "focus": "hero section with company logo"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "zoom in 1.1x over the shot"
+      },
+      "placement": {
+        "aspect": "16:9",
+        "fit": "contain",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "screen recording of the subject's website",
+      "has_overlay": true,
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DYlQlfYuTc7/",
+        "shot_idx": 0,
+        "pattern": "Drawing attention to a person or brand immediately at the reel's start."
+      },
+      "text_overlay": "WHO'S",
+      "text_position": "top_center",
+      "animation_cue": "slide-up text",
+      "scene_animation": "zoom_in",
+      "animation_scale": 1.05,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": "vocal",
+      "clip_type": "broll_visual",
+      "rationale": "The opening shot needs to be visually engaging to capture attention, using Thomas's branding to quickly establish the reel's topic.",
+      "selected_media": [
+        {
+          "url": "capture://files/8db0313d213ef83d-0.png",
+          "kind": "image",
+          "origin": "page_screenshot",
+          "from_candidate_url": "capture://files/aca32cabeb43a2b3.mp4",
+          "reason": "Beat for 'This is Thomas' — use the YC profile header and founder card to establish Thomas as a named entity on a startup platform. Distinct from the homepage because it adds YC legitimacy, batch, and founder bio.",
+          "animation_x": 1,
+          "animation_y": 0.4490017361111111,
+          "animation_scale": 10,
+          "media_start_zoom": 1.16,
+          "zoom_x": 0.7926974826388888,
+          "zoom_y": 0.9160698784722222
+        }
+      ],
+      "animation_duration_ms": 940,
+      "zoom_region": "middle_center",
+      "zoom_scale": 1.2,
+      "subtitle_position": "lower_third"
+    },
+    {
+      "shot_idx": 1,
+      "start_ms": 892,
+      "end_ms": 2815,
+      "duration_ms": 1923,
+      "spoken_during": "turned himself into a startup",
+      "structure_role": "intro",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.95,
+          "broll_description": "Close-up of Thomas, the AI, with a confident expression while the text emphasizes 'turned'.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://thomas-ai.com/about",
+              "focus": "Thomas AI profile description"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "contain",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Focuses on the dynamic aspect of becoming a startup."
+        },
+        {
+          "tier": "ideal",
+          "fit_score": 0.85,
+          "likelihood": 0.95,
+          "broll_description": "Images of Thomas AI's virtual assistant avatar as it 'evolves' into a startup.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://twitter.com/thomasai",
+              "focus": "tweets about AI evolution"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "1:1",
+            "fit": "pip",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screenshot of the subject's social media profile",
+          "rationale": "Illustrates the concept of transformation with visual evolution."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.5,
+          "likelihood": 0.95,
+          "broll_description": "Screen recording of AI advancement discussion on the Thomas homepage.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://thomas-ai.com",
+              "focus": "homepage discussing AI transformation"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Fallback ensures content compatibility by focusing on transformation mentioned within site content."
+        }
+      ],
+      "broll_description": "Close-up of Thomas, the AI, with a confident expression while the text emphasizes 'turned'.",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://thomas-ai.com/about",
+          "focus": "Thomas AI profile description"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "static"
+      },
+      "placement": {
+        "aspect": "16:9",
+        "fit": "contain",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "screen recording of the subject's website",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": null,
+      "text_overlay": "STARTUP",
+      "text_position": "bottom_center",
+      "animation_cue": "type-on text",
+      "scene_animation": "none",
+      "animation_scale": 1.05,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": null,
+      "clip_type": "talking_head_unknown",
+      "rationale": "Emphasizing Thomas's transformation story is pivotal here.",
+      "selected_media": [
+        {
+          "url": "capture://files/bf53bc944c71887a-0.png",
+          "kind": "image",
+          "origin": "original_candidate",
+          "from_candidate_url": "capture://files/bf53bc944c71887a-0.png",
+          "reason": "Best same-subject social proof shot; screenshot/record the post header and the opening lines about getting into YC and building Thomas. ",
+          "scene_animation": "zoom_in",
+          "animation_x": 0.4861111111111111,
+          "animation_y": 1,
+          "animation_scale": 2,
+          "animation_duration_ms": 1000,
+          "zoom_x": 0.4861111111111111,
+          "zoom_y": 0.7056206597222222,
+          "animation_easing": "linear"
+        },
+        {
+          "url": "capture://files/fca12bdd31d6a9cf-0.png",
+          "kind": "image",
+          "origin": "page_screenshot",
+          "from_candidate_url": "capture://files/497754a7e2d96b94.mp4",
+          "reason": "Hook beat for 'Who's this guy that' — use the top hero/brand area with the Thomas logo and the bold 'first AI founder' framing. Distinct because it is the landing page hero, not the YC directory bio.",
+          "zoom_scale": 1.15,
+          "scene_animation": "zoom_in",
+          "animation_easing": "linear",
+          "animation_duration_ms": 800
+        }
+      ],
+      "animation_duration_ms": 1875,
+      "zoom_region": "middle_center",
+      "zoom_scale": 1,
+      "subtitle_position": "lower_third"
+    },
+    {
+      "shot_idx": 12,
+      "start_ms": 2815,
+      "end_ms": 5315,
+      "duration_ms": 2500,
+      "spoken_during": "This is Thomas",
+      "structure_role": "intro",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.92,
+          "likelihood": 0.95,
+          "broll_description": "Profile view of Thomas as a named entity on a digital platform showcasing startup attributes.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://thomas-ai.com",
+              "focus": "company profile"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "contain",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Conveys Thomas's corporate identity directly from the source."
+        },
+        {
+          "tier": "ideal",
+          "fit_score": 0.86,
+          "likelihood": 0.95,
+          "broll_description": "Continuous rolling text over a backdrop of the Thomas logo emphasizing the startup journey.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://twitter.com/thomasai",
+              "focus": "promotional tweet about startup journey"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_right",
+            "scale": 1
+          },
+          "source_type": "screenshot of the subject's social media profile",
+          "rationale": "Narrates Thomas's ongoing development virtually, linking the visual backdrop."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.55,
+          "likelihood": 0.95,
+          "broll_description": "Screen recording from Thomas's website overview or portfolio aligned with branding.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://thomas-ai.com",
+              "focus": "overview section with branding elements"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_right",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Assures access to brand-specific content and a clear narrative."
+        }
+      ],
+      "broll_description": "Profile view of Thomas as a named entity on a digital platform showcasing startup attributes.",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://thomas-ai.com",
+          "focus": "company profile"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "static"
+      },
+      "placement": {
+        "aspect": "16:9",
+        "fit": "contain",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "screen recording of the subject's website",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DYlQlfYuTc7/",
+        "shot_idx": 7,
+        "pattern": "Establishing the subject with compositional clarity."
+      },
+      "text_overlay": "STARTUP",
+      "text_position": "bottom_center",
+      "animation_cue": "karaoke_fill",
+      "scene_animation": "pan_left",
+      "animation_scale": 1.05,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": null,
+      "clip_type": "talking_head_unknown",
+      "rationale": "Accurate depiction of Thomas as a enterprise entity initiating the main narrative.",
+      "selected_media": [
+        {
+          "url": "capture://files/f95464ae7912721b.mp4",
+          "kind": "video",
+          "origin": "original_candidate",
+          "from_candidate_url": "capture://files/f95464ae7912721b.mp4",
+          "reason": "Best same-subject public profile; capture the Thomas company section with the founder blurb and YC P26 details. This is a unique URL and avoids the already-used homepage/YC profile. ",
+          "scene_animation": "zoom_in",
+          "animation_easing": "linear",
+          "animation_scale": 5,
+          "animation_x": 0.4380967881944444,
+          "animation_y": 0.2759874131944444,
+          "animation_duration_ms": 1100
+        }
+      ],
+      "animation_duration_ms": 2385,
+      "zoom_region": "middle_center",
+      "zoom_scale": 1.1,
+      "subtitle_position": "lower_third"
+    },
+    {
+      "shot_idx": 3,
+      "start_ms": 5315,
+      "end_ms": 7883,
+      "duration_ms": 2568,
+      "spoken_during": "and he just got into YC",
+      "structure_role": "body",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.97,
+          "likelihood": 0.95,
+          "broll_description": "Feature of Thomas's digital announcement about receiving an OIC.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://thomas-ai.com/news",
+              "focus": "news section about latest achievements"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "zoom in 1.1x over the shot"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "contain",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Highlights significant achievements integral to Thomas's growing status."
+        },
+        {
+          "tier": "ideal",
+          "fit_score": 0.85,
+          "likelihood": 0.95,
+          "broll_description": "Illustration of lively office dynamics within Thomas's AI headquarters.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://linkedin.com/company/thomasai",
+              "focus": "org activity posts and visuals"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "none"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screenshot of the subject's social media profile",
+          "rationale": "Captures team spirit and institutional love through active discourse."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.6,
+          "likelihood": 0.95,
+          "broll_description": "Screen recording of official content showcasing the latest breakthrough announcement.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://thomas-ai.com",
+              "focus": "highlighted news"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Achieves direct continuity with the spoken content while safeguarding access to current marketing."
+        }
+      ],
+      "broll_description": "Feature of Thomas's digital announcement about receiving an OIC.",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://thomas-ai.com/news",
+          "focus": "news section about latest achievements"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "zoom in 1.1x over the shot"
+      },
+      "placement": {
+        "aspect": "16:9",
+        "fit": "contain",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "screen recording of the subject's website",
+      "has_overlay": true,
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DYg26zgRiGS/",
+        "shot_idx": 3,
+        "pattern": "Precision-documenting significant accolades directly linked to points of pride."
+      },
+      "text_overlay": "THOMAS AI",
+      "text_position": "bottom_center",
+      "animation_cue": "pop",
+      "scene_animation": "none",
+      "animation_scale": 1.05,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": "vocal",
+      "clip_type": "talking_head",
+      "rationale": "Focusing on data milestones that showcase Thomas's progress, tapping into overall product storytelling through achievement.",
+      "selected_media": [
+        {
+          "url": "capture://files/1da20f8a227627be.mp4",
+          "kind": "video",
+          "origin": "page_recording",
+          "from_candidate_url": "https://www.ycombinator.com/companies/thomas",
+          "reason": "Directly supports the 'turned himself into a startup' narrative.",
+          "scene_animation": "zoom_in",
+          "animation_x": 0.5,
+          "animation_y": 0,
+          "animation_scale": 9,
+          "zoom_x": 0.5,
+          "zoom_y": 0,
+          "zoom_scale": 1,
+          "animation_easing": "linear",
+          "animation_duration_ms": 1000
+        }
+      ],
+      "animation_duration_ms": 2610,
+      "zoom_region": "middle_center",
+      "zoom_scale": 1,
+      "subtitle_position": "lower_third"
+    },
+    {
+      "shot_idx": 9,
+      "start_ms": 7883,
+      "end_ms": 9720,
+      "duration_ms": 1837,
+      "spoken_during": "Thomas is an AI founder who",
+      "structure_role": "body",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.97,
+          "likelihood": 0.95,
+          "broll_description": "Feature of Thomas's digital announcement about receiving an OIC.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://thomas-ai.com/news",
+              "focus": "news section about latest achievements"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "zoom in 1.1x over the shot"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "contain",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Highlights significant achievements integral to Thomas's growing status."
+        },
+        {
+          "tier": "ideal",
+          "fit_score": 0.85,
+          "likelihood": 0.95,
+          "broll_description": "Illustration of lively office dynamics within Thomas's AI headquarters.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://linkedin.com/company/thomasai",
+              "focus": "org activity posts and visuals"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "none"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screenshot of the subject's social media profile",
+          "rationale": "Captures team spirit and institutional love through active discourse."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.6,
+          "likelihood": 0.95,
+          "broll_description": "Screen recording of official content showcasing the latest breakthrough announcement.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://thomas-ai.com",
+              "focus": "highlighted news"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Achieves direct continuity with the spoken content while safeguarding access to current marketing."
+        }
+      ],
+      "broll_description": "Feature of Thomas's digital announcement about receiving an OIC.",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://thomas-ai.com/news",
+          "focus": "news section about latest achievements"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "zoom in 1.1x over the shot"
+      },
+      "placement": {
+        "aspect": "16:9",
+        "fit": "contain",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "screen recording of the subject's website",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DYg26zgRiGS/",
+        "shot_idx": 3,
+        "pattern": "Precision-documenting significant accolades directly linked to points of pride."
+      },
+      "text_overlay": "THOMAS AI",
+      "text_position": "bottom_center",
+      "animation_cue": "pop",
+      "scene_animation": "none",
+      "animation_scale": 1.05,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": "vocal",
+      "clip_type": "talking_head",
+      "rationale": "Focusing on data milestones that showcase Thomas's progress, tapping into overall product storytelling through achievement.",
+      "selected_media": [
+        {
+          "url": "capture://files/681f5426738d0e82.mp4",
+          "kind": "video",
+          "origin": "original_candidate",
+          "from_candidate_url": "capture://files/681f5426738d0e82.mp4",
+          "reason": "Best fit for the hook: official homepage with the Thomas logo/hero statement; capture the top hero screen only. ",
+          "scene_animation": "zoom_in",
+          "animation_scale": 2,
+          "animation_x": 0.4865451388888889,
+          "animation_y": 0.1604275173611111,
+          "zoom_x": 0.4855685763888889,
+          "zoom_y": 0.11480034722222222
+        }
+      ],
+      "animation_duration_ms": 1910,
+      "zoom_region": "middle_center",
+      "zoom_scale": 1,
+      "subtitle_position": "lower_third"
+    },
+    {
+      "shot_idx": 6,
+      "start_ms": 9720,
+      "end_ms": 10070,
+      "duration_ms": 350,
+      "spoken_during": "starts",
+      "structure_role": "body",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.89,
+          "likelihood": 0.95,
+          "broll_description": "An exploration of Thomas's execution as it charts out AI growth paths.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://thomas-ai.com/ai-path",
+              "focus": "innovative execution highlighted"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "ken_burns"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "contain",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Raises the industry-standard execution plans within Thomas's capabilities."
+        },
+        {
+          "tier": "ideal",
+          "fit_score": 0.88,
+          "likelihood": 0.95,
+          "broll_description": "Visual timeline showing Thomas's strategic aims and proposals.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://linkedin.com/company/thomasai",
+              "focus": "key strategic proposals tableau"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "ken_burns"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screenshot of the subject's social media profile",
+          "rationale": "Conveys organized division of purpose and future paths via social granites."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.57,
+          "likelihood": 0.95,
+          "broll_description": "Screen projection of Thomas's concrete execution tactics detailed online.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://thomas-ai.com/vision",
+              "focus": "execution part of AI vision statement"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "none"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Security in sourcing is established with access to primary vision principles."
+        }
+      ],
+      "broll_description": "An exploration of Thomas's execution as it charts out AI growth paths.",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://thomas-ai.com/ai-path",
+          "focus": "innovative execution highlighted"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "ken_burns"
+      },
+      "placement": {
+        "aspect": "16:9",
+        "fit": "contain",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "screen recording of the subject's website",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DYg26zgRiGS/",
+        "shot_idx": 6,
+        "pattern": "Innovation discourse, securing growth records."
+      },
+      "text_overlay": "GROWTH",
+      "text_position": "middle_center",
+      "animation_cue": "pop",
+      "scene_animation": "none",
+      "animation_scale": 1.05,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": "vocal",
+      "clip_type": "talking_head",
+      "rationale": "Offers an edit reflecting long-term fidelity towards engaged Thomas ventures.",
+      "selected_media": [
+        {
+          "url": "capture://files/f340a94fcc975c74-0.png",
+          "kind": "image",
+          "origin": "page_screenshot",
+          "from_candidate_url": "capture://files/2341a0600ece4bfb.mp4",
+          "reason": "Third-party analysis page about Thomas as a YC-backed virtual founder; useful as an adjacent same-subject explainer if the editor wants a different visual than the official site. ",
+          "scene_animation": "none",
+          "animation_scale": 10,
+          "zoom_scale": 3,
+          "animation_x": 0.1305881076388889,
+          "animation_y": 0.4756401909722222,
+          "zoom_x": 0.7263997395833334,
+          "zoom_y": 0.2748480902777778,
+          "animation_duration_ms": 200,
+          "animation_easing": "linear",
+          "media_start_zoom": 4
+        }
+      ],
+      "animation_duration_ms": 350,
+      "zoom_region": "middle_center",
+      "zoom_scale": 1,
+      "subtitle_position": "lower_third"
+    },
+    {
+      "shot_idx": 10,
+      "start_ms": 10070,
+      "end_ms": 10420,
+      "duration_ms": 350,
+      "spoken_during": "runs",
+      "structure_role": "body",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.89,
+          "likelihood": 0.95,
+          "broll_description": "An exploration of Thomas's execution as it charts out AI growth paths.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://thomas-ai.com/ai-path",
+              "focus": "innovative execution highlighted"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "ken_burns"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "contain",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Raises the industry-standard execution plans within Thomas's capabilities."
+        },
+        {
+          "tier": "ideal",
+          "fit_score": 0.88,
+          "likelihood": 0.95,
+          "broll_description": "Visual timeline showing Thomas's strategic aims and proposals.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://linkedin.com/company/thomasai",
+              "focus": "key strategic proposals tableau"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "ken_burns"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screenshot of the subject's social media profile",
+          "rationale": "Conveys organized division of purpose and future paths via social granites."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.57,
+          "likelihood": 0.95,
+          "broll_description": "Screen projection of Thomas's concrete execution tactics detailed online.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://thomas-ai.com/vision",
+              "focus": "execution part of AI vision statement"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "none"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Security in sourcing is established with access to primary vision principles."
+        }
+      ],
+      "broll_description": "An exploration of Thomas's execution as it charts out AI growth paths.",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://thomas-ai.com/ai-path",
+          "focus": "innovative execution highlighted"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "ken_burns"
+      },
+      "placement": {
+        "aspect": "16:9",
+        "fit": "contain",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "screen recording of the subject's website",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DYg26zgRiGS/",
+        "shot_idx": 6,
+        "pattern": "Innovation discourse, securing growth records."
+      },
+      "text_overlay": "GROWTH",
+      "text_position": "middle_center",
+      "animation_cue": "pop",
+      "scene_animation": "none",
+      "animation_scale": 1.05,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": "vocal",
+      "clip_type": "talking_head",
+      "rationale": "Offers an edit reflecting long-term fidelity towards engaged Thomas ventures.",
+      "selected_media": [
+        {
+          "url": "capture://files/f340a94fcc975c74-0.png",
+          "kind": "image",
+          "origin": "page_screenshot",
+          "from_candidate_url": "capture://files/2341a0600ece4bfb.mp4",
+          "reason": "Third-party analysis page about Thomas as a YC-backed virtual founder; useful as an adjacent same-subject explainer if the editor wants a different visual than the official site. ",
+          "scene_animation": "none",
+          "animation_scale": 10,
+          "zoom_scale": 3,
+          "animation_x": 0.3101128472222222,
+          "animation_y": 0.4723849826388889,
+          "zoom_x": 0.7263997395833334,
+          "zoom_y": 0.2748480902777778,
+          "animation_duration_ms": 200,
+          "animation_easing": "linear",
+          "media_start_zoom": 4
+        }
+      ],
+      "animation_duration_ms": 350,
+      "zoom_region": "middle_center",
+      "zoom_scale": 1,
+      "subtitle_position": "lower_third"
+    },
+    {
+      "shot_idx": 11,
+      "start_ms": 10420,
+      "end_ms": 10820,
+      "duration_ms": 400,
+      "spoken_during": "and grows",
+      "structure_role": "body",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.89,
+          "likelihood": 0.95,
+          "broll_description": "An exploration of Thomas's execution as it charts out AI growth paths.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://thomas-ai.com/ai-path",
+              "focus": "innovative execution highlighted"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "ken_burns"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "contain",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Raises the industry-standard execution plans within Thomas's capabilities."
+        },
+        {
+          "tier": "ideal",
+          "fit_score": 0.88,
+          "likelihood": 0.95,
+          "broll_description": "Visual timeline showing Thomas's strategic aims and proposals.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://linkedin.com/company/thomasai",
+              "focus": "key strategic proposals tableau"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "ken_burns"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screenshot of the subject's social media profile",
+          "rationale": "Conveys organized division of purpose and future paths via social granites."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.57,
+          "likelihood": 0.95,
+          "broll_description": "Screen projection of Thomas's concrete execution tactics detailed online.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://thomas-ai.com/vision",
+              "focus": "execution part of AI vision statement"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "none"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Security in sourcing is established with access to primary vision principles."
+        }
+      ],
+      "broll_description": "An exploration of Thomas's execution as it charts out AI growth paths.",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://thomas-ai.com/ai-path",
+          "focus": "innovative execution highlighted"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "ken_burns"
+      },
+      "placement": {
+        "aspect": "16:9",
+        "fit": "contain",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "screen recording of the subject's website",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DYg26zgRiGS/",
+        "shot_idx": 6,
+        "pattern": "Innovation discourse, securing growth records."
+      },
+      "text_overlay": "GROWTH",
+      "text_position": "middle_center",
+      "animation_cue": "pop",
+      "scene_animation": "none",
+      "animation_scale": 1.05,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": "vocal",
+      "clip_type": "talking_head",
+      "rationale": "Offers an edit reflecting long-term fidelity towards engaged Thomas ventures.",
+      "selected_media": [
+        {
+          "url": "capture://files/f340a94fcc975c74-0.png",
+          "kind": "image",
+          "origin": "page_screenshot",
+          "from_candidate_url": "capture://files/2341a0600ece4bfb.mp4",
+          "reason": "Third-party analysis page about Thomas as a YC-backed virtual founder; useful as an adjacent same-subject explainer if the editor wants a different visual than the official site. ",
+          "scene_animation": "none",
+          "animation_scale": 10,
+          "zoom_scale": 3,
+          "animation_x": 0.5750868055555556,
+          "animation_y": 0.4629448784722222,
+          "zoom_x": 0.7263997395833334,
+          "zoom_y": 0.2748480902777778,
+          "animation_duration_ms": 200,
+          "animation_easing": "linear",
+          "media_start_zoom": 4
+        }
+      ],
+      "animation_duration_ms": 400,
+      "zoom_region": "middle_center",
+      "zoom_scale": 1,
+      "subtitle_position": "lower_third"
+    },
+    {
+      "shot_idx": 7,
+      "start_ms": 10820,
+      "end_ms": 12845,
+      "duration_ms": 2025,
+      "spoken_during": "his own companies",
+      "structure_role": "body",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.95,
+          "likelihood": 0.95,
+          "broll_description": "Compilation of Thomas AI's corporate milestones, effectively showcasing scale-ups.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://thomas-ai.com/success",
+              "focus": "corporate success gallery"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "pan_left"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "contain",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Depicts the eminence of Thomas's achievements, adding to diversifying elements of novelty."
+        },
+        {
+          "tier": "ideal",
+          "fit_score": 0.92,
+          "likelihood": 0.95,
+          "broll_description": "Rendering the story of Thomas's proprietary achievements gaining momentum.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://linkedin.com/company/thomasai",
+              "focus": "success stories reel"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "ken_burns"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_left",
+            "scale": 1
+          },
+          "source_type": "screenshot of the subject's social media profile",
+          "rationale": "Continual upward progression renders more accomplishments shown vividly."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.53,
+          "likelihood": 0.95,
+          "broll_description": "Web capture highlighting foundational Thomas reports on capital growth.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://thomas-ai.com/reports",
+              "focus": "report archive on firm growth"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "none"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_left",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Ensures access to foundational records with explicit navigation."
+        }
+      ],
+      "broll_description": "Compilation of Thomas AI's corporate milestones, effectively showcasing scale-ups.",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://thomas-ai.com/success",
+          "focus": "corporate success gallery"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "pan_left"
+      },
+      "placement": {
+        "aspect": "16:9",
+        "fit": "contain",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "screen recording of the subject's website",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DYg26zgRiGS/",
+        "shot_idx": 7,
+        "pattern": "Historical spread of commercial evolution on broadcast."
+      },
+      "text_overlay": "OWN COMPANIES",
+      "text_position": "bottom_center",
+      "animation_cue": "karaoke_fill",
+      "scene_animation": "none",
+      "animation_scale": 1.05,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": "vocal",
+      "clip_type": "broll_talking_head",
+      "rationale": "Providing long-term strategies and definitive Thomas initiatives.",
+      "selected_media": [
+        {
+          "url": "capture://files/f95464ae7912721b.mp4",
+          "kind": "video",
+          "origin": "original_candidate",
+          "from_candidate_url": "capture://files/f95464ae7912721b.mp4",
+          "reason": "Best same-subject public profile; capture the Thomas company section with the founder blurb and YC P26 details. This is a unique URL and avoids the already-used homepage/YC profile. ",
+          "scene_animation": "zoom_in",
+          "animation_easing": "linear"
+        }
+      ],
+      "animation_duration_ms": 1859,
+      "zoom_region": "middle_center",
+      "zoom_scale": 1,
+      "subtitle_position": "lower_third"
+    },
+    {
+      "shot_idx": 14,
+      "start_ms": 12845,
+      "end_ms": 15672,
+      "duration_ms": 2827,
+      "spoken_during": "Would you invest in Thomas",
+      "structure_role": "body",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.95,
+          "likelihood": 0.95,
+          "broll_description": "Compilation of Thomas AI's corporate milestones, effectively showcasing scale-ups.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://thomas-ai.com/success",
+              "focus": "corporate success gallery"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "pan_left"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "split_top",
+            "position": "middle_center",
+            "scale": 0.5
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Depicts the eminence of Thomas's achievements, adding to diversifying elements of novelty."
+        },
+        {
+          "tier": "ideal",
+          "fit_score": 0.92,
+          "likelihood": 0.95,
+          "broll_description": "Rendering the story of Thomas's proprietary achievements gaining momentum.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://linkedin.com/company/thomasai",
+              "focus": "success stories reel"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "ken_burns"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_left",
+            "scale": 1
+          },
+          "source_type": "screenshot of the subject's social media profile",
+          "rationale": "Continual upward progression renders more accomplishments shown vividly."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.53,
+          "likelihood": 0.95,
+          "broll_description": "Web capture highlighting foundational Thomas reports on capital growth.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://thomas-ai.com/reports",
+              "focus": "report archive on firm growth"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "none"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_left",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Ensures access to foundational records with explicit navigation."
+        }
+      ],
+      "broll_description": "Compilation of Thomas AI's corporate milestones, effectively showcasing scale-ups.",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://thomas-ai.com/success",
+          "focus": "corporate success gallery"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "pan_left"
+      },
+      "placement": {
+        "aspect": "16:9",
+        "fit": "split_top",
+        "position": "middle_center",
+        "scale": 0.5
+      },
+      "source_type": "screen recording of the subject's website",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DYg26zgRiGS/",
+        "shot_idx": 7,
+        "pattern": "Historical spread of commercial evolution on broadcast."
+      },
+      "text_overlay": "OWN COMPANIES",
+      "text_position": "bottom_center",
+      "animation_cue": "karaoke_fill",
+      "scene_animation": "none",
+      "animation_scale": 1.05,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": "vocal",
+      "clip_type": "broll_talking_head",
+      "rationale": "Providing long-term strategies and definitive Thomas initiatives.",
+      "selected_media": [
+        {
+          "url": "capture://files/2b3fa86d82fd6dba.png",
+          "kind": "image",
+          "origin": "original_candidate",
+          "from_candidate_url": "capture://files/2b3fa86d82fd6dba.png",
+          "reason": "Pasted from clipboard"
+        }
+      ],
+      "animation_duration_ms": 2993,
+      "zoom_region": "middle_center",
+      "zoom_scale": 1,
+      "zoom_x": 0.4885525173611111,
+      "zoom_y": 0.5068359375,
+      "original_video_position": "bottom_center",
+      "split_media_fit": "contain",
+      "original_scene_animation": "zoom_in",
+      "original_animation_scale": 2,
+      "original_animation_easing": "linear",
+      "original_animation_x": 0.5,
+      "original_animation_y": 0.5,
+      "subtitle_position": "center"
+    }
+  ],
+  "structure_sections": [
+    {
+      "role": "hook",
+      "script_template": "Who's the <descriptor> that <bold claim>?",
+      "target_fill": "Who's this guy that",
+      "target_start_ms": 0,
+      "target_end_ms": 940,
+      "shot_count": 1,
+      "visual_signature": {
+        "dominant_clip_type": "broll_visual",
+        "placement_pattern": "fullbleed 9:16",
+        "text_overlay_pattern": "top_center large font",
+        "sfx_pattern": "vocal hit on cut in",
+        "motion_pattern": "zoom-in over the shot",
+        "scene_elements": []
+      }
+    },
+    {
+      "role": "intro",
+      "script_template": "This is <subject>, and they <one-line action>.",
+      "target_fill": "turned himself into a startup This is Thomas",
+      "target_start_ms": 940,
+      "target_end_ms": 5200,
+      "shot_count": 2,
+      "visual_signature": {
+        "dominant_clip_type": "talking_head_unknown",
+        "placement_pattern": "fullbleed 9:16",
+        "text_overlay_pattern": "middle_center",
+        "sfx_pattern": "none",
+        "motion_pattern": "static cut",
+        "scene_elements": []
+      }
+    },
+    {
+      "role": "body",
+      "script_template": "<claim 1>. <claim 2>. <claim N>.",
+      "target_fill": "and he just got an OIC Thomas is an AI founder who starts runs and grows his own companies",
+      "target_start_ms": 5200,
+      "target_end_ms": 13340,
+      "shot_count": 5,
+      "visual_signature": {
+        "dominant_clip_type": "talking_head",
+        "placement_pattern": "fullbleed 9:16",
+        "text_overlay_pattern": "bottom_left",
+        "sfx_pattern": "vocal hit on cut in",
+        "motion_pattern": "ken_burns",
+        "scene_elements": [
+          "subscribe sticker"
+        ]
+      }
+    },
+    {
+      "role": "cta",
+      "script_template": "Would you <ask>?",
+      "target_fill": "Would you invest in Thomas",
+      "target_start_ms": 13340,
+      "target_end_ms": 15670,
+      "shot_count": 1,
+      "visual_signature": {
+        "dominant_clip_type": "broll_talking_head",
+        "placement_pattern": "fullbleed 9:16",
+        "text_overlay_pattern": "bottom_center",
+        "sfx_pattern": "vocal hit on cut in",
+        "motion_pattern": "zoom-in over the shot",
+        "scene_elements": [
+          "emoji burst"
+        ]
+      }
+    }
+  ],
+  "structure_confidence": "high",
+  "structure_rationale": "The inspiration reels consistently follow a template of 'hook' → 'intro' → 'body' → 'cta' with specific narrative elements in each section, which is mirrored in the target script.",
+  "structure_alternatives": null,
+  "content_source_patterns": [
+    "screen recording of the subject's website",
+    "screenshot of the subject's social media profile"
+  ],
+  "style_summary": "- reel 1: 15.9s, 21 shots, cuts/sec=1.26, text=90%, SFX=61/min\n- reel 2: 14.8s, 7 shots, cuts/sec=0.41, text=100%, SFX=32/min\n- reel 3: 17.3s, 9 shots, cuts/sec=0.46, text=100%, SFX=62/min\n- reel 4: 12.6s, 8 shots, cuts/sec=0.55, text=88%, SFX=29/min\n- reel 5: 13.7s, 11 shots, cuts/sec=0.73, text=100%, SFX=57/min\n- reel 6: 17.3s, 9 shots, cuts/sec=0.46, text=100%, SFX=62/min",
+  "content_sources": [
+    "https://www.instagram.com/p/DYlQlfYuTc7/",
+    "https://www.instagram.com/p/DYg26zgRiGS/",
+    "https://www.instagram.com/reel/DYxLMnNRzQ5/?igsh=bXhtY2JlNjhsYzNm",
+    "https://www.instagram.com/reel/DYg26zgRiGS/?igsh=enl3MzA3dnFnNHNv"
+  ],
+  "target_metrics": {
+    "fingerprint_version": 4,
+    "computed_at": 1781042172959,
+    "n_reels": 3,
+    "n_shots": 41,
+    "median_shot_ms": 800,
+    "cuts_per_sec": 0.8186244454438908,
+    "clip_type_distribution": {
+      "talking_head": 0.19202795602538228,
+      "broll_talking_head": 0.15367065186187284,
+      "talking_head_unknown": 0.22844009428188963,
+      "broll_visual": 0.4258612978308553
+    },
+    "real_speaker_pct": 0.14381914381914382,
+    "broll_talking_head_pct": 0.10678210678210677,
+    "face_size_median": 0.38380971699953076,
+    "face_region_distribution": {
+      "top_left": 0,
+      "top_center": 0.2111111111111111,
+      "top_right": 0.027777777777777776,
+      "middle_left": 0.027777777777777776,
+      "middle_center": 0.4444444444444444,
+      "middle_right": 0,
+      "bottom_left": 0.027777777777777776,
+      "bottom_center": 0.2611111111111111,
+      "bottom_right": 0
+    },
+    "face_region_dominant": "mixed",
+    "text_overlay_pct": 0.9682539682539683,
+    "text_region_distribution": {
+      "top_left": 0.07557587961556778,
+      "top_center": 0.11220606046970327,
+      "top_right": 0.06439577169555909,
+      "middle_left": 0.09680552274457306,
+      "middle_center": 0.25330828449184223,
+      "middle_right": 0.09745236782798794,
+      "bottom_left": 0.07112858530292974,
+      "bottom_center": 0.17932420625546067,
+      "bottom_right": 0.04980332159637616
+    },
+    "text_region_dominant": "mixed",
+    "media_overlay_pct": 0.06204906204906205,
+    "overlays_per_min": 5.24925797377866,
+    "overlay_kind_distribution": {
+      "image": 0.6666666666666666,
+      "sticker": 0,
+      "gif": 0,
+      "pip_video": 0.3333333333333333,
+      "emoji_graphic": 0
+    },
+    "overlay_motion_distribution": {
+      "static": 0.6666666666666666,
+      "animated": 0.3333333333333333
+    },
+    "overlay_region_distribution": {
+      "top_left": 0,
+      "top_center": 0,
+      "top_right": 0,
+      "middle_left": 0,
+      "middle_center": 0.16666666666666666,
+      "middle_right": 0.3333333333333333,
+      "bottom_left": 0.5,
+      "bottom_center": 0,
+      "bottom_right": 0
+    },
+    "overlay_region_dominant": "mixed",
+    "overlay_pattern": {
+      "summary": "The creator predominantly uses picture-in-picture (pip_video) and images in their reels, with pip_video overlays appearing more frequently in dynamic central positions and animated, while images usually remain static. Overlays are mostly seen during critical narrative moments where they augment key phrases or concepts being discussed.",
+      "per_reel_rate": 1.3333333333333333,
+      "overlays_per_min": 5.125467164975975,
+      "entries": [
+        {
+          "kind": "pip_video",
+          "frequency": "~2 per reel",
+          "typical_position": "middle_right",
+          "placement": "corner overlay, often animated",
+          "motion": "animated",
+          "script_context": "During the hook/open and middle of the narrative, reinforcing the main themes.",
+          "examples": [
+            "Jobs",
+            "Walnut's"
+          ]
+        },
+        {
+          "kind": "image",
+          "frequency": "once, in the middle",
+          "typical_position": "middle_right",
+          "placement": "static image alongside spoken content",
+          "motion": "static",
+          "script_context": "In the middle of the narrative when discussing related concepts.",
+          "examples": [
+            "Walnut's",
+            "users funding"
+          ]
+        },
+        {
+          "kind": "image",
+          "frequency": "once, in the middle",
+          "typical_position": "bottom_left",
+          "placement": "static image enhancing context",
+          "motion": "static",
+          "script_context": "During a discussion of user involvement.",
+          "examples": [
+            "users funding"
+          ]
+        }
+      ]
+    },
+    "camera_motion_distribution": {
+      "none": 0.34487734487734484,
+      "zoom_in": 0.2376142376142376,
+      "zoom_out": 0,
+      "pan_left": 0.015873015873015872,
+      "pan_right": 0,
+      "ken_burns": 0.4016354016354016
+    },
+    "camera_motion_dominant": "mixed",
+    "camera_motion_pct": 0.6551226551226552,
+    "camera_motion_confidence": 0.7201394901394903,
+    "voiceover_pct": 0.9370862999995276,
+    "music_pct": 0.03239355502829707,
+    "audio_silence_pct": 0.030520144972175325,
+    "audio_energy_mean": 0.1035693683937054,
+    "sfx_per_min": 60.015673299265124,
+    "cuts_with_sfx_pct": 0.481962481962482,
+    "sfx_at_cuts_pct": 0.46901709401709396,
+    "sfx_type_distribution": {
+      "impulse_tonal": 0.3404255319148936,
+      "impulse_noisy": 0.0425531914893617,
+      "sweep": 0,
+      "vocal": 0.48936170212765956,
+      "sustained": 0,
+      "other": 0.1276595744680851
+    },
+    "sfx_classified_total": 47,
+    "hook_speeches": [
+      "Who's the Stanford student that thinks he's Steve Jobs This is Tony and he's building",
+      "What's this startup that's building robotic surveillance birds This is",
+      "Who's this student that skipped prom to apply to YC This is Jack and"
+    ],
+    "hook_texts": [
+      "<\n\n&\n\nWHO\n\niS\n\nZZ. —",
+      "'re building autonomous ornithopters with\n\nr-class flight times, low acoustic signatur\n\ni natural bird-like flight. This makes\n\nadyne's drones harder for humans and\n\nnter-UAS systems to detect, classify, and\n\nget.\n\ne Found\n\nSTARTUR\n\nourg’s Master's thesis is built on 2+ years c\n\nearch and development in flapping-wing\n\nnes. His work has received multiple awarc\n\nTU",
+      "my official ley\n\no stanford university,\n\n~\n\n» -"
+    ],
+    "hook_archetypes": null,
+    "caption_style": {
+      "captions_pct": 1,
+      "n_with_captions": 4,
+      "matched_preset": "",
+      "preset_label": "",
+      "preset_confidence_avg": 0.8775,
+      "preset_distribution": {},
+      "position": "center",
+      "chunking": "word_by_word",
+      "words_per_chunk_avg": 1,
+      "font_size": "large",
+      "text_treatment": "clear",
+      "treatment_color_examples": [
+        "black"
+      ],
+      "treatment_distribution": {
+        "bordered": 1,
+        "clear": 3
+      },
+      "text_color": "yellow",
+      "highlight_color": null,
+      "emphasis": "active_word_highlight",
+      "casing": "uppercase",
+      "animation": "pop",
+      "position_distribution": {
+        "center": 3,
+        "bottom": 1
+      },
+      "chunking_distribution": {
+        "word_by_word": 4
+      },
+      "font_size_distribution": {
+        "large": 4
+      },
+      "emphasis_distribution": {
+        "active_word_highlight": 4
+      },
+      "casing_distribution": {
+        "uppercase": 4
+      },
+      "animation_distribution": {
+        "pop": 4
+      },
+      "has_emoji_pct": 0,
+      "font_family": "bebas-neue",
+      "font_family_name": "Bebas Neue",
+      "font_family_distribution": {
+        "bebas-neue": 3,
+        "anton": 1
+      },
+      "font_descriptors": [
+        "bold rounded sans-serif with black stroke",
+        "bold sans-serif with no stroke"
+      ],
+      "style_labels": [
+        "word-by-word karaoke highlight",
+        "word-by-word active highlight"
+      ]
+    },
+    "beat_template": [
+      {
+        "clip_type": "broll_visual",
+        "n_shots": 17,
+        "duration_p50_ms": 734,
+        "has_text_p": 0.8823529411764706,
+        "has_face_p": 0,
+        "is_speaker_p": 0
+      },
+      {
+        "clip_type": "talking_head_unknown",
+        "n_shots": 15,
+        "duration_p50_ms": 566,
+        "has_text_p": 1,
+        "has_face_p": 1,
+        "is_speaker_p": 0
+      },
+      {
+        "clip_type": "talking_head",
+        "n_shots": 5,
+        "duration_p50_ms": 800,
+        "has_text_p": 1,
+        "has_face_p": 1,
+        "is_speaker_p": 1
+      },
+      {
+        "clip_type": "broll_talking_head",
+        "n_shots": 4,
+        "duration_p50_ms": 1434,
+        "has_text_p": 1,
+        "has_face_p": 1,
+        "is_speaker_p": 0
+      }
+    ]
+  },
+  "subtitle_spec": {
+    "enabled": true,
+    "preset_id": "",
+    "preset_label": "",
+    "font_family": "bebas-neue",
+    "font_family_name": "Bebas Neue",
+    "font_size": "large",
+    "position": "center",
+    "chunking": "word_by_word",
+    "words_per_chunk": 1,
+    "casing": "uppercase",
+    "emphasis": "active_word_highlight",
+    "animation": "pop",
+    "text_treatment": "bordered",
+    "text_color": "yellow",
+    "treatment_color": "black",
+    "highlight_color": null,
+    "has_emoji": false,
+    "low_confidence": false,
+    "font_scale": 2,
+    "border_width": 2
+  },
+  "target_video_path": "/Users/rahulpeesa/Documents/GitHub/OneTake/desktop/.library/preview-videos/90f75e6e595a12bd.mp4",
+  "sfx_events": [
+    {
+      "ms": 200,
+      "type": "impulse_tonal",
+      "sound": "correct (ding)"
+    },
+    {
+      "ms": 700,
+      "type": "impulse_tonal",
+      "sound": "correct (ding)"
+    },
+    {
+      "ms": 1140,
+      "type": "impulse_tonal",
+      "sound": "correct (ding)"
+    },
+    {
+      "ms": 1720,
+      "type": "impulse_tonal",
+      "sound": "correct (ding)"
+    },
+    {
+      "ms": 1980,
+      "type": "impulse_tonal",
+      "sound": "correct (ding)"
+    },
+    {
+      "ms": 2220,
+      "type": "impulse_tonal",
+      "sound": "correct (ding)"
+    },
+    {
+      "ms": 4398,
+      "type": "impulse_tonal",
+      "sound": "correct (ding)"
+    },
+    {
+      "ms": 5300,
+      "type": "impulse_tonal",
+      "sound": "correct (ding)"
+    },
+    {
+      "ms": 5860,
+      "type": "impulse_tonal",
+      "sound": "Anime Wow",
+      "volume": 0.5
+    },
+    {
+      "ms": 5980,
+      "type": "impulse_tonal",
+      "sound": "correct (ding)"
+    },
+    {
+      "ms": 6360,
+      "type": "impulse_tonal",
+      "sound": "correct (ding)"
+    },
+    {
+      "ms": 6680,
+      "type": "impulse_tonal",
+      "sound": "correct (ding)"
+    },
+    {
+      "ms": 8680,
+      "type": "impulse_tonal",
+      "sound": "correct (ding)"
+    },
+    {
+      "ms": 9040,
+      "type": "impulse_tonal",
+      "sound": "correct (ding)"
+    },
+    {
+      "ms": 9640,
+      "type": "impulse_tonal",
+      "sound": "correct (ding)"
+    },
+    {
+      "ms": 9920,
+      "type": "impulse_tonal",
+      "sound": "correct (ding)"
+    },
+    {
+      "ms": 10540,
+      "type": "impulse_tonal",
+      "sound": "correct (ding)"
+    },
+    {
+      "ms": 10820,
+      "type": "impulse_tonal",
+      "sound": "Anime Wow",
+      "volume": 0.5
+    },
+    {
+      "ms": 11020,
+      "type": "impulse_tonal",
+      "sound": "correct (ding)"
+    },
+    {
+      "ms": 11640,
+      "type": "impulse_tonal",
+      "sound": "correct (ding)"
+    },
+    {
+      "ms": 13300,
+      "type": "impulse_tonal",
+      "sound": "correct (ding)"
+    },
+    {
+      "ms": 13920,
+      "type": "impulse_tonal",
+      "sound": "correct (ding)"
+    },
+    {
+      "ms": 14469,
+      "type": "impulse_tonal",
+      "sound": "correct (ding)"
+    }
+  ],
+  "sfx_override": {
+    "cadence": "every_word",
+    "type": "impulse_tonal",
+    "sound": "correct (ding)"
+  },
+  "sfx_lead_ms": 250,
+  "sfx_volume": 0.5,
+  "music_volume": 0.5,
+  "narration_volume": 4,
+  "reel_id": "f00a2303-ec35-4c21-a57d-17365d5ec51f"
+}

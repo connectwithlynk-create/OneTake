@@ -1,0 +1,25 @@
+{
+  "picks": [
+    {
+      "timestamp_ms": 1241,
+      "reason": "This frame likely shows a motivational or inspirational setting.",
+      "file": "c65042dffee0023d-0.png"
+    },
+    {
+      "timestamp_ms": 6203,
+      "reason": "This frame likely shows a visual representation of success or achievement.",
+      "file": "c65042dffee0023d-1.png"
+    },
+    {
+      "timestamp_ms": 11166,
+      "reason": "This frame likely shows a contrast between experience and ignorance, relevant to startup themes.",
+      "file": "c65042dffee0023d-2.png"
+    },
+    {
+      "timestamp_ms": 13648,
+      "reason": "This frame likely emphasizes the value of experience, aligning with the startup narrative.",
+      "file": "c65042dffee0023d-3.png"
+    }
+  ],
+  "source_mp4_path": "/Users/rahulpeesa/Documents/GitHub/OneTake/desktop/.library/source-videos/0503423a28179e33.mp4"
+}

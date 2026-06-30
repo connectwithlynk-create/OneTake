@@ -47,21 +47,30 @@ const FFMPEG = process.env.FFMPEG_PATH || 'ffmpeg';
 const CAPTURES_DIR = resolve(process.cwd(), '.library', 'captures');
 
 export const SCROLL_STYLES = [
-  'smooth',
+  // hold = static (no scroll); linear = steady gradual reveal; slow =
+  // a gentle creep. Neither scroll mode is allowed to race through an
+  // entire long page just because the page is tall. The earlier easing zoo
+  // (smooth / ease-in / ease-out / stepped / reverse) was removed —
+  // these three cover every real case.
   'linear',
-  'ease-in',
-  'ease-out',
-  'stepped',
-  'reverse',
+  'slow',
   'hold',
 ] as const;
 export type ScrollStyle = (typeof SCROLL_STYLES)[number];
 
+/** Scroll pace caps, px/sec. These are runtime guardrails: even if an
+ *  agent asks for a full-page sweep or a short segment travel time, the
+ *  recorder moves gradually and stops wherever the budget naturally lands. */
+const LINEAR_SCROLL_PX_PER_SEC = 360;
+const SLOW_SCROLL_PX_PER_SEC = 180;
+const SEGMENT_SCROLL_PX_PER_SEC = 420;
+const MIN_SCROLL_TRAVEL_MS = 900;
+
 /** One step of a programmed scroll timeline. The recording animates
  *  to `scroll_to` (a fraction of the page's scrollable height,
  *  0 = top, 1 = bottom; values outside the range are clamped) over
- *  `travel_ms`, then holds at that position for `hold_ms`. A
- *  `travel_ms` of 0 produces an instant jump. Segments run in order;
+ *  `travel_ms`, then holds at that position for `hold_ms`. Runtime
+ *  speed caps may expand travel time so long jumps stay gradual. Segments run in order;
  *  recordUrl picks this path whenever the caller passes a non-empty
  *  `scrollSegments` — the simple `scroll` style is ignored in that
  *  case. */
@@ -623,7 +632,7 @@ let sharedBrowserPromise: Promise<Browser> | null = null;
 export async function getStealthBrowser(): Promise<Browser> {
   if (sharedBrowser && sharedBrowser.isConnected()) return sharedBrowser;
   if (sharedBrowserPromise) return sharedBrowserPromise;
-  sharedBrowserPromise = chromiumExtra
+  const launching = chromiumExtra
     .launch({
       args: ['--disable-blink-features=AutomationControlled'],
     })
@@ -635,7 +644,13 @@ export async function getStealthBrowser(): Promise<Browser> {
       });
       return b;
     });
-  return sharedBrowserPromise;
+  sharedBrowserPromise = launching;
+  // A failed launch must not be cached, or every later call re-awaits
+  // the same rejection for the rest of the session.
+  launching.catch(() => {
+    if (sharedBrowserPromise === launching) sharedBrowserPromise = null;
+  });
+  return launching;
 }
 
 export async function closeStealthBrowser(): Promise<void> {
@@ -668,7 +683,7 @@ let plainBrowserPromise: Promise<Browser> | null = null;
 export async function getPlainBrowser(): Promise<Browser> {
   if (plainBrowser && plainBrowser.isConnected()) return plainBrowser;
   if (plainBrowserPromise) return plainBrowserPromise;
-  plainBrowserPromise = chromiumPlain.launch().then((b) => {
+  const launching = chromiumPlain.launch().then((b) => {
     plainBrowser = b;
     b.on('disconnected', () => {
       plainBrowser = null;
@@ -676,7 +691,11 @@ export async function getPlainBrowser(): Promise<Browser> {
     });
     return b;
   });
-  return plainBrowserPromise;
+  plainBrowserPromise = launching;
+  launching.catch(() => {
+    if (plainBrowserPromise === launching) plainBrowserPromise = null;
+  });
+  return launching;
 }
 
 export async function closePlainBrowser(): Promise<void> {
@@ -785,6 +804,9 @@ export async function loadStealthPage(
   options: {
     viewport?: { width: number; height: number };
     recordVideo?: { dir: string; size: { width: number; height: number } };
+    /** Internal: set on the automatic http_999 retry so it only
+     *  happens once. */
+    _isBotBlockRetry?: boolean;
   } = {},
 ): Promise<LoadedPage | LoadFailed> {
   const viewport = options.viewport ?? DEFAULT_VIEWPORT;
@@ -847,11 +869,24 @@ export async function loadStealthPage(
     if (resp) httpStatus = resp.status();
 
     if (httpStatus !== null && httpStatus >= 400) {
+      const finalUrl = page.url() || absUrl;
       await context.close().catch(() => {});
+      // 999 is LinkedIn's custom bot-denial status for logged-out
+      // automated traffic. It's often per-request flaky, so retry ONCE
+      // with a fresh context after a short pause; when it persists,
+      // return a self-explanatory error so the agent picks a public
+      // source instead of retrying the same URL.
+      if (httpStatus === 999 && !options._isBotBlockRetry) {
+        await new Promise((r) => setTimeout(r, 1500));
+        return loadStealthPage(url, { ...options, _isBotBlockRetry: true });
+      }
       return {
         ok: false,
-        error: `http_${httpStatus}`,
-        final_url: page.url() || absUrl,
+        error:
+          httpStatus === 999
+            ? 'http_999_bot_blocked (site denies logged-out automated visits — this URL cannot be fetched or captured; use a public alternative source)'
+            : `http_${httpStatus}`,
+        final_url: finalUrl,
         page_title: null,
         consent_dismissed: false,
       };
@@ -959,13 +994,13 @@ export async function recordUrl(
   // record at a desktop aspect.
   const aspect: AspectRatio = '9:16';
   const viewport = aspectToViewport('9:16');
-  const scroll = options.scroll ?? 'smooth';
+  const scroll = options.scroll ?? 'slow';
   // Normalize the programmable timeline: keep only well-formed
   // entries, clamp scroll_to into [0, 1], coerce ms fields to non-
   // negative integers. An empty result means "fall back to the simple
   // `scroll` style". This is the choke point — downstream code can
   // trust the array shape and skip its own validation.
-  const scrollSegments: ScrollSegment[] = Array.isArray(options.scrollSegments)
+  let scrollSegments: ScrollSegment[] = Array.isArray(options.scrollSegments)
     ? options.scrollSegments
         .map((s) => {
           const to = Number(s?.scroll_to);
@@ -995,7 +1030,7 @@ export async function recordUrl(
   // Scroll style flows through to the heuristic unchanged. No
   // effects-vs-scroll arbitration needed — behavior is locked to
   // 'static' on the record path.
-  const effectiveScroll: ScrollStyle = scroll;
+  let effectiveScroll: ScrollStyle = scroll;
 
   let absUrl: string;
   try {
@@ -1131,57 +1166,61 @@ export async function recordUrl(
       };
     }
 
-    // Section-anchor guard: if the caller supplied a non-empty
-    // scroll_segments, every scroll_to MUST land within ±0.08 of some
-    // real section position we can detect on the loaded page. This
-    // rejects "safe default" guesses like { 0, 0.5, 1 } that aim at
-    // whitespace, and forces the agent back to fetch_page's sections
-    // array. Validation happens at the recording viewport so it
-    // matches what'll actually be captured.
+    // Section-anchor snap: scroll_to fractions come from fetch_page,
+    // which measures sections on a desktop-width layout. The mobile
+    // recording layout reflows (taller page, stacked sections), so the
+    // same section sits at a different fraction — a strict tolerance
+    // check here would reject nearly every legitimate timeline. Snap
+    // each segment to the NEAREST section detected at the recording
+    // viewport instead: the agent's intent is the section, not the raw
+    // number. Top/bottom are valid anchors on any layout. Segments
+    // further than SNAP_TOLERANCE from every section are whitespace
+    // guesses (the banned generic-thirds pattern) and are dropped; if
+    // none survive we fall back to a single linear scroll.
     if (scrollSegments.length > 0) {
       const sections = await extractPageSections(page);
       const sectionPositions = sections.map((s) => s.position_fraction);
-      const ANCHOR_TOLERANCE = 0.08;
-      const isAnchored = (to: number): boolean =>
-        sectionPositions.some(
-          (p) => Math.abs(p - to) <= ANCHOR_TOLERANCE,
-        );
-      const unanchored = scrollSegments
-        .map((seg, i) => ({ seg, i }))
-        .filter(({ seg }) => !isAnchored(seg.scroll_to));
-      if (unanchored.length > 0) {
-        await context.close().catch(() => {});
-        return {
-          ok: false,
-          page_title:
-            (await page.title().catch(() => null)) || null,
-          final_url: page.url(),
-          recording_path: '',
-          recording_url: '',
-          duration_ms: 0,
-          viewport_width: viewport.width,
-          viewport_height: viewport.height,
-          aspect_ratio: aspect,
-          behavior,
-          format: 'mp4',
-          consent_dismissed,
-          error:
-            `scroll_segments_dont_match_page_sections — ` +
-            `${unanchored
-              .map(
-                ({ seg, i }) =>
-                  `segment[${i}].scroll_to=${seg.scroll_to.toFixed(2)} has no section within ±${ANCHOR_TOLERANCE}`,
-              )
-              .join('; ')}. ` +
-            `Detected sections (use these positions verbatim or pass scroll_segments=[] for a single 'smooth' scroll): ` +
+      const SNAP_TOLERANCE = 0.2;
+      const kept: typeof scrollSegments = [];
+      const dropped: string[] = [];
+      for (let i = 0; i < scrollSegments.length; i++) {
+        const seg = scrollSegments[i];
+        if (seg.scroll_to <= 0.02 || seg.scroll_to >= 0.98) {
+          kept.push(seg);
+          continue;
+        }
+        let nearest: number | null = null;
+        for (const p of sectionPositions) {
+          if (
+            nearest === null ||
+            Math.abs(p - seg.scroll_to) < Math.abs(nearest - seg.scroll_to)
+          ) {
+            nearest = p;
+          }
+        }
+        if (
+          nearest !== null &&
+          Math.abs(nearest - seg.scroll_to) <= SNAP_TOLERANCE
+        ) {
+          kept.push({ ...seg, scroll_to: nearest });
+        } else {
+          dropped.push(`segment[${i}].scroll_to=${seg.scroll_to.toFixed(2)}`);
+        }
+      }
+      if (dropped.length > 0) {
+        console.warn(
+          `[record] dropped scroll_segments with no section within ` +
+            `${SNAP_TOLERANCE} (${dropped.join(', ')}). Detected sections: ` +
             JSON.stringify(
               sections.map((s) => ({
                 label: s.label.slice(0, 60),
                 position_fraction: Number(s.position_fraction.toFixed(2)),
               })),
             ),
-        };
+        );
       }
+      scrollSegments = kept;
+      if (scrollSegments.length === 0) effectiveScroll = 'linear';
     }
 
     // Everything before this point is dead "loading" footage we trim
@@ -1383,7 +1422,7 @@ async function applyHeuristic(
   const scrollMs = Math.max(1500, durationMs - settleMs - tailMs);
 
   await page.evaluate(
-    async ({ ms, style }) => {
+    async ({ ms, style, slowPxPerSec }) => {
       const docHeight = Math.max(
         document.body?.scrollHeight ?? 0,
         document.documentElement?.scrollHeight ?? 0,
@@ -1391,73 +1430,39 @@ async function applyHeuristic(
       const viewportH = window.innerHeight;
       const distance = Math.max(0, docHeight - viewportH);
 
+      // hold (or an unscrollable page): stay put for the whole window.
       if (style === 'hold' || distance < 10) {
-        if (style === 'reverse') window.scrollTo(0, distance);
         await new Promise((r) => setTimeout(r, ms));
         return;
       }
 
-      const easings: Record<string, (t: number) => number> = {
-        smooth: (t) => t * t * (3 - 2 * t),
-        linear: (t) => t,
-        'ease-in': (t) => t * t,
-        'ease-out': (t) => 1 - (1 - t) * (1 - t),
-      };
+      // Both scrolling modes move at capped, calm paces and cover only
+      // as far as the recording budget naturally reaches. This avoids
+      // rushing through a whole tall site in a short shot.
+      const target =
+        style === 'slow'
+          ? Math.min(distance, (slowPxPerSec * ms) / 1000)
+          : Math.min(distance, (linearPxPerSec * ms) / 1000);
+      const smoothstep = (t: number): number => t * t * (3 - 2 * t);
+      const ease = style === 'linear' ? (t: number): number => t : smoothstep;
 
-      if (style === 'reverse') {
-        window.scrollTo(0, distance);
-        const start = performance.now();
-        const ease = easings.smooth;
-        await new Promise<void>((resolve) => {
-          function frame(): void {
-            const t = Math.min(1, (performance.now() - start) / ms);
-            window.scrollTo(0, distance * (1 - ease(t)));
-            if (t < 1) requestAnimationFrame(frame);
-            else resolve();
-          }
-          requestAnimationFrame(frame);
-        });
-        return;
-      }
-
-      if (style === 'stepped') {
-        const steps = Math.max(3, Math.min(8, Math.round(ms / 1500)));
-        const scrollFrac = 0.6;
-        const stepMs = ms / steps;
-        const moveMs = stepMs * scrollFrac;
-        const pauseMs = stepMs * (1 - scrollFrac);
-        const ease = easings.smooth;
-        for (let i = 0; i < steps; i++) {
-          const from = (distance * i) / steps;
-          const to = (distance * (i + 1)) / steps;
-          const start = performance.now();
-          await new Promise<void>((resolve) => {
-            function frame(): void {
-              const t = Math.min(1, (performance.now() - start) / moveMs);
-              window.scrollTo(0, from + (to - from) * ease(t));
-              if (t < 1) requestAnimationFrame(frame);
-              else resolve();
-            }
-            requestAnimationFrame(frame);
-          });
-          if (pauseMs > 0) await new Promise((r) => setTimeout(r, pauseMs));
-        }
-        return;
-      }
-
-      const ease = easings[style] ?? easings.smooth;
       const start = performance.now();
       await new Promise<void>((resolve) => {
         function frame(): void {
           const t = Math.min(1, (performance.now() - start) / ms);
-          window.scrollTo(0, distance * ease(t));
+          window.scrollTo(0, target * ease(t));
           if (t < 1) requestAnimationFrame(frame);
           else resolve();
         }
         requestAnimationFrame(frame);
       });
     },
-    { ms: scrollMs, style },
+    {
+      ms: scrollMs,
+      style,
+      slowPxPerSec: SLOW_SCROLL_PX_PER_SEC,
+      linearPxPerSec: LINEAR_SCROLL_PX_PER_SEC,
+    },
   );
 
   await page.waitForTimeout(tailMs);
@@ -1494,7 +1499,7 @@ async function applyScrollSegments(
   const trailingHoldMs = Math.max(0, segmentBudgetMs - segmentTotalMs);
 
   await page.evaluate(
-    async ({ segments, trailingHoldMs }) => {
+    async ({ segments, trailingHoldMs, maxPxPerSec, minTravelMs }) => {
       const docHeight = Math.max(
         document.body?.scrollHeight ?? 0,
         document.documentElement?.scrollHeight ?? 0,
@@ -1509,13 +1514,22 @@ async function applyScrollSegments(
       let currentY = window.scrollY;
       for (const seg of segments) {
         const targetY = distance * seg.scroll_to;
-        if (seg.travel_ms > 0 && targetY !== currentY) {
+        const delta = Math.abs(targetY - currentY);
+        const travelMs =
+          delta > 1
+            ? Math.max(
+                seg.travel_ms,
+                minTravelMs,
+                Math.ceil((delta / maxPxPerSec) * 1000),
+              )
+            : 0;
+        if (travelMs > 0 && targetY !== currentY) {
           const fromY = currentY;
           const toY = targetY;
           const start = performance.now();
           await new Promise<void>((resolve) => {
             function frame(): void {
-              const t = Math.min(1, (performance.now() - start) / seg.travel_ms);
+              const t = Math.min(1, (performance.now() - start) / travelMs);
               window.scrollTo(0, fromY + (toY - fromY) * ease(t));
               if (t < 1) requestAnimationFrame(frame);
               else resolve();
@@ -1523,7 +1537,7 @@ async function applyScrollSegments(
             requestAnimationFrame(frame);
           });
         } else {
-          // travel_ms = 0 → instant jump.
+          // No movement needed; keep the frame stable.
           window.scrollTo(0, targetY);
         }
         currentY = targetY;
@@ -1535,7 +1549,12 @@ async function applyScrollSegments(
         await new Promise((r) => setTimeout(r, trailingHoldMs));
       }
     },
-    { segments, trailingHoldMs },
+    {
+      segments,
+      trailingHoldMs,
+      maxPxPerSec: SEGMENT_SCROLL_PX_PER_SEC,
+      minTravelMs: MIN_SCROLL_TRAVEL_MS,
+    },
   );
 
   await page.waitForTimeout(tailMs);

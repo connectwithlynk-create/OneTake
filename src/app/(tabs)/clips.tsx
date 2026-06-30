@@ -99,12 +99,20 @@ export default function ClipsScreen() {
           <Text style={s.hero}>Clips</Text>
           <Text style={s.sub}>Every take, plus anything you import.</Text>
         </View>
-        <IconButton
-          name={importing ? 'hourglass' : 'add'}
-          tone="accent"
-          size={40}
-          onPress={importVideos}
-        />
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          <IconButton
+            name="albums-outline"
+            tone="cyan"
+            size={40}
+            onPress={() => router.push('/broll-library' as never)}
+          />
+          <IconButton
+            name={importing ? 'hourglass' : 'add'}
+            tone="accent"
+            size={40}
+            onPress={importVideos}
+          />
+        </View>
       </View>
 
       {loading && !all.length ? (

@@ -1,0 +1,547 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Planet Defense</title>
+    <meta
+      name="description"
+      content="A playable tower-defense prototype where you convert red enemies, carry them, and throw them to heal a planet."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@700;800&family=Geist:wght@400;500;700&family=JetBrains+Mono:wght@500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="game-shell">
+      <section class="hud" aria-label="Game status">
+        <div class="brand">
+          <span class="face mini" aria-hidden="true"></span>
+          <div>
+            <b>Planet Defense</b>
+            <small>Convert enemies. Carry them. Throw them.</small>
+          </div>
+        </div>
+
+        <div class="planet-health" aria-label="Planet healing progress">
+          <div class="health-copy">
+            <span>Planet health</span>
+            <b id="healthLabel">0%</b>
+          </div>
+          <div class="health-track">
+            <i id="healthFill"></i>
+          </div>
+        </div>
+
+        <div class="stats">
+          <span><b id="waveLabel">1</b> wave</span>
+          <span><b id="carryLabel">empty</b> hands</span>
+          <span><b id="scoreLabel">0</b> saved</span>
+        </div>
+      </section>
+
+      <canvas id="game" aria-label="Planet defense game canvas"></canvas>
+
+      <section class="controls" aria-label="Controls">
+        <span><b>WASD</b> move</span>
+        <span><b>Mouse</b> aim</span>
+        <span><b>Click</b> shoot / throw</span>
+        <span><b>E</b> pick up green enemies</span>
+        <button id="restart" type="button">Restart</button>
+      </section>
+
+      <div id="toast" class="toast">
+        Keep the red clones away. Shoot them to freeze them green, pick one up,
+        then throw it into enemies or into the planet.
+      </div>
+    </main>
+
+    <script>
+      const canvas = document.getElementById('game');
+      const ctx = canvas.getContext('2d');
+      const healthFill = document.getElementById('healthFill');
+      const healthLabel = document.getElementById('healthLabel');
+      const waveLabel = document.getElementById('waveLabel');
+      const carryLabel = document.getElementById('carryLabel');
+      const scoreLabel = document.getElementById('scoreLabel');
+      const toast = document.getElementById('toast');
+      const restart = document.getElementById('restart');
+
+      const keys = new Set();
+      const mouse = { x: 0, y: 0, down: false };
+      const TWO_MINUTES = 120000;
+      const BASE_HEAL_PER_MS = 100 / TWO_MINUTES;
+
+      let state;
+      let last = performance.now();
+      let shootCooldown = 0;
+      let pickupPressed = false;
+
+      function reset() {
+        state = {
+          t: 0,
+          health: 0,
+          score: 0,
+          wave: 1,
+          spawnTimer: 0,
+          spawnEvery: 1700,
+          gameOver: false,
+          won: false,
+          player: { x: 0, y: 0, r: 18, speed: 245, carry: null },
+          planet: { x: 0, y: 0, r: 72 },
+          bullets: [],
+          enemies: [],
+          throws: [],
+          particles: [],
+        };
+        placeActors();
+        toast.textContent =
+          'Shoot red clones to freeze them green. Pick one up, then throw it into enemies or the planet.';
+      }
+
+      function placeActors() {
+        const w = canvas.clientWidth;
+        const h = canvas.clientHeight;
+        if (!state) return;
+        state.planet.x = w * 0.5;
+        state.planet.y = h * 0.5;
+        if (state.player.x === 0 && state.player.y === 0) {
+          state.player.x = w * 0.5;
+          state.player.y = h * 0.78;
+        }
+      }
+
+      function resize() {
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        const rect = canvas.getBoundingClientRect();
+        canvas.width = Math.floor(rect.width * dpr);
+        canvas.height = Math.floor(rect.height * dpr);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        placeActors();
+      }
+
+      function clamp(v, min, max) {
+        return Math.max(min, Math.min(max, v));
+      }
+
+      function dist(a, b) {
+        return Math.hypot(a.x - b.x, a.y - b.y);
+      }
+
+      function norm(x, y) {
+        const d = Math.hypot(x, y) || 1;
+        return { x: x / d, y: y / d };
+      }
+
+      function spawnEnemy() {
+        const w = canvas.clientWidth;
+        const h = canvas.clientHeight;
+        const side = Math.floor(Math.random() * 4);
+        let x = 0;
+        let y = 0;
+        if (side === 0) { x = Math.random() * w; y = -28; }
+        if (side === 1) { x = w + 28; y = Math.random() * h; }
+        if (side === 2) { x = Math.random() * w; y = h + 28; }
+        if (side === 3) { x = -28; y = Math.random() * h; }
+        state.enemies.push({
+          x,
+          y,
+          r: 18,
+          mode: 'red',
+          speed: 42 + state.wave * 3 + Math.random() * 12,
+          pulse: Math.random() * 10,
+        });
+      }
+
+      function shoot() {
+        if (state.gameOver || shootCooldown > 0) return;
+        if (state.player.carry) {
+          throwCarry();
+          shootCooldown = 180;
+          return;
+        }
+        const d = norm(mouse.x - state.player.x, mouse.y - state.player.y);
+        state.bullets.push({
+          x: state.player.x + d.x * 22,
+          y: state.player.y + d.y * 22,
+          vx: d.x * 560,
+          vy: d.y * 560,
+          life: 620,
+        });
+        shootCooldown = 130;
+      }
+
+      function tryPickup() {
+        if (state.player.carry || state.gameOver) return;
+        let best = null;
+        let bestD = 54;
+        for (const e of state.enemies) {
+          if (e.mode !== 'green') continue;
+          const d = dist(state.player, e);
+          if (d < bestD) {
+            bestD = d;
+            best = e;
+          }
+        }
+        if (!best) return;
+        state.player.carry = best;
+        state.enemies = state.enemies.filter((e) => e !== best);
+        burst(best.x, best.y, '#81ff6c', 12);
+      }
+
+      function throwCarry() {
+        const carried = state.player.carry;
+        if (!carried) return;
+        const d = norm(mouse.x - state.player.x, mouse.y - state.player.y);
+        state.throws.push({
+          x: state.player.x + d.x * 30,
+          y: state.player.y + d.y * 30,
+          vx: d.x * 450,
+          vy: d.y * 450,
+          r: 17,
+          life: 1250,
+        });
+        state.player.carry = null;
+      }
+
+      function burst(x, y, color, count) {
+        for (let i = 0; i < count; i++) {
+          const a = Math.random() * Math.PI * 2;
+          const s = 30 + Math.random() * 130;
+          state.particles.push({
+            x,
+            y,
+            vx: Math.cos(a) * s,
+            vy: Math.sin(a) * s,
+            life: 420 + Math.random() * 280,
+            age: 0,
+            color,
+          });
+        }
+      }
+
+      function update(dtMs) {
+        const dt = dtMs / 1000;
+        shootCooldown = Math.max(0, shootCooldown - dtMs);
+        if (state.gameOver) return;
+
+        state.t += dtMs;
+        state.health = clamp(state.health + BASE_HEAL_PER_MS * dtMs, 0, 100);
+        state.wave = 1 + Math.floor(state.t / 24000);
+        state.spawnEvery = Math.max(620, 1700 - state.wave * 130);
+        state.spawnTimer -= dtMs;
+        while (state.spawnTimer <= 0) {
+          spawnEnemy();
+          state.spawnTimer += state.spawnEvery;
+        }
+
+        let dx = 0;
+        let dy = 0;
+        if (keys.has('w') || keys.has('arrowup')) dy -= 1;
+        if (keys.has('s') || keys.has('arrowdown')) dy += 1;
+        if (keys.has('a') || keys.has('arrowleft')) dx -= 1;
+        if (keys.has('d') || keys.has('arrowright')) dx += 1;
+        const move = norm(dx, dy);
+        const moving = dx || dy;
+        if (moving) {
+          state.player.x += move.x * state.player.speed * dt;
+          state.player.y += move.y * state.player.speed * dt;
+        }
+        state.player.x = clamp(state.player.x, 26, canvas.clientWidth - 26);
+        state.player.y = clamp(state.player.y, 26, canvas.clientHeight - 26);
+
+        for (const b of state.bullets) {
+          b.x += b.vx * dt;
+          b.y += b.vy * dt;
+          b.life -= dtMs;
+        }
+        state.bullets = state.bullets.filter((b) => b.life > 0);
+
+        for (const e of state.enemies) {
+          e.pulse += dt * 4;
+          if (e.mode === 'red') {
+            const d = norm(state.planet.x - e.x, state.planet.y - e.y);
+            e.x += d.x * e.speed * dt;
+            e.y += d.y * e.speed * dt;
+            if (dist(e, state.planet) < e.r + state.planet.r - 6) {
+              state.health = clamp(state.health - 8, 0, 100);
+              e.mode = 'gone';
+              burst(e.x, e.y, '#ff5757', 18);
+              toast.textContent = 'A red clone damaged the planet. Convert them before they reach it.';
+            }
+          }
+        }
+
+        for (const b of state.bullets) {
+          for (const e of state.enemies) {
+            if (e.mode !== 'red') continue;
+            if (Math.hypot(b.x - e.x, b.y - e.y) < e.r + 4) {
+              b.life = 0;
+              e.mode = 'green';
+              e.speed = 0;
+              burst(e.x, e.y, '#81ff6c', 16);
+              toast.textContent = 'Enemy converted. Walk up and press E to pick it up.';
+              break;
+            }
+          }
+        }
+
+        for (const thrown of state.throws) {
+          thrown.x += thrown.vx * dt;
+          thrown.y += thrown.vy * dt;
+          thrown.life -= dtMs;
+          thrown.vx *= 0.998;
+          thrown.vy *= 0.998;
+
+          if (Math.hypot(thrown.x - state.planet.x, thrown.y - state.planet.y) < state.planet.r + thrown.r) {
+            state.health = clamp(state.health + 10, 0, 100);
+            thrown.life = 0;
+            state.score += 1;
+            burst(thrown.x, thrown.y, '#9cff6e', 26);
+            toast.textContent = 'Planet healed. Throw more converted enemies into it to finish faster.';
+            continue;
+          }
+
+          for (const e of state.enemies) {
+            if (e.mode !== 'red') continue;
+            if (Math.hypot(thrown.x - e.x, thrown.y - e.y) < thrown.r + e.r) {
+              e.mode = 'gone';
+              thrown.life = 0;
+              state.score += 1;
+              burst(e.x, e.y, '#ffef75', 24);
+              toast.textContent = 'Direct hit. Converted enemies can take out red clones.';
+              break;
+            }
+          }
+        }
+
+        state.enemies = state.enemies.filter((e) => e.mode !== 'gone');
+        state.throws = state.throws.filter(
+          (p) =>
+            p.life > 0 &&
+            p.x > -80 &&
+            p.x < canvas.clientWidth + 80 &&
+            p.y > -80 &&
+            p.y < canvas.clientHeight + 80,
+        );
+
+        for (const p of state.particles) {
+          p.age += dtMs;
+          p.x += p.vx * dt;
+          p.y += p.vy * dt;
+          p.vx *= 0.98;
+          p.vy *= 0.98;
+        }
+        state.particles = state.particles.filter((p) => p.age < p.life);
+
+        if (state.health >= 100) {
+          state.health = 100;
+          state.gameOver = true;
+          state.won = true;
+          toast.textContent = 'Planet restored. You held the line.';
+        }
+      }
+
+      function drawFace(x, y, r, fill, stroke, frozen = false) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.fillStyle = fill;
+        ctx.strokeStyle = stroke;
+        ctx.lineWidth = Math.max(2, r * 0.12);
+        ctx.beginPath();
+        ctx.arc(0, 0, r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = '#11130f';
+        ctx.beginPath();
+        ctx.arc(-r * 0.32, -r * 0.18, r * 0.11, 0, Math.PI * 2);
+        ctx.arc(r * 0.32, -r * 0.18, r * 0.11, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.lineWidth = Math.max(2, r * 0.13);
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = '#11130f';
+        ctx.beginPath();
+        if (frozen) {
+          ctx.moveTo(-r * 0.32, r * 0.28);
+          ctx.lineTo(r * 0.32, r * 0.28);
+        } else {
+          ctx.arc(0, r * 0.12, r * 0.42, 0.1 * Math.PI, 0.9 * Math.PI);
+        }
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      function drawPlanet() {
+        const p = state.planet;
+        const glow = 18 + state.health * 0.35;
+        const grad = ctx.createRadialGradient(p.x - 22, p.y - 26, 10, p.x, p.y, p.r + 18);
+        grad.addColorStop(0, '#d8ffad');
+        grad.addColorStop(0.45, '#7fe86b');
+        grad.addColorStop(1, '#1b724f');
+        ctx.save();
+        ctx.shadowColor = 'rgba(130, 255, 106, 0.45)';
+        ctx.shadowBlur = glow;
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.globalAlpha = 0.24;
+        ctx.strokeStyle = '#edfbd0';
+        ctx.lineWidth = 8;
+        ctx.beginPath();
+        ctx.arc(p.x - 9, p.y + 5, p.r * 0.78, -0.25, Math.PI * 1.1);
+        ctx.stroke();
+        ctx.globalAlpha = 0.16 + state.health / 600;
+        ctx.fillStyle = '#cfff7a';
+        ctx.beginPath();
+        ctx.arc(p.x + 24, p.y - 28, 18, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      function draw() {
+        const w = canvas.clientWidth;
+        const h = canvas.clientHeight;
+        ctx.clearRect(0, 0, w, h);
+
+        ctx.fillStyle = '#0e1114';
+        ctx.fillRect(0, 0, w, h);
+        ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+        ctx.lineWidth = 1;
+        for (let x = 0; x < w; x += 48) {
+          ctx.beginPath();
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, h);
+          ctx.stroke();
+        }
+        for (let y = 0; y < h; y += 48) {
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(w, y);
+          ctx.stroke();
+        }
+
+        drawPlanet();
+
+        for (const b of state.bullets) {
+          ctx.fillStyle = '#f6ff8f';
+          ctx.shadowColor = '#f6ff8f';
+          ctx.shadowBlur = 14;
+          ctx.beginPath();
+          ctx.arc(b.x, b.y, 4, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.shadowBlur = 0;
+        }
+
+        for (const e of state.enemies) {
+          const bob = Math.sin(e.pulse) * 2;
+          if (e.mode === 'red') {
+            drawFace(e.x, e.y + bob, e.r, '#ff4c48', '#ff9c91');
+          } else {
+            drawFace(e.x, e.y, e.r, '#77ff5a', '#d7ffc9', true);
+            ctx.strokeStyle = 'rgba(129,255,108,0.3)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(e.x, e.y, e.r + 8, 0, Math.PI * 2);
+            ctx.stroke();
+          }
+        }
+
+        for (const t of state.throws) {
+          drawFace(t.x, t.y, t.r, '#83ff62', '#eaffdf', true);
+        }
+
+        const aim = norm(mouse.x - state.player.x, mouse.y - state.player.y);
+        ctx.strokeStyle = 'rgba(255,255,255,0.34)';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(state.player.x, state.player.y);
+        ctx.lineTo(state.player.x + aim.x * 34, state.player.y + aim.y * 34);
+        ctx.stroke();
+        drawFace(state.player.x, state.player.y, state.player.r, '#8bff3d', '#e8ffd5');
+        if (state.player.carry) {
+          drawFace(state.player.x, state.player.y - 34, 13, '#83ff62', '#eaffdf', true);
+        }
+
+        for (const p of state.particles) {
+          const a = 1 - p.age / p.life;
+          ctx.globalAlpha = a;
+          ctx.fillStyle = p.color;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, 2.2 + a * 2, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.globalAlpha = 1;
+        }
+
+        if (state.gameOver) {
+          ctx.fillStyle = 'rgba(0,0,0,0.36)';
+          ctx.fillRect(0, 0, w, h);
+          ctx.textAlign = 'center';
+          ctx.fillStyle = '#f7f4eb';
+          ctx.font = '800 54px Bricolage Grotesque, sans-serif';
+          ctx.fillText(state.won ? 'Planet restored' : 'Planet lost', w / 2, h / 2 - 8);
+          ctx.font = '500 17px Geist, sans-serif';
+          ctx.fillStyle = 'rgba(247,244,235,0.72)';
+          ctx.fillText('Press Restart to run it back', w / 2, h / 2 + 28);
+        }
+
+        healthFill.style.width = state.health.toFixed(1) + '%';
+        healthLabel.textContent = Math.floor(state.health) + '%';
+        waveLabel.textContent = state.wave;
+        carryLabel.textContent = state.player.carry ? 'loaded' : 'empty';
+        scoreLabel.textContent = state.score;
+      }
+
+      function loop(now) {
+        const dt = Math.min(34, now - last);
+        last = now;
+        update(dt);
+        draw();
+        requestAnimationFrame(loop);
+      }
+
+      window.addEventListener('keydown', (e) => {
+        keys.add(e.key.toLowerCase());
+        if (e.key.toLowerCase() === 'e' && !pickupPressed) {
+          pickupPressed = true;
+          tryPickup();
+        }
+        if (e.code === 'Space') {
+          e.preventDefault();
+          shoot();
+        }
+      });
+      window.addEventListener('keyup', (e) => {
+        keys.delete(e.key.toLowerCase());
+        if (e.key.toLowerCase() === 'e') pickupPressed = false;
+      });
+      canvas.addEventListener('pointermove', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        mouse.x = e.clientX - rect.left;
+        mouse.y = e.clientY - rect.top;
+      });
+      canvas.addEventListener('pointerdown', (e) => {
+        canvas.setPointerCapture(e.pointerId);
+        mouse.down = true;
+        shoot();
+      });
+      canvas.addEventListener('pointerup', () => {
+        mouse.down = false;
+      });
+      restart.addEventListener('click', reset);
+      window.addEventListener('resize', resize);
+
+      reset();
+      resize();
+      requestAnimationFrame((now) => {
+        last = now;
+        requestAnimationFrame(loop);
+      });
+    </script>
+  </body>
+</html>

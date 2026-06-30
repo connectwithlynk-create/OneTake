@@ -1,0 +1,50 @@
+[
+  {
+    "id": "7bcecefff1c0",
+    "name": "My Library",
+    "created_at": 1781062154695,
+    "reels": [
+      {
+        "url": "https://www.instagram.com/p/DXz_iMJNjlV/",
+        "tags": [
+          "structure_reference"
+        ]
+      },
+      {
+        "url": "https://www.instagram.com/p/DYg26zgRiGS/",
+        "tags": [
+          "content_reference",
+          "style_reference",
+          "structure_reference"
+        ]
+      },
+      {
+        "url": "https://www.instagram.com/p/DU_3YEUEoGG/",
+        "tags": [
+          "structure_reference"
+        ]
+      },
+      {
+        "url": "https://www.instagram.com/p/DZnbYbypcjo/",
+        "tags": [
+          "content_reference"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "4fb777e8e007",
+    "name": "New collection",
+    "created_at": 1782465627262,
+    "reels": [
+      {
+        "url": "https://www.instagram.com/reel/DZxxfF1MAJC/",
+        "tags": [
+          "content_reference",
+          "style_reference",
+          "structure_reference"
+        ]
+      }
+    ]
+  }
+]

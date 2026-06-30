@@ -1,0 +1,20 @@
+{
+  "picks": [
+    {
+      "timestamp_ms": 8760,
+      "reason": "This frame likely shows a visual representation of AI-driven designs.",
+      "file": "388e02314d9caabf-0.png"
+    },
+    {
+      "timestamp_ms": 15769,
+      "reason": "This frame may depict a startup environment or innovative technology.",
+      "file": "388e02314d9caabf-1.png"
+    },
+    {
+      "timestamp_ms": 22778,
+      "reason": "This frame could illustrate a dynamic concept related to AI applications.",
+      "file": "388e02314d9caabf-2.png"
+    }
+  ],
+  "source_mp4_path": "/Users/rahulpeesa/Documents/GitHub/OneTake/desktop/.library/source-videos/111c7f13d8af362f.mp4"
+}

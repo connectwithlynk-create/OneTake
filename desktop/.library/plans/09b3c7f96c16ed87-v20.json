@@ -1,0 +1,1966 @@
+{
+  "total_duration_ms": 17994,
+  "shots": [
+    {
+      "shot_idx": 0,
+      "start_ms": 0,
+      "end_ms": 1680,
+      "duration_ms": 1680,
+      "spoken_during": "What's this startup that's",
+      "spoken_words": [
+        {
+          "text": "What's",
+          "start_ms": 0,
+          "end_ms": 440
+        },
+        {
+          "text": "this",
+          "start_ms": 440,
+          "end_ms": 660
+        },
+        {
+          "text": "startup",
+          "start_ms": 660,
+          "end_ms": 1000
+        },
+        {
+          "text": "that's",
+          "start_ms": 1000,
+          "end_ms": 1680
+        }
+      ],
+      "structure_role": "hook",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.95,
+          "likelihood": 0.95,
+          "broll_description": "Zooming in on a futuristic cityscape from GRU Space's promotional material, showcasing their vision of building on the moon.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://gruspace.com/home",
+              "focus": "promotional hero image of lunar cityscape concept"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "zoom_in over the shot"
+          },
+          "placement": {
+            "aspect": "original",
+            "fit": "contain",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Showcasing GRU Space's vision directly engages viewers from the start."
+        },
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.95,
+          "broll_description": "Close-up of a conceptual drone model flying over a lunar surface, conveying the startup's innovative projects.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://gruspace.com/home",
+              "focus": "drone model over lunar concept"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "stock / archival footage tied to a claim",
+          "rationale": "Using dramatic visuals to set the stage for what GRU Space is about."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.65,
+          "likelihood": 0.95,
+          "broll_description": "Background image of the GRU Space homepage showing their marquee lunar concept project.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://gruspace.com",
+              "focus": "homepage hero image"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Highly acquirable source directly from the company's official site."
+        }
+      ],
+      "broll_description": "Zooming in on a futuristic cityscape from GRU Space's promotional material, showcasing their vision of building on the moon.",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://gruspace.com/home",
+          "focus": "promotional hero image of lunar cityscape concept"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "zoom_in over the shot"
+      },
+      "placement": {
+        "aspect": "original",
+        "fit": "contain",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "screen recording of the subject's website",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DYlQlfYuTc7/",
+        "shot_idx": 0,
+        "pattern": "Medium shot introduction to capture viewer interest in the concept."
+      },
+      "text_overlay": "'WHAT'S'",
+      "text_position": "top_center",
+      "animation_cue": "zoom-in over the shot",
+      "scene_animation": "zoom_in",
+      "animation_scale": 1.05,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "sfx_cue": "vocal hit for intrigue",
+      "clip_type": "broll_visual",
+      "rationale": "The introduction of GRU Space as a concept needs visual emphasis.",
+      "selected_media": [],
+      "animation_duration_ms": 1680,
+      "zoom_region": "middle_center",
+      "zoom_scale": 1.2,
+      "subtitle_position": "lower_third"
+    },
+    {
+      "shot_idx": 1,
+      "start_ms": 1680,
+      "end_ms": 3880,
+      "duration_ms": 2200,
+      "spoken_during": "building hotels on the moon?",
+      "spoken_words": [
+        {
+          "text": "hotels",
+          "start_ms": 1680,
+          "end_ms": 2200
+        },
+        {
+          "text": "in",
+          "start_ms": 2200,
+          "end_ms": 2360
+        },
+        {
+          "text": "the",
+          "start_ms": 2360,
+          "end_ms": 2560
+        },
+        {
+          "text": "moon",
+          "start_ms": 2560,
+          "end_ms": 3880
+        }
+      ],
+      "structure_role": "intro",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.85,
+          "likelihood": 0.95,
+          "broll_description": "Close-up of the GRU Space team discussing lunar innovations at a conference.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.youtube.com/watch?v=lunar_conference",
+              "focus": "team discussion segment"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "zoom_in"
+          },
+          "placement": {
+            "aspect": "original",
+            "fit": "contain",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "lots of subject footage from stage talks — creator builds reels around the named subject themselves",
+          "rationale": "Introducing people behind the vision enhances credibility."
+        },
+        {
+          "tier": "ideal",
+          "fit_score": 0.8,
+          "likelihood": 0.95,
+          "broll_description": "Static shot of a display showing GRU Space's plans for hotels on the moon.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://gruspace.com/gallery",
+              "focus": "moon hotel concept display"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "web source to demonstrate or verify specific claims",
+          "rationale": "Visual evidence of their ambitious goal is crucial in introduction."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.6,
+          "likelihood": 0.95,
+          "broll_description": "Homepage image from GRU Space's official site showing team and mission statement.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://gruspace.com",
+              "focus": "team and mission statement section"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screenshot of the subject's social media profile",
+          "rationale": "Consistently reliable source for official imagery."
+        }
+      ],
+      "broll_description": "Close-up of the GRU Space team discussing lunar innovations at a conference.",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://www.youtube.com/watch?v=lunar_conference",
+          "focus": "team discussion segment"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "zoom_in"
+      },
+      "placement": {
+        "aspect": "original",
+        "fit": "contain",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "lots of subject footage from stage talks — creator builds reels around the named subject themselves",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DYg26zgRiGS/",
+        "shot_idx": 0,
+        "pattern": "Rich visual of subject's stage presence helps introduce their ambitious claim."
+      },
+      "text_overlay": "'building hotels'",
+      "text_position": "middle_center",
+      "animation_cue": "zoom-in engagement",
+      "scene_animation": "none",
+      "animation_scale": 1.05,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "sfx_cue": "impulse_tonal for significant reveal",
+      "clip_type": "broll_visual",
+      "rationale": "Introducing what GRU Space stands for requires clear visual support.",
+      "selected_media": [
+        {
+          "url": "clips://files/6ad9b4224ba3e037/2.mp4",
+          "kind": "video",
+          "origin": "extract_clip",
+          "from_candidate_url": "https://www.youtube.com/watch?v=GOwUlkNw8eg",
+          "reason": "scene 3 (5.1s)",
+          "start_ms": 14750,
+          "end_ms": 19875,
+          "scene_animation": "zoom_in",
+          "playback_start_ms": 2000,
+          "playback_end_ms": null
+        }
+      ],
+      "animation_duration_ms": 2200,
+      "zoom_region": "middle_center",
+      "zoom_scale": 1,
+      "subtitle_position": "lower_third"
+    },
+    {
+      "shot_idx": 9,
+      "start_ms": 3880,
+      "end_ms": 5540,
+      "duration_ms": 1660,
+      "spoken_during": "This is GRU Space",
+      "spoken_words": [
+        {
+          "text": "This",
+          "start_ms": 4360,
+          "end_ms": 4400
+        },
+        {
+          "text": "is",
+          "start_ms": 4400,
+          "end_ms": 4840
+        },
+        {
+          "text": "GRU",
+          "start_ms": 4840,
+          "end_ms": 5140
+        },
+        {
+          "text": "Space",
+          "start_ms": 5140,
+          "end_ms": 5540
+        }
+      ],
+      "structure_role": "intro",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.92,
+          "likelihood": 0.95,
+          "broll_description": "A digital rendering of the future GRU Space Hotel on the moon shared on their Twitter handle.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://twitter.com/gru_space",
+              "focus": "renderings of lunar hotel"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "ken_burns"
+          },
+          "placement": {
+            "aspect": "original",
+            "fit": "contain",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screenshot of the subject's social media profile",
+          "rationale": "Visual credibility through detailed concept images enriches the narrative."
+        },
+        {
+          "tier": "ideal",
+          "fit_score": 0.85,
+          "likelihood": 0.95,
+          "broll_description": "Footage from a GRU Space promotional video showing space travelers boarding a shuttle.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.youtube.com/watch?v=space_shuttle_boarding",
+              "focus": "space travelers boarding scene"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "web source to demonstrate or verify specific claims",
+          "rationale": "Realistic visuals manifest the concept's possible future."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.7,
+          "likelihood": 0.95,
+          "broll_description": "Header of GRU Space's website featuring their lunar development goals prominently.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://gruspace.com",
+              "focus": "lunar development header"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Company's resources consistently offer relevant visual content."
+        }
+      ],
+      "broll_description": "A digital rendering of the future GRU Space Hotel on the moon shared on their Twitter handle.",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://twitter.com/gru_space",
+          "focus": "renderings of lunar hotel"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "ken_burns"
+      },
+      "placement": {
+        "aspect": "original",
+        "fit": "contain",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "screenshot of the subject's social media profile",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DYlQlfYuTc7/",
+        "shot_idx": 4,
+        "pattern": "Visual proof backing up the entity's large claims makes for an impactful introduction."
+      },
+      "text_overlay": "'This is GRU Space'",
+      "text_position": "top_left",
+      "animation_cue": "scroll-visual",
+      "scene_animation": "none",
+      "animation_scale": 1.05,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "sfx_cue": "impulse_tonal to enforce anticipation",
+      "clip_type": "broll_visual",
+      "rationale": "Supporting big claims with captivating imagery.",
+      "selected_media": [
+        {
+          "url": "capture://files/3f9e527b2f238aaf.mp4",
+          "kind": "video",
+          "origin": "page_recording",
+          "from_candidate_url": "https://www.ycombinator.com/companies/galactic-resource-utilization-space-inc-gru-space",
+          "reason": "This video clearly brands GRU Space and emphasizes their lunar hotel positioning.",
+          "scene_animation": "zoom_in",
+          "animation_scale": 1.25
+        }
+      ],
+      "animation_duration_ms": 1660,
+      "zoom_region": "middle_center",
+      "zoom_scale": 1,
+      "contain_background_mode": "autofill",
+      "subtitle_position": "lower_third"
+    },
+    {
+      "shot_idx": 12,
+      "start_ms": 5540,
+      "end_ms": 7892,
+      "duration_ms": 2352,
+      "spoken_during": "and they just got into YC",
+      "spoken_words": [
+        {
+          "text": "and",
+          "start_ms": 5540,
+          "end_ms": 5740
+        },
+        {
+          "text": "they",
+          "start_ms": 5740,
+          "end_ms": 5880
+        },
+        {
+          "text": "just",
+          "start_ms": 5880,
+          "end_ms": 6080
+        },
+        {
+          "text": "got",
+          "start_ms": 6080,
+          "end_ms": 6240
+        },
+        {
+          "text": "an",
+          "start_ms": 6240,
+          "end_ms": 6420
+        },
+        {
+          "text": "OIC",
+          "start_ms": 6420,
+          "end_ms": 7200
+        }
+      ],
+      "structure_role": "intro",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.95,
+          "broll_description": "GRU Space's CEO presenting at a technology conference, emphasizing their vision and project milestones.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.youtube.com/watch?v=presenting_future",
+              "focus": "CEO keynote speech"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "original",
+            "fit": "contain",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "web source to demonstrate or verify specific claims",
+          "rationale": "Aligning the authoritative figure with the grand project plan builds credibility."
+        },
+        {
+          "tier": "ideal",
+          "fit_score": 0.85,
+          "likelihood": 0.95,
+          "broll_description": "A visual timeline of GRU Space's project phases displayed during their investor presentation.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://gruspace.com/investors",
+              "focus": "project timeline display"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "ken_burns"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "web source to demonstrate or verify specific claims",
+          "rationale": "Use visual timeliness to impart the structured and sequential phase of the project."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.7,
+          "likelihood": 0.95,
+          "broll_description": "Official press release image on GRU Space’s website highlighting recent achievements in space hotel technology.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://gruspace.com/press",
+              "focus": "press release image"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "none"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Reliable source of updates from the official page providing legitimacy to the narrative."
+        }
+      ],
+      "broll_description": "GRU Space's CEO presenting at a technology conference, emphasizing their vision and project milestones.",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://www.youtube.com/watch?v=presenting_future",
+          "focus": "CEO keynote speech"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "static"
+      },
+      "placement": {
+        "aspect": "original",
+        "fit": "contain",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "web source to demonstrate or verify specific claims",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/reel/DYxLMnNRzQ5/?igsh=bXhtY2JlNjhsYzNm",
+        "shot_idx": 2,
+        "pattern": "Shows rollout of project information as introduction is tied to subject's major milestones."
+      },
+      "text_overlay": "'This is GRU Space'",
+      "text_position": "top_left",
+      "animation_cue": "timeline-scroll",
+      "scene_animation": "none",
+      "animation_scale": 1.05,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "sfx_cue": "impulse_tonal marking event",
+      "clip_type": "broll_visual",
+      "rationale": "Integrating visual storytelling with the subject's groundbreaking developments.",
+      "selected_media": [
+        {
+          "url": "capture://files/19be4475bff8a930.mp4",
+          "kind": "video",
+          "origin": "page_recording",
+          "from_candidate_url": "https://www.ycombinator.com/launches/P9g-gru-space-first-hotel-on-the-moon-applications-open",
+          "reason": "It explicitly labels the YC milestone, fitting perfectly with the transcript.",
+          "scene_animation": "zoom_in",
+          "animation_scale": 10,
+          "animation_x": 0.4814995659722222,
+          "animation_y": 0
+        }
+      ],
+      "animation_duration_ms": 2352,
+      "zoom_region": "middle_center",
+      "zoom_scale": 1,
+      "subtitle_position": "lower_third"
+    },
+    {
+      "shot_idx": 11,
+      "start_ms": 7892,
+      "end_ms": 9100,
+      "duration_ms": 1208,
+      "spoken_during": "GRU Space",
+      "spoken_words": [
+        {
+          "text": "GRU",
+          "start_ms": 8760,
+          "end_ms": 8960
+        },
+        {
+          "text": "Space",
+          "start_ms": 8960,
+          "end_ms": 9100
+        }
+      ],
+      "structure_role": "body",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.95,
+          "broll_description": "Recording of the GRU Space website showing their latest OIC award announcement.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://gruspace.com/news",
+              "focus": "OIC award section"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "original",
+            "fit": "contain",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "web source to demonstrate or verify specific claims",
+          "rationale": "Showing actual achievements reinforces subject's credibility."
+        },
+        {
+          "tier": "ideal",
+          "fit_score": 0.85,
+          "likelihood": 0.95,
+          "broll_description": "Dynamic presentation slide from GRU Space’s investor pitch showing strategic aims for the lunar hotel.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://gruspace.com/investors_pitch",
+              "focus": "strategic aims slide"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "ken_burns"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "web source to demonstrate or verify specific claims",
+          "rationale": "Clear visualization of project goals provides an impactful message of progress."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.65,
+          "likelihood": 0.95,
+          "broll_description": "Homepage of GRU Space displaying their recent accolades and plans.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://gruspace.com",
+              "focus": "latest news section"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "High accessibility from the company’s official portal keeping a steady information source."
+        }
+      ],
+      "broll_description": "Recording of the GRU Space website showing their latest OIC award announcement.",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://gruspace.com/news",
+          "focus": "OIC award section"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "static"
+      },
+      "placement": {
+        "aspect": "original",
+        "fit": "contain",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "web source to demonstrate or verify specific claims",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DYg26zgRiGS/",
+        "shot_idx": 2,
+        "pattern": "Information source like logos or award badges effectively supports credibility claims."
+      },
+      "text_overlay": "'This is GRU Space'",
+      "text_position": "top_left",
+      "animation_cue": "badge-drop",
+      "scene_animation": "none",
+      "animation_scale": 1.05,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "sfx_cue": "vocal on key terms",
+      "clip_type": "broll_talking_head",
+      "rationale": "Celebrating achievements helps confirm how pronounced the organization’s influence is.",
+      "selected_media": [
+        {
+          "url": "capture://files/20099993fb6b898e-0.png",
+          "kind": "image",
+          "origin": "page_screenshot",
+          "from_candidate_url": "capture://files/a0473a320cf146f3.mp4",
+          "reason": "Fits 'is trying to' via the article’s deposit/reservation framing and 'hoping to build the first hotel on the moon.' Distinct press angle from the others.",
+          "scene_animation": "zoom_in",
+          "animation_scale": 2,
+          "animation_x": 0.4747721354166667,
+          "animation_y": 0.4370659722222222,
+          "zoom_x": 0.5,
+          "zoom_y": 0.5,
+          "zoom_scale": 1
+        }
+      ],
+      "animation_duration_ms": 1208,
+      "zoom_region": "middle_center",
+      "zoom_scale": 1,
+      "subtitle_position": "lower_third"
+    },
+    {
+      "shot_idx": 5,
+      "start_ms": 9100,
+      "end_ms": 10720,
+      "duration_ms": 1620,
+      "spoken_during": "is trying to build the first lunar hotel",
+      "spoken_words": [
+        {
+          "text": "is",
+          "start_ms": 9100,
+          "end_ms": 9280
+        },
+        {
+          "text": "trying",
+          "start_ms": 9280,
+          "end_ms": 9460
+        },
+        {
+          "text": "to",
+          "start_ms": 9460,
+          "end_ms": 9720
+        },
+        {
+          "text": "the",
+          "start_ms": 9720,
+          "end_ms": 9980
+        },
+        {
+          "text": "first",
+          "start_ms": 9980,
+          "end_ms": 10100
+        },
+        {
+          "text": "lunar",
+          "start_ms": 10100,
+          "end_ms": 10380
+        },
+        {
+          "text": "hotel",
+          "start_ms": 10380,
+          "end_ms": 10720
+        }
+      ],
+      "structure_role": "body",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.88,
+          "likelihood": 0.95,
+          "broll_description": "Animated clip of a futuristic GRU Space rocket model in launch sequence.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://twitter.com/gru_space",
+              "focus": "rocket launch animation"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "original",
+            "fit": "contain",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screenshot of the subject's social media profile",
+          "rationale": "Driving home visual excitement by demonstrating future ambitions with technological advances."
+        },
+        {
+          "tier": "ideal",
+          "fit_score": 0.85,
+          "likelihood": 0.95,
+          "broll_description": "Dynamic scene of a meeting room with GRU Space executives discussing project timelines on a digital board.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://gruspace.com/leadership",
+              "focus": "meeting room segment"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "ken_burns"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "web source to demonstrate or verify specific claims",
+          "rationale": "Aligns viewer interest with behind-the-scenes operations ensuring transparency."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.65,
+          "likelihood": 0.95,
+          "broll_description": "Corporate page image of GRU Space's executives with latest achievements in brief.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://gruspace.com/about",
+              "focus": "executive profile section"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Reliably available content of their recent briefs and enough context to audience’s claims."
+        }
+      ],
+      "broll_description": "Animated clip of a futuristic GRU Space rocket model in launch sequence.",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://twitter.com/gru_space",
+          "focus": "rocket launch animation"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "static"
+      },
+      "placement": {
+        "aspect": "original",
+        "fit": "contain",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "screenshot of the subject's social media profile",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/reel/DYxLMnNRzQ5/?igsh=bXhtY2JlNjhsYzNm",
+        "shot_idx": 5,
+        "pattern": "Propulsive transitions launch future initiatives in response to big subjects."
+      },
+      "text_overlay": "'got an OIC'",
+      "text_position": "middle_center",
+      "animation_cue": "boost-accent",
+      "scene_animation": "none",
+      "animation_scale": 1.05,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "sfx_cue": "vocal on accomplishment",
+      "clip_type": "broll_talking_head",
+      "rationale": "Visual levity helps customer see future possibilities.",
+      "selected_media": [
+        {
+          "url": "clips://files/27830d834810e396/0.mp4",
+          "kind": "video",
+          "origin": "extract_clip",
+          "from_candidate_url": "capture://files/ed86b230d4ae769e.mp4",
+          "reason": "scene 1 (2.2s)",
+          "start_ms": 600,
+          "end_ms": 2800
+        }
+      ],
+      "animation_duration_ms": 620,
+      "zoom_region": "middle_center",
+      "zoom_scale": 1,
+      "subtitle_position": "lower_third"
+    },
+    {
+      "shot_idx": 7,
+      "start_ms": 10720,
+      "end_ms": 14140,
+      "duration_ms": 3420,
+      "spoken_during": "before 2032",
+      "spoken_words": [
+        {
+          "text": "before",
+          "start_ms": 10720,
+          "end_ms": 11120
+        },
+        {
+          "text": "2032",
+          "start_ms": 11120,
+          "end_ms": 12140
+        }
+      ],
+      "structure_role": "cta",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.93,
+          "likelihood": 0.95,
+          "broll_description": "Compilation of GRU Space’s biggest milestones shown rapidly in succession, conveying swift achievements.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://gruspace.com/milestones",
+              "focus": "milestones display"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "original",
+            "fit": "contain",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "web source to demonstrate or verify specific claims",
+          "rationale": "Anticipation builds through an engaging and rapid showcase."
+        },
+        {
+          "tier": "ideal",
+          "fit_score": 0.89,
+          "likelihood": 0.95,
+          "broll_description": "Projection of future timelines for lunar operations displayed visually during GRU Space investor meetings.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://gruspace.com/future",
+              "focus": "future timeline visual"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "ken_burns"
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "web source to demonstrate or verify specific claims",
+          "rationale": "Focus on roadmap checkpoints urges vigilant interest alignment as the event reaches climax."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.65,
+          "likelihood": 0.95,
+          "broll_description": "Intro page of GRU Space’s website highlighting their latest innovations and investments.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://gruspace.com/home",
+              "focus": "innovations section"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Collected and consistently presented as an easy engagement anchor."
+        }
+      ],
+      "broll_description": "Compilation of GRU Space’s biggest milestones shown rapidly in succession, conveying swift achievements.",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://gruspace.com/milestones",
+          "focus": "milestones display"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "static"
+      },
+      "placement": {
+        "aspect": "original",
+        "fit": "contain",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "web source to demonstrate or verify specific claims",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/reel/DYxLMnNRzQ5/?igsh=bXhtY2JlNjhsYzNm",
+        "shot_idx": 10,
+        "pattern": "Tail-end appeal supported by a body of evidence signals viewers to consider involvement seriously."
+      },
+      "text_overlay": "'first lunar hotel'",
+      "text_position": "middle_center",
+      "animation_cue": "flash-royalty",
+      "scene_animation": "none",
+      "animation_scale": 1.05,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "sfx_cue": "impulse_tonal on closing proposal",
+      "clip_type": "talking_head",
+      "rationale": "Inviting lightlines display proposal benefits nicely bound by changes.",
+      "selected_media": [
+        {
+          "url": "capture://files/ce4d82634bd0e2b2.mp4",
+          "kind": "video",
+          "origin": "page_recording",
+          "from_candidate_url": "https://www.gru.space/reserve",
+          "reason": "Best fit for the call to action, capturing the early-access application aspect."
+        }
+      ],
+      "animation_duration_ms": 4180,
+      "zoom_region": "middle_center",
+      "zoom_scale": 1,
+      "subtitle_position": "lower_third"
+    },
+    {
+      "shot_idx": 8,
+      "start_ms": 14140,
+      "end_ms": 17994,
+      "duration_ms": 3854,
+      "spoken_during": "Would you invest in GRU Space",
+      "spoken_words": [
+        {
+          "text": "Would",
+          "start_ms": 14140,
+          "end_ms": 14620
+        },
+        {
+          "text": "you",
+          "start_ms": 14620,
+          "end_ms": 14900
+        },
+        {
+          "text": "invest",
+          "start_ms": 14900,
+          "end_ms": 15240
+        },
+        {
+          "text": "in",
+          "start_ms": 15240,
+          "end_ms": 15640
+        },
+        {
+          "text": "GRU",
+          "start_ms": 15640,
+          "end_ms": 16160
+        },
+        {
+          "text": "Space",
+          "start_ms": 16160,
+          "end_ms": 16540
+        }
+      ],
+      "structure_role": "cta",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.95,
+          "likelihood": 0.95,
+          "broll_description": "Dynamic cut of an astronaut's infinite walk on the moon as part of a VR exhibit by GRU Space.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://gruspace.com/virtual_tour",
+              "focus": "moonwalk exhibit"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "ken_burns"
+          },
+          "placement": {
+            "aspect": "original",
+            "fit": "split_top",
+            "position": "top_center",
+            "scale": 0.5
+          },
+          "source_type": "web source to demonstrate or verify specific claims",
+          "rationale": "Just as bold post-speech assets are to bring the audience’s attention back neatly into line."
+        },
+        {
+          "tier": "ideal",
+          "fit_score": 0.91,
+          "likelihood": 0.95,
+          "broll_description": "Artistic representation of GRU Space creating their moon landmark before 2032.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://gruspace.com/concepts",
+              "focus": "landmark artistic rendering"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "ken_burns"
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "web source to demonstrate or verify specific claims",
+          "rationale": "This scene wraps up predicted intentions strongly via graphics that imagine the unachievable vividly."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.65,
+          "likelihood": 0.95,
+          "broll_description": "Presentation page on GRU Space's website showcasing collaborative missions for 2032.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://gruspace.com/plans",
+              "focus": "collaborative missions section"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Provides carefully collated sensational plans open-ended for questions of participation."
+        }
+      ],
+      "broll_description": "Dynamic cut of an astronaut's infinite walk on the moon as part of a VR exhibit by GRU Space.",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://gruspace.com/virtual_tour",
+          "focus": "moonwalk exhibit"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "ken_burns"
+      },
+      "placement": {
+        "aspect": "original",
+        "fit": "split_top",
+        "position": "top_center",
+        "scale": 0.5
+      },
+      "source_type": "web source to demonstrate or verify specific claims",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/reel/DYxLMnNRzQ5/?igsh=bXhtY2JlNjhsYzNm",
+        "shot_idx": 8,
+        "pattern": "The captivating summary invites maturing interest wrapped in well-aligned questions."
+      },
+      "text_overlay": "'Would you invest in GRU Space'",
+      "text_position": "middle_center",
+      "animation_cue": "question-drift",
+      "scene_animation": "none",
+      "animation_scale": 1.05,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "sfx_cue": "impulse_tonal question echo",
+      "clip_type": "talking_head",
+      "rationale": "Gently iterated proposition possibly assembled to enkindle.",
+      "selected_media": [
+        {
+          "url": "capture://files/ed86b230d4ae769e.mp4",
+          "kind": "video",
+          "origin": "page_recording",
+          "from_candidate_url": "https://observer.com/2026/01/startup-moon-hotel-lunar-economy",
+          "reason": "Supports the investment angle with a focus on deposits and the lunar economy."
+        }
+      ],
+      "animation_duration_ms": 3094,
+      "zoom_region": "middle_center",
+      "zoom_scale": 1,
+      "split_media_fit": "fill",
+      "subtitle_position": "center",
+      "original_media_start_zoom": 1,
+      "original_scene_animation": "zoom_in",
+      "original_animation_scale": 1.95
+    }
+  ],
+  "structure_sections": [
+    {
+      "role": "hook",
+      "script_template": "What's this <descriptor> that's <activity>",
+      "target_fill": "What's this startup that's",
+      "target_start_ms": 0,
+      "target_end_ms": 1680,
+      "shot_count": 1,
+      "visual_signature": {
+        "dominant_clip_type": "broll_visual",
+        "placement_pattern": "fullbleed 9:16",
+        "text_overlay_pattern": "text_top_center",
+        "sfx_pattern": "vocal hit on cut in",
+        "motion_pattern": "zoom_in over the shot",
+        "scene_elements": []
+      }
+    },
+    {
+      "role": "intro",
+      "script_template": "This is <subject>, and they <claim>",
+      "target_fill": "moon This is GRU Space and they just",
+      "target_start_ms": 1680,
+      "target_end_ms": 6080,
+      "shot_count": 3,
+      "visual_signature": {
+        "dominant_clip_type": "broll_visual",
+        "placement_pattern": "fullbleed 9:16",
+        "text_overlay_pattern": "text_middle_center",
+        "sfx_pattern": "impulse_tonal on introduction",
+        "motion_pattern": "ken_burns",
+        "scene_elements": []
+      }
+    },
+    {
+      "role": "body",
+      "script_template": "<claim 1> <claim 2>",
+      "target_fill": "got an OIC GRU Space is trying to",
+      "target_start_ms": 6080,
+      "target_end_ms": 10720,
+      "shot_count": 3,
+      "visual_signature": {
+        "dominant_clip_type": "broll_talking_head",
+        "placement_pattern": "face centered full-screen",
+        "text_overlay_pattern": "text_top_left",
+        "sfx_pattern": "vocal for emphasis",
+        "motion_pattern": "zoom_in",
+        "scene_elements": []
+      }
+    },
+    {
+      "role": "cta",
+      "script_template": "Would you <ask>",
+      "target_fill": "before 2032 Would you invest in GRU Space",
+      "target_start_ms": 10720,
+      "target_end_ms": 17990,
+      "shot_count": 2,
+      "visual_signature": {
+        "dominant_clip_type": "talking_head",
+        "placement_pattern": "fullbleed 9:16",
+        "text_overlay_pattern": "text_middle_center",
+        "sfx_pattern": "impulse_tonal for question emphasis",
+        "motion_pattern": "none",
+        "scene_elements": []
+      }
+    }
+  ],
+  "structure_confidence": "high",
+  "structure_rationale": "The inspiration reels consistently follow a template of introducing a subject, presenting bold claims, and ending with an engaging call-to-action.",
+  "structure_alternatives": null,
+  "content_source_patterns": [
+    "screen recording of the subject's website",
+    "lots of subject footage from stage talks — creator builds reels around the named subject themselves",
+    "screenshot of the subject's social media profile",
+    "stock / archival footage tied to a claim",
+    "web source to demonstrate or verify specific claims",
+    "visual presentation of key moments or announcements related to the subject"
+  ],
+  "style_summary": "- reel 1: 15.7s, 21 shots, cuts/sec=1.27, text=95%, SFX=61/min\n- reel 2: 14.7s, 7 shots, cuts/sec=0.41, text=100%, SFX=33/min\n- reel 3: 17.2s, 9 shots, cuts/sec=0.46, text=100%, SFX=63/min\n- reel 4: 12.5s, 8 shots, cuts/sec=0.56, text=100%, SFX=29/min\n- reel 5: 13.5s, 11 shots, cuts/sec=0.74, text=100%, SFX=58/min\n- reel 6: 17.2s, 9 shots, cuts/sec=0.46, text=100%, SFX=63/min",
+  "content_sources": [
+    "https://www.instagram.com/p/DYlQlfYuTc7/",
+    "https://www.instagram.com/p/DYg26zgRiGS/",
+    "https://www.instagram.com/reel/DYxLMnNRzQ5/?igsh=bXhtY2JlNjhsYzNm",
+    "https://www.instagram.com/reel/DYg26zgRiGS/?igsh=enl3MzA3dnFnNHNv"
+  ],
+  "target_metrics": {
+    "fingerprint_version": 4,
+    "computed_at": 1781311491337,
+    "n_reels": 3,
+    "n_shots": 41,
+    "median_shot_ms": 800,
+    "cuts_per_sec": 0.824773034674918,
+    "clip_type_distribution": {
+      "talking_head": 0.18879615960103024,
+      "broll_talking_head": 0.15212545748307824,
+      "talking_head_unknown": 0.23018327944028208,
+      "broll_visual": 0.42889510347560944
+    },
+    "real_speaker_pct": 0.14381914381914382,
+    "broll_talking_head_pct": 0.10678210678210677,
+    "face_size_median": 0.38286084681749344,
+    "face_region_distribution": {
+      "top_left": 0,
+      "top_center": 0.2111111111111111,
+      "top_right": 0.027777777777777776,
+      "middle_left": 0.027777777777777776,
+      "middle_center": 0.4444444444444444,
+      "middle_right": 0,
+      "bottom_left": 0.027777777777777776,
+      "bottom_center": 0.2611111111111111,
+      "bottom_right": 0
+    },
+    "face_region_dominant": "mixed",
+    "text_overlay_pct": 0.9841269841269842,
+    "text_region_distribution": {
+      "top_left": 0.07886671593988669,
+      "top_center": 0.11313993594481399,
+      "top_right": 0.06004804138950479,
+      "middle_left": 0.09960704607046071,
+      "middle_center": 0.24571199802907118,
+      "middle_right": 0.09450726779995072,
+      "bottom_left": 0.0722690317812269,
+      "bottom_center": 0.1902648435575265,
+      "bottom_right": 0.04558511948755851
+    },
+    "text_region_dominant": "mixed",
+    "media_overlay_pct": 0.046176046176046176,
+    "overlays_per_min": 4.0186759877647065,
+    "overlay_kind_distribution": {
+      "image": 0.75,
+      "sticker": 0,
+      "gif": 0,
+      "pip_video": 0.25,
+      "emoji_graphic": 0
+    },
+    "overlay_motion_distribution": {
+      "static": 0.75,
+      "animated": 0.25
+    },
+    "overlay_region_distribution": {
+      "top_left": 0,
+      "top_center": 0,
+      "top_right": 0,
+      "middle_left": 0,
+      "middle_center": 0.25,
+      "middle_right": 0.25,
+      "bottom_left": 0.5,
+      "bottom_center": 0,
+      "bottom_right": 0
+    },
+    "overlay_region_dominant": "mixed",
+    "overlay_pattern": {
+      "summary": "This creator uses a combination of picture-in-picture videos and static images as media overlays across their reels. The overlays primarily appear in the middle or lower grid positions, often during critical moments in the narrative where key statements are made. The use of animated motion for the pip video adds a dynamic element to the reels, while static images provide additional visual support without movement.",
+      "per_reel_rate": 1,
+      "overlays_per_min": 3.872466761326965,
+      "entries": [
+        {
+          "kind": "pip_video",
+          "frequency": "once, in the middle segment",
+          "typical_position": "middle_center",
+          "placement": "central inset video",
+          "motion": "animated",
+          "script_context": "during a key mention, enhancing the visuals with 'Walnut's'",
+          "examples": [
+            "Walnut's"
+          ]
+        },
+        {
+          "kind": "image",
+          "frequency": "~2 per reel",
+          "typical_position": "middle_right",
+          "placement": "small corner badge",
+          "motion": "static",
+          "script_context": "simultaneously with the mention of 'Walnut's' and also on the bottom left during discussion of user funding",
+          "examples": [
+            "Walnut's",
+            "users funding"
+          ]
+        }
+      ]
+    },
+    "camera_motion_distribution": {
+      "none": 0.34487734487734484,
+      "zoom_in": 0.2217412217412217,
+      "zoom_out": 0,
+      "pan_left": 0.015873015873015872,
+      "pan_right": 0,
+      "ken_burns": 0.41750841750841755
+    },
+    "camera_motion_dominant": "mixed",
+    "camera_motion_pct": 0.6551226551226552,
+    "camera_motion_confidence": 0.7187686387686387,
+    "voiceover_pct": 0.9435582225394666,
+    "music_pct": 0.032620378021250764,
+    "audio_silence_pct": 0.023821399439282593,
+    "audio_energy_mean": 0.10428770224085625,
+    "sfx_per_min": 60.46126471431764,
+    "cuts_with_sfx_pct": 0.481962481962482,
+    "sfx_at_cuts_pct": 0.46901709401709396,
+    "sfx_type_distribution": {
+      "impulse_tonal": 0.3404255319148936,
+      "impulse_noisy": 0.0425531914893617,
+      "sweep": 0,
+      "vocal": 0.48936170212765956,
+      "sustained": 0,
+      "other": 0.1276595744680851
+    },
+    "sfx_classified_total": 47,
+    "sfx_label_distribution": [],
+    "sfx_pattern": {
+      "signals": {
+        "sfx_count": 15.666666666666666,
+        "word_count": 40.333333333333336,
+        "sfx_per_word": 0.39627980922098566,
+        "on_word_pct": 0.6773504273504273,
+        "hook_density_per_s": 1.429505452482914,
+        "body_density_per_s": 0.9944313261995229,
+        "hook_escalation": -1,
+        "hook_dominant_type": "impulse_tonal",
+        "body_dominant_type": "vocal"
+      },
+      "rules": [
+        {
+          "trigger": "introduction of Tony",
+          "sfx_type": "impulse_tonal",
+          "example": "This is ⟨impulse_tonal⟩ Tony",
+          "reel_count": 1
+        },
+        {
+          "trigger": "building of Walnut",
+          "sfx_type": "vocal",
+          "example": "⟨vocal⟩ building ⟨vocal⟩ Walnut",
+          "reel_count": 1
+        },
+        {
+          "trigger": "description of the headband",
+          "sfx_type": "impulse_noisy",
+          "example": "⟨impulse_noisy⟩ that lets you feel the",
+          "reel_count": 1
+        },
+        {
+          "trigger": "question about Tony's future",
+          "sfx_type": "impulse_tonal",
+          "example": "Do you think Tony will be the next Steve Jobs",
+          "reel_count": 1
+        },
+        {
+          "trigger": "introduction of the startup name",
+          "sfx_type": "impulse_tonal",
+          "example": "This is Ornadyne",
+          "reel_count": 1
+        },
+        {
+          "trigger": "mention of the primary client",
+          "sfx_type": "impulse_tonal",
+          "example": "Their primary client is the government",
+          "reel_count": 1
+        }
+      ],
+      "summaries": [
+        "The sound effects primarily emphasize key phrases and moments of importance, with a consistent use of impulse tonal sounds throughout the hook. The SFX cadence aligns closely with significant claims, particularly during reveals and questions.",
+        "The sound effects are predominantly used to emphasize key moments in the spoken content, with a higher frequency of effects during the hook compared to the body. The SFX primarily highlight important claims and notable names.",
+        "The SFX usage features a higher density of sound effects during the hook, primarily using impulse tonal sounds to emphasize key moments, while the body relies on vocal stingers to maintain engagement. Sound effects are strategically placed on important claims and questions to enhance impact."
+      ],
+      "n_reels": 3
+    },
+    "hook_speeches": [
+      "Who's the Stanford student that thinks he's Steve Jobs This is Tony and he's building",
+      "What's this startup that's building robotic surveillance birds This is",
+      "Who's this student that skipped prom to apply to YC This is Jack and"
+    ],
+    "hook_texts": [
+      "<\n\n&\n\nWHO\n\niS\n\nZZ. —",
+      "'re building autonomous ornithopters with\n\nr-class flight times, low acoustic signatur\n\ni natural bird-like flight. This makes\n\nadyne's drones harder for humans and\n\nnter-UAS systems to detect, classify, and\n\nget.\n\ne Found\n\nSTARTUR\n\nourg’s Master's thesis is built on 2+ years c\n\nearch and development in flapping-wing\n\nnes. His work has received multiple awarc\n\nTU",
+      "my official ley\n\no stanford university,\n\n~\n\n» -"
+    ],
+    "hook_archetypes": null,
+    "caption_style": {
+      "captions_pct": 1,
+      "n_with_captions": 4,
+      "matched_preset": "hormozi",
+      "preset_label": "Hormozi",
+      "preset_confidence_avg": 0.86,
+      "preset_distribution": {
+        "hormozi": 4
+      },
+      "position": "center",
+      "chunking": "word_by_word",
+      "words_per_chunk_avg": 1,
+      "font_size": "large",
+      "text_treatment": "clear",
+      "treatment_color_examples": [],
+      "treatment_distribution": {
+        "clear": 4
+      },
+      "text_color": "yellow",
+      "highlight_color": null,
+      "emphasis": "active_word_highlight",
+      "casing": "uppercase",
+      "animation": "pop",
+      "position_distribution": {
+        "center": 4
+      },
+      "chunking_distribution": {
+        "word_by_word": 4
+      },
+      "font_size_distribution": {
+        "large": 4
+      },
+      "emphasis_distribution": {
+        "active_word_highlight": 4
+      },
+      "casing_distribution": {
+        "uppercase": 4
+      },
+      "animation_distribution": {
+        "pop": 4
+      },
+      "has_emoji_pct": 0,
+      "font_family": "mixed",
+      "font_family_name": "",
+      "font_family_distribution": {
+        "bebas-neue": 2,
+        "anton": 2
+      },
+      "font_descriptors": [
+        "bold sans-serif with no stroke"
+      ],
+      "style_labels": [
+        "word-by-word karaoke highlight",
+        "word-by-word active highlight"
+      ]
+    },
+    "beat_template": [
+      {
+        "clip_type": "broll_visual",
+        "n_shots": 17,
+        "duration_p50_ms": 734,
+        "has_text_p": 0.9411764705882353,
+        "has_face_p": 0,
+        "is_speaker_p": 0
+      },
+      {
+        "clip_type": "talking_head_unknown",
+        "n_shots": 15,
+        "duration_p50_ms": 566,
+        "has_text_p": 1,
+        "has_face_p": 1,
+        "is_speaker_p": 0
+      },
+      {
+        "clip_type": "talking_head",
+        "n_shots": 5,
+        "duration_p50_ms": 800,
+        "has_text_p": 1,
+        "has_face_p": 1,
+        "is_speaker_p": 1
+      },
+      {
+        "clip_type": "broll_talking_head",
+        "n_shots": 4,
+        "duration_p50_ms": 1434,
+        "has_text_p": 1,
+        "has_face_p": 1,
+        "is_speaker_p": 0
+      }
+    ]
+  },
+  "sfx_plan": {
+    "signals": {
+      "sfx_count": 15.666666666666666,
+      "word_count": 40.333333333333336,
+      "sfx_per_word": 0.39627980922098566,
+      "on_word_pct": 0.6773504273504273,
+      "hook_density_per_s": 1.429505452482914,
+      "body_density_per_s": 0.9944313261995229,
+      "hook_escalation": -1,
+      "hook_dominant_type": "impulse_tonal",
+      "body_dominant_type": "vocal"
+    },
+    "rules": [
+      {
+        "trigger": "introduction of Tony",
+        "sfx_type": "impulse_tonal",
+        "example": "This is ⟨impulse_tonal⟩ Tony",
+        "reel_count": 1
+      },
+      {
+        "trigger": "building of Walnut",
+        "sfx_type": "vocal",
+        "example": "⟨vocal⟩ building ⟨vocal⟩ Walnut",
+        "reel_count": 1
+      },
+      {
+        "trigger": "description of the headband",
+        "sfx_type": "impulse_noisy",
+        "example": "⟨impulse_noisy⟩ that lets you feel the",
+        "reel_count": 1
+      },
+      {
+        "trigger": "question about Tony's future",
+        "sfx_type": "impulse_tonal",
+        "example": "Do you think Tony will be the next Steve Jobs",
+        "reel_count": 1
+      },
+      {
+        "trigger": "introduction of the startup name",
+        "sfx_type": "impulse_tonal",
+        "example": "This is Ornadyne",
+        "reel_count": 1
+      },
+      {
+        "trigger": "mention of the primary client",
+        "sfx_type": "impulse_tonal",
+        "example": "Their primary client is the government",
+        "reel_count": 1
+      }
+    ],
+    "summaries": [
+      "The sound effects primarily emphasize key phrases and moments of importance, with a consistent use of impulse tonal sounds throughout the hook. The SFX cadence aligns closely with significant claims, particularly during reveals and questions.",
+      "The sound effects are predominantly used to emphasize key moments in the spoken content, with a higher frequency of effects during the hook compared to the body. The SFX primarily highlight important claims and notable names.",
+      "The SFX usage features a higher density of sound effects during the hook, primarily using impulse tonal sounds to emphasize key moments, while the body relies on vocal stingers to maintain engagement. Sound effects are strategically placed on important claims and questions to enhance impact."
+    ],
+    "n_reels": 3
+  },
+  "subtitle_spec": {
+    "enabled": true,
+    "preset_id": "hormozi",
+    "preset_label": "Hormozi",
+    "font_family": "",
+    "font_family_name": "",
+    "font_size": "large",
+    "position": "center",
+    "chunking": "word_by_word",
+    "words_per_chunk": 1,
+    "casing": "uppercase",
+    "emphasis": "active_word_highlight",
+    "animation": "pop",
+    "text_treatment": "bordered",
+    "text_color": "yellow",
+    "treatment_color": null,
+    "highlight_color": null,
+    "has_emoji": false,
+    "low_confidence": false
+  },
+  "target_video_path": "/Users/rahulpeesa/Documents/GitHub/OneTake/desktop/.library/preview-videos/4ba5c177c764f968.mp4",
+  "reel_id": "75ea5716-7a97-49e4-b794-abc15c36319b",
+  "sfx_events": [
+    {
+      "ms": 0,
+      "type": "impulse_tonal",
+      "sound": "correct (ding)"
+    },
+    {
+      "ms": 440,
+      "type": "impulse_tonal",
+      "sound": "correct (ding)"
+    },
+    {
+      "ms": 660,
+      "type": "impulse_tonal",
+      "sound": "correct (ding)"
+    },
+    {
+      "ms": 1000,
+      "type": "impulse_tonal",
+      "sound": "correct (ding)"
+    },
+    {
+      "ms": 1680,
+      "type": "impulse_tonal",
+      "sound": "correct (ding)"
+    },
+    {
+      "ms": 1680,
+      "type": "impulse_tonal",
+      "sound": "correct (ding)"
+    },
+    {
+      "ms": 2200,
+      "type": "impulse_tonal",
+      "sound": "correct (ding)"
+    },
+    {
+      "ms": 2360,
+      "type": "impulse_tonal",
+      "sound": "correct (ding)"
+    },
+    {
+      "ms": 2560,
+      "type": "impulse_tonal",
+      "sound": "correct (ding)"
+    },
+    {
+      "ms": 4360,
+      "type": "impulse_tonal",
+      "sound": "correct (ding)"
+    },
+    {
+      "ms": 4400,
+      "type": "impulse_tonal",
+      "sound": "correct (ding)"
+    },
+    {
+      "ms": 4840,
+      "type": "impulse_tonal",
+      "sound": "correct (ding)"
+    },
+    {
+      "ms": 5140,
+      "type": "impulse_tonal",
+      "sound": "correct (ding)"
+    },
+    {
+      "ms": 5540,
+      "type": "impulse_tonal",
+      "sound": "correct (ding)"
+    },
+    {
+      "ms": 5540,
+      "type": "impulse_tonal",
+      "sound": "Anime Wow"
+    },
+    {
+      "ms": 5740,
+      "type": "impulse_tonal",
+      "sound": "correct (ding)"
+    },
+    {
+      "ms": 5880,
+      "type": "impulse_tonal",
+      "sound": "correct (ding)"
+    },
+    {
+      "ms": 6080,
+      "type": "impulse_tonal",
+      "sound": "correct (ding)"
+    },
+    {
+      "ms": 6240,
+      "type": "impulse_tonal",
+      "sound": "correct (ding)"
+    },
+    {
+      "ms": 6420,
+      "type": "impulse_tonal",
+      "sound": "correct (ding)"
+    },
+    {
+      "ms": 8760,
+      "type": "impulse_tonal",
+      "sound": "correct (ding)"
+    },
+    {
+      "ms": 8960,
+      "type": "impulse_tonal",
+      "sound": "correct (ding)"
+    },
+    {
+      "ms": 9100,
+      "type": "impulse_tonal",
+      "sound": "correct (ding)"
+    },
+    {
+      "ms": 9280,
+      "type": "impulse_tonal",
+      "sound": "correct (ding)"
+    },
+    {
+      "ms": 9460,
+      "type": "impulse_tonal",
+      "sound": "correct (ding)"
+    },
+    {
+      "ms": 9720,
+      "type": "impulse_tonal",
+      "sound": "correct (ding)"
+    },
+    {
+      "ms": 9720,
+      "type": "impulse_tonal",
+      "sound": "correct (ding)"
+    },
+    {
+      "ms": 9980,
+      "type": "impulse_tonal",
+      "sound": "correct (ding)"
+    },
+    {
+      "ms": 10100,
+      "type": "impulse_tonal",
+      "sound": "correct (ding)"
+    },
+    {
+      "ms": 10380,
+      "type": "impulse_tonal",
+      "sound": "correct (ding)"
+    },
+    {
+      "ms": 10720,
+      "type": "impulse_tonal",
+      "sound": "correct (ding)"
+    },
+    {
+      "ms": 10720,
+      "type": "impulse_tonal",
+      "sound": "Anime Wow"
+    },
+    {
+      "ms": 11120,
+      "type": "impulse_tonal",
+      "sound": "correct (ding)"
+    },
+    {
+      "ms": 14140,
+      "type": "impulse_tonal",
+      "sound": "correct (ding)"
+    },
+    {
+      "ms": 14620,
+      "type": "impulse_tonal",
+      "sound": "correct (ding)"
+    },
+    {
+      "ms": 14900,
+      "type": "impulse_tonal",
+      "sound": "correct (ding)"
+    },
+    {
+      "ms": 15240,
+      "type": "impulse_tonal",
+      "sound": "correct (ding)"
+    },
+    {
+      "ms": 15640,
+      "type": "impulse_tonal",
+      "sound": "correct (ding)"
+    },
+    {
+      "ms": 16160,
+      "type": "impulse_tonal",
+      "sound": "correct (ding)"
+    }
+  ],
+  "sfx_override": {
+    "cadence": "every_word",
+    "sound": "ding"
+  },
+  "sfx_lead_ms": 0,
+  "narration_volume": 0
+}

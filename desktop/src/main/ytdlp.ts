@@ -19,6 +19,8 @@ export const YT_DLP = process.env.YT_DLP_PATH || 'yt-dlp';
  *                                 or "chrome:Profile 1" for a named profile)
  *  A cookies file wins when both are set. Returns [] when neither is
  *  configured — the unauthenticated default. */
+let cookieCopySeq = 0;
+
 export function ytdlpCookieArgs(): string[] {
   const file = process.env.YTDLP_COOKIES_FILE?.trim();
   if (file && existsSync(file)) {
@@ -26,8 +28,13 @@ export function ytdlpCookieArgs(): string[] {
     // the file, and MozillaCookieJar.save() drops session cookies (e.g.
     // Instagram's `sessionid`). That would silently degrade the file the
     // browser resolver depends on. Hand yt-dlp a throwaway copy instead
-    // so the source of truth is never mutated.
-    const copy = join(tmpdir(), 'onetake-ytdlp-cookies.txt');
+    // so the source of truth is never mutated. The copy is UNIQUE per
+    // call: up to 4 yt-dlp jobs run concurrently, and a shared path
+    // races one job's write-back against another's read.
+    const copy = join(
+      tmpdir(),
+      `onetake-ytdlp-cookies-${process.pid}-${++cookieCopySeq}.txt`,
+    );
     try {
       copyFileSync(file, copy);
       return ['--cookies', copy];
@@ -35,7 +42,9 @@ export function ytdlpCookieArgs(): string[] {
       return ['--cookies', file];
     }
   }
-  const browser = process.env.YTDLP_COOKIES_FROM_BROWSER?.trim();
+  const browser =
+    process.env.YTDLP_COOKIES_FROM_BROWSER?.trim() ||
+    (process.env.ONETAKE_YTDLP_AUTO_BROWSER_COOKIES === '0' ? '' : 'chrome');
   if (browser) return ['--cookies-from-browser', browser];
   return [];
 }
@@ -46,7 +55,8 @@ export function ytdlpCookieArgs(): string[] {
 export function hasYtdlpCookies(): boolean {
   return !!(
     process.env.YTDLP_COOKIES_FILE?.trim() ||
-    process.env.YTDLP_COOKIES_FROM_BROWSER?.trim()
+    process.env.YTDLP_COOKIES_FROM_BROWSER?.trim() ||
+    process.env.ONETAKE_YTDLP_AUTO_BROWSER_COOKIES !== '0'
   );
 }
 

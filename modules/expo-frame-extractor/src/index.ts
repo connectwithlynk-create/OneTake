@@ -1,4 +1,4 @@
-import { requireNativeModule } from 'expo';
+import { requireOptionalNativeModule } from 'expo';
 
 /** One sampled frame from a remote video. Bytes are JPEG, base64-encoded
  *  so they cross the JS bridge cleanly. `timestampMs` echoes the request
@@ -26,7 +26,16 @@ interface FrameExtractorNativeModule {
   recognizeText(jpegBase64: string): Promise<string>;
 }
 
-const native = requireNativeModule<FrameExtractorNativeModule>('FrameExtractor');
+const native =
+  requireOptionalNativeModule<FrameExtractorNativeModule>('FrameExtractor');
+
+export const isFrameExtractorAvailable = native != null;
+
+function unavailable(): never {
+  throw new Error(
+    'FrameExtractor is not available in Expo Go. Use a development build to run on-device video analysis.'
+  );
+}
 
 /**
  * Extract frames at the given timestamps (in ms from the start of the
@@ -49,6 +58,7 @@ export async function extractFrames(
 ): Promise<ExtractedFrame[]> {
   if (!url) throw new Error('extractFrames: url required');
   if (!Array.isArray(timestampsMs) || timestampsMs.length === 0) return [];
+  if (!native) unavailable();
   return native.extractFrames(url, timestampsMs, options ?? {});
 }
 
@@ -60,5 +70,6 @@ export async function extractFrames(
  */
 export async function recognizeText(jpegBase64: string): Promise<string> {
   if (!jpegBase64) return '';
+  if (!native) return '';
   return native.recognizeText(jpegBase64);
 }

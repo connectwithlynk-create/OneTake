@@ -2,7 +2,7 @@
 // Runs in the analyzer utilityProcess. The detector is loaded once and
 // reused; tfjs model data is fetched on first use and is small.
 import { existsSync, readFileSync } from 'fs';
-import { dirname, join } from 'path';
+import { dirname, join, resolve } from 'path';
 import * as tf from '@tensorflow/tfjs';
 import { setWasmPaths } from '@tensorflow/tfjs-backend-wasm';
 import * as faceDetection from '@tensorflow-models/face-detection';
@@ -12,13 +12,31 @@ import * as faceDetection from '@tensorflow-models/face-detection';
 // whole analyzer. Intercept the request and serve the cached files from
 // desktop/resources/models/face-detector/ so it never touches the network
 // in normal operation. Override the dir with FACE_DETECTOR_MODEL_DIR.
+/** Resolve the face-detector cache dir robustly. Mirrors the SyncNet/VAD
+ *  resolver: explicit env, then cwd-relative (tsx scripts run from
+ *  desktop/), then __dirname 2-up (built app, __dirname=out/main) and
+ *  3-up. Picks the first that actually holds model.json so the live
+ *  tfhub fetch — which can hang cold-start and freeze the analyzer — is
+ *  never reached in normal operation. Returns the last candidate when
+ *  none exist so the (then-networked) path at least has a sane base. */
+function resolveFaceModelDir(): string {
+  const candidates = [
+    process.env.FACE_DETECTOR_MODEL_DIR,
+    resolve(process.cwd(), 'resources/models/face-detector'),
+    join(__dirname, '../../resources/models/face-detector'),
+    join(__dirname, '../../../resources/models/face-detector'),
+  ].filter((c): c is string => !!c);
+  for (const c of candidates) {
+    if (existsSync(join(c, 'model.json'))) return c;
+  }
+  return candidates[candidates.length - 1];
+}
+
 function installFaceModelCache(): void {
   const g = globalThis as unknown as { __faceModelCachePatched?: boolean };
   if (g.__faceModelCachePatched) return;
   g.__faceModelCachePatched = true;
-  const cacheDir =
-    process.env.FACE_DETECTOR_MODEL_DIR ||
-    join(__dirname, '../../resources/models/face-detector');
+  const cacheDir = resolveFaceModelDir();
   const PREFIX =
     'https://tfhub.dev/mediapipe/tfjs-model/face_detection/short/1/';
   const orig = globalThis.fetch.bind(globalThis);
@@ -47,9 +65,17 @@ function installFaceModelCache(): void {
 
 let detectorPromise: Promise<faceDetection.FaceDetector> | null = null;
 
+/** Hard ceiling on face-detector cold-start. If the cached model can't
+ *  be found and the package falls back to a network fetch that hangs, we
+ *  must not freeze the whole analyzer — every frame's detectFaceData
+ *  awaits this promise. On timeout we reject; callers degrade to "no
+ *  face" (detectFaceData catches and returns null). The cache should make
+ *  init take ~1s, so 25s only ever triggers on the broken path. */
+const DETECTOR_INIT_TIMEOUT_MS = 25_000;
+
 function getDetector(): Promise<faceDetection.FaceDetector> {
   if (!detectorPromise) {
-    detectorPromise = (async () => {
+    const init = (async () => {
       installFaceModelCache();
       const wasmDir =
         join(
@@ -69,6 +95,28 @@ function getDetector(): Promise<faceDetection.FaceDetector> {
       console.error('[face] detector ready');
       return detector;
     })();
+    let timer: NodeJS.Timeout;
+    const guard = new Promise<never>((_, reject) => {
+      timer = setTimeout(
+        () =>
+          reject(
+            new Error(
+              `face detector init exceeded ${DETECTOR_INIT_TIMEOUT_MS}ms ` +
+                '(cached model not found? falling back to network fetch)',
+            ),
+          ),
+        DETECTOR_INIT_TIMEOUT_MS,
+      );
+    });
+    detectorPromise = Promise.race([init, guard]).finally(() =>
+      clearTimeout(timer),
+    ) as Promise<faceDetection.FaceDetector>;
+    detectorPromise.catch((err) => {
+      console.error(
+        '[face] detector unavailable:',
+        err instanceof Error ? err.message : String(err),
+      );
+    });
   }
   return detectorPromise;
 }

@@ -18,13 +18,23 @@ import {
   existsSync,
   mkdirSync,
   readFileSync,
+  statSync,
   writeFileSync,
 } from 'fs';
 import { join } from 'path';
+import { execFile } from 'child_process';
+import { promisify } from 'util';
+
+const execFileAsync = promisify(execFile);
 
 const UA =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36';
 const BASE = 'https://www.myinstants.com';
+// myinstants is Cloudflare-fronted and uses a cookie-based region redirect
+// (/en/trending/ -> /en/index/us/), plus brotli/gzip bodies that node's
+// undici fetch fails to decode (TransformError). curl with --compressed, -L
+// and a sticky cookie jar handles all three; the crawler shells out to it.
+const COOKIE_JAR = '/tmp/myinstants-crawl-cookies.txt';
 
 interface Args {
   start: string;
@@ -117,24 +127,29 @@ function parseInstants(html: string, foundVia: string): Instant[] {
   return out;
 }
 
+const CURL_BASE = ['-sSL', '--compressed', '-A', UA, '-b', COOKIE_JAR, '-c', COOKIE_JAR];
+
 async function fetchText(url: string): Promise<string> {
-  const res = await fetch(url, { headers: { 'User-Agent': UA } });
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText} for ${url}`);
-  return res.text();
+  const { stdout } = await execFileAsync('curl', [...CURL_BASE, url], {
+    encoding: 'utf-8',
+    maxBuffer: 64 * 1024 * 1024,
+  });
+  return stdout;
 }
 
 async function fetchAudio(url: string, dest: string): Promise<boolean> {
-  const res = await fetch(url, { headers: { 'User-Agent': UA } });
-  if (!res.ok) {
-    console.error(`  ! fetch ${res.status} for ${url}`);
+  try {
+    await execFileAsync('curl', [...CURL_BASE, '-o', dest, url], {
+      maxBuffer: 64 * 1024 * 1024,
+    });
+  } catch (err) {
+    console.error(`  ! curl ${err instanceof Error ? err.message : err}`);
     return false;
   }
-  const buf = Buffer.from(await res.arrayBuffer());
-  if (buf.length === 0) {
+  if (!existsSync(dest) || statSync(dest).size === 0) {
     console.error(`  ! empty body for ${url}`);
     return false;
   }
-  writeFileSync(dest, buf);
   return true;
 }
 

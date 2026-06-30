@@ -82,6 +82,7 @@ import { font, palette, radius, space } from '@/theme';
 import type {
   Clip,
   ClipEffects,
+  CaptionFont,
   Overlay,
   ProjectTransition,
   WordTiming,
@@ -126,6 +127,18 @@ import {
 const DEFAULT_PX_PER_MS = 0.06;
 const MIN_PX_PER_MS = 0.015; // ~15 px/s — very zoomed out
 const MAX_PX_PER_MS = 0.3; // ~300 px/s — very zoomed in
+
+const CAPTION_FONT_OPTIONS: { key: CaptionFont; label: string }[] = [
+  { key: 'display', label: 'Display' },
+  { key: 'body', label: 'Body' },
+  { key: 'mono', label: 'Mono' },
+];
+
+const CAPTION_FONT_FAMILY: Record<CaptionFont, string> = {
+  display: font.displayHeavy,
+  body: font.bodyBold,
+  mono: font.monoBold,
+};
 const RULER_H = 22;
 const SUBS_H = 30;
 const OVRL_H = 30;
@@ -1368,6 +1381,8 @@ function ManualEditScreenInner() {
   const captionsEnabled = project?.captions_enabled !== 0;
   const captionStyle: CaptionStyle =
     (project?.caption_style as CaptionStyle) ?? 'karaoke';
+  const captionFont: CaptionFont =
+    (project?.caption_font as CaptionFont) ?? 'display';
   const captionLines: CaptionLine[] = useMemo(
     () => lineifyProject(included, cumulative),
     [included, cumulative]
@@ -1564,7 +1579,12 @@ function ManualEditScreenInner() {
               );
             })}
           {captionNow ? (
-            <CaptionOverlay line={captionNow} style={captionStyle} />
+            <CaptionOverlay
+              line={captionNow}
+              style={captionStyle}
+              fontKey={captionFont}
+              nowMs={globalMs}
+            />
           ) : null}
           <TransitionOverlay
             globalMs={globalMs}
@@ -1941,6 +1961,7 @@ function ManualEditScreenInner() {
         <CaptionsPanel
           enabled={captionsEnabled}
           style={captionStyle}
+          fontKey={captionFont}
           lines={captionLines}
           onToggle={(en) => {
             setCaptionSettings(projectId, { enabled: en ? 1 : 0 }).catch(
@@ -1950,6 +1971,10 @@ function ManualEditScreenInner() {
           }}
           onStyleChange={(s) => {
             setCaptionSettings(projectId, { style: s }).catch(() => {});
+            invalidate();
+          }}
+          onFontChange={(f) => {
+            setCaptionSettings(projectId, { font: f }).catch(() => {});
             invalidate();
           }}
           onClose={() => setBottomMode('none')}
@@ -3197,9 +3222,13 @@ function VoiceoverIndicator({ elapsedMs }: { elapsedMs: number }) {
 function CaptionOverlay({
   line,
   style,
+  fontKey,
+  nowMs,
 }: {
   line: CaptionLine;
   style: CaptionStyle;
+  fontKey: CaptionFont;
+  nowMs: number;
 }) {
   // For now all six presets render close-enough variations of the same
   // text — full per-style animation lands in the next pass. Style-specific
@@ -3217,6 +3246,14 @@ function CaptionOverlay({
     typeout: { color: '#fff', bg: 'rgba(0,0,0,0.6)', size: 18, pad: 5 },
   };
   const s = styleSpec[style];
+  const text =
+    style === 'typeout'
+      ? line.words
+          .filter((w) => nowMs >= w.s * 1000)
+          .map((w) => w.w)
+          .join(' ')
+      : line.text;
+  if (!text) return null;
   return (
     <View style={styles.subWrap} pointerEvents="none">
       <Text
@@ -3225,6 +3262,7 @@ function CaptionOverlay({
           {
             fontSize: s.size,
             color: s.color,
+            fontFamily: CAPTION_FONT_FAMILY[fontKey],
             backgroundColor: s.bg,
             paddingHorizontal: s.pad + 5,
             paddingVertical: s.pad,
@@ -3232,7 +3270,7 @@ function CaptionOverlay({
         ]}
         numberOfLines={2}
       >
-        {line.text}
+        {text}
       </Text>
     </View>
   );
@@ -3245,16 +3283,20 @@ function CaptionOverlay({
 function CaptionsPanel({
   enabled,
   style,
+  fontKey,
   lines,
   onToggle,
   onStyleChange,
+  onFontChange,
   onClose,
 }: {
   enabled: boolean;
   style: CaptionStyle;
+  fontKey: CaptionFont;
   lines: CaptionLine[];
   onToggle: (en: boolean) => void;
   onStyleChange: (s: CaptionStyle) => void;
+  onFontChange: (f: CaptionFont) => void;
   onClose: () => void;
 }) {
   return (
@@ -3314,6 +3356,36 @@ function CaptionsPanel({
                 ]}
               >
                 {s[0].toUpperCase() + s.slice(1)}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+      <Text style={styles.bottomPanelHint}>Font</Text>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ gap: 8, paddingVertical: 4 }}
+      >
+        {CAPTION_FONT_OPTIONS.map((option) => {
+          const active = option.key === fontKey;
+          return (
+            <Pressable
+              key={option.key}
+              onPress={() => onFontChange(option.key)}
+              style={[
+                styles.styleChip,
+                active && styles.styleChipActive,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.styleChipText,
+                  { fontFamily: CAPTION_FONT_FAMILY[option.key] },
+                  active && styles.styleChipTextActive,
+                ]}
+              >
+                {option.label}
               </Text>
             </Pressable>
           );

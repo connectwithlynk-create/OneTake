@@ -22,16 +22,16 @@ import {
 } from 'fs';
 import { promisify } from 'util';
 import { fileURLToPath } from 'url';
-import { join, resolve } from 'path';
+import { extname, join, resolve } from 'path';
 import OpenAI from 'openai';
 import { extractReelAudio } from './analyze/audio';
 import { detectScenes } from './analyze/scene-detect';
 import { transcribeReel, type TranscriptWord } from './analyze/transcribe';
 import { CAPTURES_DIR_PATH, isVideoHostUrl } from './curator/web-record';
+import { YT_DLP, ytdlpCookieArgs, ytdlpErrorMessage } from './ytdlp';
 
 const execFileAsync = promisify(execFile);
 
-const YT_DLP = process.env.YT_DLP_PATH || 'yt-dlp';
 const FFMPEG = process.env.FFMPEG_PATH || 'ffmpeg';
 
 const SOURCE_VIDEOS_DIR = resolve(process.cwd(), '.library', 'source-videos');
@@ -241,6 +241,7 @@ export async function downloadSource(
       [
         '--no-warnings',
         '--no-playlist',
+        ...ytdlpCookieArgs(),
         '-f',
         'best[ext=mp4][height<=720][acodec!=none][vcodec!=none]/best[ext=mp4][height<=720]/best[height<=720]/best',
         '--merge-output-format',
@@ -260,8 +261,13 @@ export async function downloadSource(
       return { ok: false, error: 'yt-dlp not found - install it or set YT_DLP_PATH' };
     }
     const stderr = String(e?.stderr ?? '').trim();
-    const last = stderr.split('\n').filter(Boolean).pop();
-    return { ok: false, error: last || (e instanceof Error ? e.message : String(e)) };
+    return {
+      ok: false,
+      error: ytdlpErrorMessage(
+        stderr,
+        e instanceof Error ? e.message : String(e),
+      ),
+    };
   }
 }
 
@@ -274,7 +280,11 @@ interface CachedTranscript {
 export async function transcribeSource(
   mp4Path: string,
 ): Promise<{ ok: true; words: TranscriptWord[] } | { ok: false; error: string }> {
-  const cachePath = mp4Path.replace(/\.mp4$/i, '.transcript.json');
+  // Strip whatever extension the source has (local sources can be .mov,
+  // .webm, etc.) — a bare .mp4 replace would no-op and make cachePath
+  // equal the video path, overwriting the source with transcript JSON.
+  const srcExt = extname(mp4Path);
+  const cachePath = `${srcExt ? mp4Path.slice(0, -srcExt.length) : mp4Path}.transcript.json`;
   if (existsSync(cachePath)) {
     try {
       const cached = JSON.parse(readFileSync(cachePath, 'utf8')) as CachedTranscript;
@@ -743,7 +753,14 @@ export async function extractClips(
     stage: 'download',
     message: `yt-dlp downloading ${dl_src.url}`,
   });
-  const dl = await downloadSource(dl_src.url);
+  let dl = await downloadSource(dl_src.url);
+  if (!dl.ok && dl_src.replaced) {
+    emit({
+      stage: 'download',
+      message: `source_page download failed — falling back to candidate media (${input.candidate_url})`,
+    });
+    dl = await downloadSource(input.candidate_url);
+  }
   if (!dl.ok) {
     emit({ stage: 'error', message: `download failed — ${dl.error}` });
     return { ok: false, error: dl.error, stage: 'download' };

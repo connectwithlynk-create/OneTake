@@ -188,7 +188,11 @@ export async function resolveInstagramViaBrowser(
       .goto(`https://www.instagram.com/reel/${shortcode}/`, {
         waitUntil: 'domcontentloaded',
       })
-      .catch(() => null);
+      .catch((e) => {
+        console.error('[ig] goto failed:', e instanceof Error ? e.message : e);
+        return null;
+      });
+    console.error('[ig] landed on', page.url());
 
     // Primary path: the reel page embeds the media (including
     // video_versions) in <script type="application/json"> relay blobs —
@@ -227,11 +231,38 @@ export async function resolveInstagramViaBrowser(
     }
 
     if (!hit) {
+      const finalUrl = page.url();
+      const loginWall = /\/accounts\/login|\/challenge|\/accounts\/suspended/.test(
+        finalUrl,
+      );
+      const loggedIn = await page
+        .evaluate(() => {
+          // IG sets window._sharedData / a viewer when authenticated; the
+          // simplest robust signal is the presence of a logged-in nav.
+          const html = document.documentElement.innerHTML;
+          return (
+            html.includes('"is_logged_in":true') ||
+            html.includes('ds_user_id') ||
+            !!document.querySelector('svg[aria-label="Home"]')
+          );
+        })
+        .catch(() => false);
+      console.error(
+        '[ig] capture FAILED — finalUrl=%s loginWall=%s loggedIn=%s',
+        finalUrl,
+        loginWall,
+        loggedIn,
+      );
       return {
-        error:
-          'Could not capture the Instagram video URL — the reel may be ' +
-          'private to your account, or the cookies are stale (re-run ' +
-          'scripts/export-arc-cookies.py).',
+        error: loginWall
+          ? 'Instagram redirected to a login/checkpoint page — the exported ' +
+            'cookies are not an authenticated session (re-run ' +
+            'scripts/export-arc-cookies.py while logged into IG in Arc).'
+          : !loggedIn
+            ? 'Instagram served a logged-out page despite cookies — the ' +
+              'session cookie was rejected (re-export cookies from Arc).'
+            : 'Logged in, but no video found in the reel page — the reel is ' +
+              'likely private to a different account, deleted, or not a video.',
       };
     }
 

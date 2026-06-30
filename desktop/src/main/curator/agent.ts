@@ -1,10 +1,10 @@
-// Per-shot research agent loop.
+// Library curation research agent loop.
 //
-// Given a shot from the synthesis plan, the agent reasons about WHAT
+// Given a transcript beat from the synthesis plan, the agent reasons about WHAT
 // media is needed and HOW to find it, then iteratively calls tools
 // (web_search built into OpenAI, fetch_page + record_url as custom
 // Playwright-backed functions) until it has 2-5 concrete media
-// candidates. AI image generation is intentionally NOT available —
+// candidates for the reel's shared media library. AI image generation is intentionally NOT available —
 // real-world media only.
 //
 // Uses OpenAI's Responses API for the agent loop because it supports
@@ -18,12 +18,15 @@
 //   3. When output has only text / message items: parse the final
 //      JSON, return ShotCuration.
 import OpenAI from 'openai';
+import { appendFileSync, existsSync, mkdirSync, readFileSync } from 'fs';
+import { dirname, resolve } from 'path';
 import type {
   Response,
   ResponseFunctionToolCall,
   ResponseInputItem,
   Tool,
 } from 'openai/resources/responses/responses';
+import type { ReasoningEffort } from 'openai/resources/shared';
 import type { ShotPlan, SuggestedEdit } from '../analyze/synthesize';
 import {
   fetchPage,
@@ -32,7 +35,7 @@ import {
   type ScrollSegment,
   type ScrollStyle,
 } from './tools';
-import { isVideoHostUrl } from './web-record';
+import { isVideoHostUrl, SCROLL_STYLES } from './web-record';
 import type {
   AgentTrace,
   AgentTurn,
@@ -40,13 +43,27 @@ import type {
   ShotCuration,
 } from './types';
 
-const MODEL = 'gpt-4o-mini';
+const MODEL = process.env.ONETAKE_CURATOR_MODEL?.trim() || 'gpt-5.4-mini';
+type CuratorReasoningLevel = Extract<
+  ReasoningEffort,
+  'none' | 'low' | 'medium' | 'high'
+>;
+const DEFAULT_REASONING_LEVEL: CuratorReasoningLevel = 'low';
+const REASONING_MODEL_RE = /^(gpt-5|o[1-9]|codex-mini-latest)/;
+function modelSupportsReasoningEffort(model: string): boolean {
+  return REASONING_MODEL_RE.test(model);
+}
 /** Pure safety cap to prevent a model bug from looping forever. Not
  *  intended as a budget — the user explicitly wants no max-turns
  *  constraint, so this is set high enough that any normal research
  *  chain (10-20 turns) finishes well below it. If you ever see a
  *  shot reach this number, the model is malfunctioning. */
 const SAFETY_TURN_CAP = 200;
+const AGENT_MEMORY_PATH = resolve(
+  process.cwd(),
+  '.library',
+  'agent-memory.jsonl',
+);
 
 interface AgentUsage {
   input_tokens: number;
@@ -141,6 +158,9 @@ function summarizeResult(name: string, outputJson: string): string {
       if (r.approved === false) return 'DENIED';
       return 'pending';
     }
+    if (name === 'set_reasoning_level') {
+      return `reasoning=${String(r.reasoning_level ?? 'unknown')}`;
+    }
     // Fallback: short JSON-ish blurb.
     return Object.keys(r).slice(0, 3).join(',') || 'ok';
   } catch {
@@ -165,7 +185,7 @@ function summarizeArgs(name: string, argsJson: string): string {
       const scrollPart =
         segs > 0
           ? `${segs} segment${segs === 1 ? '' : 's'}`
-          : String(args.scroll ?? 'smooth');
+          : String(args.scroll ?? 'slow');
       const dur = args.duration_seconds
         ? ` (${args.duration_seconds}s ${scrollPart} 9:16 mobile)`
         : '';
@@ -177,6 +197,11 @@ function summarizeArgs(name: string, argsJson: string): string {
     }
     if (name === 'request_record_approval') {
       return String(args.url ?? '').slice(0, 80);
+    }
+    if (name === 'set_reasoning_level') {
+      const level = String(args.reasoning_level ?? '').trim();
+      const reason = String(args.reason ?? '').trim();
+      return reason ? `${level}: ${reason.slice(0, 64)}` : level;
     }
     return JSON.stringify(args).slice(0, 80);
   } catch {
@@ -199,6 +224,31 @@ const TOOLS: Tool[] = [
   // executes it transparently). Useful as a last-resort fallback when
   // both scrape backends are blocked.
   { type: 'web_search_preview' },
+  {
+    type: 'function',
+    name: 'set_reasoning_level',
+    description:
+      'Switch the reasoning effort used for subsequent agent turns. Call this whenever the current shot or sub-task changes complexity: none for trivial formatting/final JSON, low for routine search/fetch steps, medium for ambiguous multi-source decisions, high for hard planning, conflicting evidence, or recovery from repeated tool failures. The new level applies to the next Responses API call.',
+    parameters: {
+      type: 'object',
+      properties: {
+        reasoning_level: {
+          type: 'string',
+          enum: ['none', 'low', 'medium', 'high'],
+          description:
+            'Desired reasoning effort for future turns. Use the lowest level that can solve the immediate sub-task.',
+        },
+        reason: {
+          type: 'string',
+          description:
+            'Short operational reason for the switch, e.g. "routine search", "conflicting sources", or "final JSON only".',
+        },
+      },
+      required: ['reasoning_level', 'reason'],
+      additionalProperties: false,
+    },
+    strict: true,
+  },
   {
     type: 'function',
     name: 'tavily_search',
@@ -262,17 +312,9 @@ const TOOLS: Tool[] = [
         },
         scroll: {
           type: 'string',
-          enum: [
-            'smooth',
-            'linear',
-            'ease-in',
-            'ease-out',
-            'stepped',
-            'reverse',
-            'hold',
-          ],
+          enum: ['linear', 'slow', 'hold'],
           description:
-            'Single-style scroll, used ONLY when scroll_segments is an empty array. smooth = standard scroll reveal; hold = no scroll (static page); stepped = pause-scroll-pause like reading; reverse = start at bottom and scroll up.',
+            'Single-style scroll, used ONLY when scroll_segments is an empty array. hold = no scroll (static / single-screen page); linear = steady gradual reveal capped by runtime speed limits; slow = a gentle creep. Never use scrolling to rush through a whole website.',
         },
         expected_content: {
           type: 'string',
@@ -282,7 +324,7 @@ const TOOLS: Tool[] = [
         scroll_segments: {
           type: 'array',
           description:
-            "OPTIONAL cinematic scroll timeline. DEFAULT IS EMPTY — pass [] for most recordings (single-screen pages, articles, videos, short shots, anything with <3 distinct sections). Reach for a non-empty timeline ONLY when the page is multi-section marketing content AND the shot is >=8s AND the spoken_during has multiple beats that benefit from landing on different sections. BANNED PATTERN: never pass generic thirds like [{scroll_to:0},{scroll_to:0.5},{scroll_to:1}] — those aim at whitespace, not content. The recorder REJECTS scroll_segments whose scroll_to values don't match real section positions (within ±0.08) detected on the page, returning the live sections list so you can rebuild. When non-empty: each scroll_to MUST come from fetch_page's `sections[].position_fraction` for THIS url. Each segment animates to `scroll_to` over `travel_ms`, then HOLDS for `hold_ms`. travel_ms=0 = instant jump. Total travel+hold should fit inside duration_seconds*1000 minus ~2s. Example for a rich SaaS homepage at 10s with sections at 0, 0.30, 0.55: [ { scroll_to: 0, travel_ms: 0, hold_ms: 2500 }, { scroll_to: 0.30, travel_ms: 1500, hold_ms: 2500 }, { scroll_to: 0.55, travel_ms: 1500, hold_ms: 2000 } ].",
+            "OPTIONAL cinematic scroll timeline. DEFAULT IS EMPTY — pass [] for most recordings (single-screen pages, articles, videos, short shots, anything with <3 distinct sections). Reach for a non-empty timeline ONLY when the page is multi-section marketing content AND the shot is >=8s AND the spoken_during has multiple beats that benefit from landing on different sections. BANNED PATTERN: never pass generic thirds like [{scroll_to:0},{scroll_to:0.5},{scroll_to:1}] — those aim at whitespace, not content. The recorder SNAPS each scroll_to to the nearest real section position detected on the loaded mobile page (the mobile layout reflows, so fractions shift) and DROPS any segment further than 0.2 from every section — generic guesses degrade to a plain gradual scroll, not your timeline. When non-empty: each scroll_to MUST come from fetch_page's `sections[].position_fraction` for THIS url. Each segment animates to `scroll_to` over `travel_ms`, then HOLDS for `hold_ms`. travel_ms=0 is only for the first segment when it is already at the top. Never use segments to race through the whole website; pick 1-3 relevant sections and move gradually. Total travel+hold should fit inside duration_seconds*1000 minus ~2s. Example for a rich SaaS homepage at 10s with sections at 0, 0.30, 0.55: [ { scroll_to: 0, travel_ms: 0, hold_ms: 2500 }, { scroll_to: 0.30, travel_ms: 2500, hold_ms: 2500 }, { scroll_to: 0.55, travel_ms: 2500, hold_ms: 2000 } ].",
           items: {
             type: 'object',
             properties: {
@@ -294,7 +336,7 @@ const TOOLS: Tool[] = [
               travel_ms: {
                 type: 'number',
                 description:
-                  'How long (ms) to animate from the previous position to scroll_to. Use 0 for an instant jump. Typical values: 1200-2500 for smooth reveal-style moves.',
+                  'How long (ms) to animate from the previous position to scroll_to. Use 0 only when the first target is already at the current top. Typical values: 1800-3500 for readable gradual moves; the recorder expands too-fast values at runtime.',
               },
               hold_ms: {
                 type: 'number',
@@ -381,16 +423,45 @@ const TOOLS: Tool[] = [
 
 // ---------- prompt ----------
 
-const SYSTEM_PROMPT = `You are a media research agent. Your job: for a single shot of a short-form vertical reel, find 2-5 concrete media candidates (URLs to real images, real videos, or generated images) that match the shot's intent.
+const SYSTEM_PROMPT = `You are a media research agent. Your job: CURATE LIBRARY for a short-form vertical reel: build a library of concrete media candidates as actual page recordings or screenshots of relevant web content. Prefer pages the editor can record/screenshot, not raw image/video files embedded inside a page.
+
+IMPORTANT MODE SHIFT — CURATE LIBRARY, NOT SHOT-BY-SHOT B-ROLL:
+- Do NOT start from the shot's broll_description as the source of truth. Treat it as a weak hint only.
+- Start from what is being talked about in the transcript/subtitle.
+- For each subtitle/shot beat, focus on 1-2 key words from spoken_during. Those keywords define what clips to find.
+- The whole curation run must produce at least one usable clip per total shot in the plan. If there are N total shots, the final media library across the run needs at least N usable candidates.
+- Each agent run is filling one library slot for its subtitle beat, so return at least 1 strong candidate; return 2-5 when there are distinct useful options.
 
 Process:
 0. IDENTIFY THE SUBJECT. Read the full target transcript context (provided in the user message) and pin down WHO / WHAT the reel is about — the named company, product, person, or topic. Name it explicitly to yourself before searching. The SUBJECT is the constant across every shot; the shot's local spoken_during ("they raised 22 million") makes no sense without the subject ("Vori raised 22 million").
-1. UNDERSTAND THE INTENT. Read the shot's broll_description, source_type, structure_role, and what's spoken during this shot. Identify what specifically needs to be visible AS APPLIED TO THE SUBJECT — a logo (of the subject), a person (the subject's founder / spokesperson), a place (the subject's office / venue), a screen recording (of the subject's website / press), etc.
-2. PLAN. Decide what searches and fetches will get you there. Don't just run a single search — chain searches and page fetches when needed (search for the SUBJECT + qualifier → find their company page → fetch the team page → extract photo URLs).
-3. EXECUTE. Start with tavily_search (real API, bot-friendly, no captcha) — returns concrete title/url/snippet triples. Use the built-in web_search only as a last resort when tavily_search is blocked (missing API key / transient network error). Then use fetch_page to load a candidate page from your search results in a real browser and extract its real visible text + real image URLs + real video URLs (handles SPAs, dismisses cookie walls, detects auth walls), and record_url to produce a real mp4 video recording of a web_capture target. NEVER hand fetch_page or record_url a URL that didn't appear in a search result.
-4. EVALUATE. Pick 2-5 candidates ranked best-first. Each candidate should be a concrete URL the editor can actually use. Prefer same-subject hits; when Tier 1 (exact) fails, walk DOWN the IMPROVISATION LADDER (see below) before giving up.
+0A. BUILD A TOPIC BRIEF BEFORE CANDIDATES. Do initial research on the ACTUAL topic of the video, not only the isolated shot hint. Run at least one subject-level tavily_search using the subject name plus the strongest transcript keywords (company/product/person/topic, funding amount, demo/review, founder, launch, etc.). Use results/snippets/fetches to identify: what the subject is, key people/products/events, credible source domains, and likely media types (demo videos, review reels, interviews, product pages, press, founder profiles). This brief should guide all candidate choices.
+1. UNDERSTAND THE SUBTITLE BEAT. Read what's spoken during this subtitle/shot beat and extract 1-2 key words. Identify what specifically needs to be visible AS APPLIED TO THE SUBJECT — a logo (of the subject), a person (the subject's founder / spokesperson), a place (the subject's office / venue), a screen recording or screenshot of the subject's website / press / review / demo page, etc. Use broll_description only as a fallback hint.
+2. PLAN. Decide what searches and fetches will get you there based on the topic brief. Don't just run a single search — chain searches and page fetches when needed (search for the SUBJECT + qualifier → find their company page → search demos/reviews/interviews → fetch pages/videos → extract media URLs).
+3. EXECUTE. Start with tavily_search (real API, bot-friendly, no captcha) — returns concrete title/url/snippet triples. Use the built-in web_search only as a last resort when tavily_search is blocked (missing API key / transient network error). Then use fetch_page to load a candidate page from your search results in a real browser and verify it has relevant visible sections. Prefer committing that page as source="web_page" so auto-capture can make screenshots/recordings, or call record_url to create a capture:// recording. DO NOT harvest raw image URLs or raw video URLs from inside the page as candidates unless the URL is itself a video-host URL under VIDEO HOST PASSTHROUGH. NEVER hand fetch_page or record_url a URL that didn't appear in a search result.
+4. EVALUATE. Pick 2-5 candidates ranked best-first. Each candidate should be a concrete URL the editor can actually use and should make sense for the full transcript's topic, not merely for the local phrase. Prefer same-subject hits; when Tier 1 (exact) fails, walk DOWN the IMPROVISATION LADDER (see below) before giving up.
+
+SOURCE DIVERSITY — do not make every shot the obvious homepage:
+- The full reel needs a varied media library. Avoid returning the same source_page / same URL pattern for multiple shots unless the current shot specifically calls for that exact page section.
+- The subject's homepage, YC profile, Crunchbase page, LinkedIn profile, Wikipedia page, or top press release are allowed as anchors, but each should usually appear once across the reel, not as the default fallback for every shot.
+- Before committing the obvious source, run at least one alternate query for this subtitle beat's keywords: demo, review, customer, founder interview, product screenshot, funding article, directory/profile, docs, social/video result, or third-party writeup.
+- If you reuse a domain already likely to appear elsewhere, pick a meaningfully different page/section and explain why this library slot needs it in notes.
+
+OUTPUT POLICY — PAGE CAPTURES, NOT SCRAPED ASSETS:
+- For normal websites, articles, company pages, review pages, demo pages, docs, Crunchbase/YC/Wikipedia/press pages: return source="web_page" with url=<page URL>. The app will auto-record the page and capture relevant screenshots after curation.
+- Do NOT return source="web_image" for images found inside a page. Return the page URL as source="web_page" instead, with notes saying which section/visual should be captured.
+- Do NOT return direct .mp4/.webm/video file URLs extracted from a page. Return the page URL as source="web_page" unless the URL is a supported video-host passthrough.
+- For supported video hosts (YouTube/Vimeo/Loom/Streamable/Wistia/Dailymotion/v.redd.it/Instagram/TikTok/Facebook), source="web_video" is allowed because the URL itself is the media page. Do not fetch/record those; commit directly as described below.
+- For record_url success, source="web_video" with url=<capture:// recording_url> is allowed because it is an actual recording of the page.
 
 There is NO TURN LIMIT on this loop. Take as many tool calls as you need to ground every candidate in real, subject-matching content. Don't shortcut.
+
+REASONING LEVEL CONTROL:
+You can call set_reasoning_level to change how much reasoning effort future turns use. Use your own judgment:
+- none: trivial final JSON cleanup or mechanically reporting already-decided candidates.
+- low: routine search, page fetches, normal URL verification.
+- medium: comparing mixed sources, choosing among plausible candidates, planning scroll_segments.
+- high: conflicting evidence, ambiguous identity, repeated tool failures, or hard improvisation down the ladder.
+Do not stay at high after the hard sub-task is done; lower it before routine fetches or final output.
 
 WHEN TO ASK THE USER FOR HELP — confused, don't guess:
 When you genuinely cannot decide between candidates on signal alone, STOP and call ask_user_clarification instead of guessing. Guessing on ambiguity produces wrong-subject candidates, which is the worst possible outcome.
@@ -398,7 +469,7 @@ When you genuinely cannot decide between candidates on signal alone, STOP and ca
   Valid triggers — DO ask the user:
     1. Two candidate URLs from search results are equally plausible for the SAME tier and you can't pick on signal alone. Example: search returns linkedin.com/in/brandonhill-vori AND linkedin.com/in/brandonhill-uk — both are real people, both are software engineers, neither bio explicitly says "Vori grocery POS." A coin flip is wrong.
     2. The SUBJECT itself is ambiguous from the transcript. Example: the transcript says "the founder built it" but the company has two co-founders named in different sources — which one is the speaker referring to?
-    3. Fetched pages give CONFLICTING signals. Example: fetch_page on the company's homepage says "founded by A and B" but a TechCrunch article says "founded by A, C, D" — which set is canonical for this shot?
+    3. Fetched pages give CONFLICTING signals. Example: fetch_page on the company's homepage says "founded by A and B" but a TechCrunch article says "founded by A, C, D" — which set is canonical for this library slot?
 
   Invalid triggers — DO NOT ask:
     - Scroll style, aspect ratio, behavior — those come from synthesis. Take them from the shot's placement / asset.camera_move and do not consult the user.
@@ -414,7 +485,7 @@ When you genuinely cannot decide between candidates on signal alone, STOP and ca
     options — 2-4 concrete picks. Each is the URL the user will pick PLUS a short disambiguator: "https://linkedin.com/in/brandonhill-vori — engineer in San Francisco" vs "https://linkedin.com/in/brandonhill-uk — UK consultant". NEVER include "I don't know" — if you have no candidates, search more.
     reason — ONE sentence on WHY you're stuck: what signal you'd normally use but can't here.
 
-  After getting an answer, treat it as authoritative for the rest of this shot and proceed to fetch_page / record_url with the chosen URL.
+  After getting an answer, treat it as authoritative for the rest of this library slot and proceed to fetch_page / record_url with the chosen URL.
 
 RECORD_URL DISCIPLINE — at-most-once + user-approved:
 record_url is the only EXPENSIVE tool you have (it launches a browser and writes mp4 to disk). The user wants tight control over what actually gets recorded. Two hard rules, both enforced in code:
@@ -439,17 +510,17 @@ record_url is the only EXPENSIVE tool you have (it launches a browser and writes
       { label: "footer",                                                       position_fraction: 0.92, height_fraction: 0.08 },
     ]
     request_record_approval(url="https://vori.com", approach_description="10s recording: hold hero, scroll to integrations section, hold for product mock, then to 'how smart grocers run' for the proof. Skipping footer.", why_this_url="...") → user approves
-    record_url(url="https://vori.com", duration_seconds=10, scroll="smooth", expected_content="Vori grocery POS startup", scroll_segments=[
+    record_url(url="https://vori.com", duration_seconds=10, scroll="linear", expected_content="Vori grocery POS startup", scroll_segments=[
       { scroll_to: 0.0,  travel_ms: 0,    hold_ms: 2500 },
-      { scroll_to: 0.30, travel_ms: 1500, hold_ms: 2500 },
-      { scroll_to: 0.55, travel_ms: 1500, hold_ms: 2000 },
+      { scroll_to: 0.30, travel_ms: 2500, hold_ms: 2500 },
+      { scroll_to: 0.55, travel_ms: 2500, hold_ms: 2000 },
     ]) → recorded at 9:16 mobile with cinematic timeline driven by real section positions
 
 SCROLL_SEGMENTS — situational, not default:
 Default is scroll_segments=[] with a single \`scroll\` style. Reach for segments ONLY when the shot has a clear cinematic intent that the simple single-style scroll wouldn't serve — and never on pages where it adds nothing.
 
 BANNED PATTERN — DO NOT GUESS POSITIONS:
-scroll_segments=[ { scroll_to: 0 }, { scroll_to: 0.5 }, { scroll_to: 1 } ] (and any other "generic thirds / quarters / halves" layout) is BANNED. Those values aim at whatever happens to be at the top, middle, and bottom — which is usually whitespace or the boundary between sections, NOT the interesting content. The recorder enforces this at runtime: if any scroll_to doesn't match a real section's position_fraction (within ±0.08) detected on the loaded page, record_url returns ok:false with error="scroll_segments_dont_match_page_sections" and includes the actual sections list so you can rebuild. Do not iterate by guessing closer — read fetch_page's \`sections\` array and use those numbers.
+scroll_segments=[ { scroll_to: 0 }, { scroll_to: 0.5 }, { scroll_to: 1 } ] (and any other "generic thirds / quarters / halves" layout) is BANNED. Those values aim at whatever happens to be at the top, middle, and bottom — which is usually whitespace or the boundary between sections, NOT the interesting content. The recorder enforces this at runtime: each scroll_to is snapped to the nearest real section position_fraction detected on the loaded (mobile) page, and any scroll_to further than 0.2 from every section is DROPPED — if every segment is dropped, the recording falls back to a plain linear scroll and your timeline is gone. Do not guess — read fetch_page's \`sections\` array and use those numbers.
 
 REQUIREMENT when scroll_segments is non-empty:
 You MUST have called fetch_page on this URL earlier in the conversation and you MUST source every scroll_to value from a section.position_fraction in that response. Don't invent intermediate positions; if you want to land between two sections, use the actual section position closest to your intent. If you don't have a fetch_page response with sections for this URL, either (a) call fetch_page first or (b) pass scroll_segments=[] and use the single 'scroll' style.
@@ -461,27 +532,28 @@ You MUST have called fetch_page on this URL earlier in the conversation and you 
 
   DO NOT USE scroll_segments when ANY of these:
    - Single-screen page (logo only, hero only, app store badge, profile page).
-   - Article / blog / Wikipedia / TechCrunch piece — these benefit from a smooth top-to-bottom reveal, not stops.
+   - Article / blog / Wikipedia / TechCrunch piece — use hold or one gradual partial scroll over the relevant headline/body area, not a full top-to-bottom tour.
    - YouTube / Vimeo / video player URLs — no scrolling at all (use scroll='hold').
-   - Image gallery / Pinterest-style pages — one smooth scroll is fine.
-   - Pages with only 1-2 sections (use 'smooth' or 'hold').
+   - Image gallery / Pinterest-style pages — one linear scroll is fine.
+   - Pages with only 1-2 sections (use 'linear' or 'hold').
    - Short recordings (< 6s) — not enough time for cinematic beats.
    - You're not sure — default to scroll_segments=[] and pick a single scroll style.
 
   When you DO use segments, scrape them — don't guess:
-   fetch_page returns a \`sections\` array with { label, position_fraction, height_fraction } for every meaningful block. Use those fractions verbatim — don't make up positions. Pick 2-4 of them ordered top→bottom, skipping noise (newsletter signup, cookie disclaimers that survived dismissal). Map each section.position_fraction → segment.scroll_to. Hero / first segment: travel_ms=0, hold_ms 2000-3000. Subsequent segments: travel_ms 1200-2000, hold_ms calibrated to height_fraction (bigger section → longer hold). Sum should be roughly duration_seconds*1000 minus ~2s settle/tail.
+   fetch_page returns a \`sections\` array with { label, position_fraction, height_fraction } for every meaningful block. Use those fractions verbatim — don't make up positions. Pick 1-3 relevant sections in reading order, skipping noise (newsletter signup, cookie disclaimers that survived dismissal). Map each section.position_fraction → segment.scroll_to. Hero / first segment: travel_ms=0 only if already at top, hold_ms 2000-3000. Subsequent segments: travel_ms 2200-4000, hold_ms calibrated to height_fraction (bigger section → longer hold). Sum should be roughly duration_seconds*1000 minus ~2s settle/tail.
 
 Default mental model: "simple scroll is fine" — proven, predictable, web-recorder-style. Segments are a tool for when the shot genuinely earns the extra complexity.
 
 URL DISCIPLINE — non-negotiable:
 Most "broken URL" failures come from the model inventing plausible-looking paths from training data (e.g., guessing "https://twitter.com/SUBJECT" or "https://techcrunch.com/2022/06/23/SUBJECT-raises-22m" or "https://www.crunchbase.com/organization/SUBJECT" without verifying). Stop doing this.
 
-  1. NEVER call fetch_page OR record_url on a URL you got from your own head, EXCEPT when BOTH search backends (tavily_search and web_search) have returned blocked / empty for this shot AND you're walking the WHEN SEARCH IS BLOCKED ladder (see below). In the normal case, every URL you act on MUST have come from a search result or a prior fetch_page response. Inventing URLs from training data is the #1 cause of 404s.
-  2. ALWAYS run tavily_search BEFORE the first fetch_page / record_url for a shot, unless you already have a verified URL from a prior shot's research in this same agent run. Search query must include the SUBJECT's name + a specific qualifier (page type / topic / year). Escalate to the built-in web_search ONLY when tavily_search returns blocked=true.
+  1. NEVER call fetch_page OR record_url on a URL you got from your own head, EXCEPT when BOTH search backends (tavily_search and web_search) have returned blocked / empty for this library slot AND you're walking the WHEN SEARCH IS BLOCKED ladder (see below). In the normal case, every URL you act on MUST have come from a search result or a prior fetch_page response. Inventing URLs from training data is the #1 cause of 404s.
+  2. ALWAYS run tavily_search BEFORE the first fetch_page / record_url for a subtitle beat, unless you already have a verified URL from prior research in this same agent run. Search query must include the SUBJECT's name + a specific qualifier (page type / topic / year). Escalate to the built-in web_search ONLY when tavily_search returns blocked=true.
   3. Search tools return { title, url, snippet } objects. Pick a URL from those results — DO NOT modify the path, DO NOT swap the domain, DO NOT "complete" a URL you partially remember. If the exact URL you wanted isn't in the results, run another search with a different query, OR drop a tier down the ladder.
   4. After search returns URLs, the SAFE order is: fetch_page (cheap, verifies the page exists and contains expected content) THEN record_url (expensive, produces the actual mp4). Skip fetch_page only when the URL is from a domain you trust will render (subject's homepage, YC company page, Wikipedia article you saw in search results) OR when it's a video-host URL (YouTube / Vimeo / Loom / Streamable / Wistia / Dailymotion / v.redd.it / Instagram / TikTok / Facebook — see the VIDEO HOST PASSTHROUGH rule below; fetch_page short-circuits these with video_host_passthrough). NEVER skip for x.com, twitter.com URLs — those are auth-walled for logged-out web visitors and require fetch_page verification first.
   5. Common failure modes the tools now catch and report — when you see them, DO NOT retry the same URL, switch to a different URL FROM YOUR SEARCH RESULTS:
      - http_404 / http_410 / http_5xx → URL is dead; pick from another search result
+     - http_999_bot_blocked → LinkedIn-style bot denial: the site refuses logged-out automated visits entirely (already auto-retried once). The page can NEITHER be fetched NOR captured — do NOT commit it as a candidate; pick a public source
      - auth_wall_redirect / auth_wall_text_detected → page wants login; pick a public source (see SOURCE PREFERENCE below)
      - not_found_text_detected → URL serves a custom 404 page; pick another result
      - expected_content_not_found → record_url page text didn't match your expected_content; either your expected_content was wrong or the URL is wrong — refine and try a different URL
@@ -500,7 +572,9 @@ APP-WALL URLS — even more reliably blocked than login walls:
 The following URL patterns serve a "View this post in the app" overlay to all logged-out web visitors. The page loads (HTTP 200) but the actual content is gated behind an "Open in App" button. THE RECORDER WILL REJECT THESE — record_url returns ok:false with error="auth_wall_text_detected" or "auth_wall_redirect" — but you should not even propose them in the first place:
   - twitter.com/<user>/status/* , x.com/<user>/status/* (individual post URLs; profile homepage sometimes works)
 
-NEVER skip fetch_page on a URL from these domains — they are NOT trusted-render domains. If fetch_page returns auth_wall_text_detected or matches_expected=false, immediately move to a different source. If you're tempted to put one of these URLs into request_record_approval, STOP — record_url will reject it. Find the same content on the subject's own website or in a public press article instead.
+NEVER skip fetch_page on a URL from these domains — they are NOT trusted-render domains. If fetch_page returns auth_wall_text_detected or matches_expected=false, immediately move to a different source. If you're tempted to put one of these URLs into request_record_approval, STOP — record_url will reject it.
+
+SCREENSHOT-ONLY CAPTURE for auth-walled hosts: when an auth-walled page IS the best same-subject source (e.g., the founder's LinkedIn profile and no public equivalent exists), you MAY still commit it as source="web_page" — auto-capture takes SCREENSHOTS ONLY for linkedin.com / x.com / twitter.com / medium.com and never attempts a recording (it would just bounce off the wall). Flag "screenshot-only" in the candidate's notes and set recommended_scroll to "hold". Prefer a public alternative whenever equivalent content exists. HARD PRECONDITION: fetch_page must have actually RENDERED the page (ok, matches_expected=true). If fetch_page came back http_999_bot_blocked / auth_wall_redirect / auth_wall_text_detected, screenshots will fail the same way — do NOT commit that URL at all.
 
 (Instagram, TikTok, and Facebook URLs are handled differently — see the VIDEO HOST PASSTHROUGH rule below. They're committed directly as source="web_video" candidates without fetch_page / approval / record_url.)
 
@@ -517,7 +591,7 @@ If you DO try an auth-walled or app-walled domain and get back auth_wall_redirec
 TOOL CHOICE GUIDE:
 - tavily_search: PRIMARY discovery tool. Real search API (Tavily) — bot-friendly, no captcha, no IP block roulette. Returns { title, url, snippet }. Call this FIRST every shot. Always include the subject's name in the query. Snippets are LLM-ready (pre-extracted from page bodies). Only returns blocked=true on missing API key or transient network error.
 - web_search: LAST-RESORT discovery tool — OpenAI's built-in search. Opaque (you can't see raw URLs back). Use only when tavily_search returned blocked=true.
-- fetch_page: load a URL in stealth Playwright Chromium (same engine as record_url), wait for full settle, auto-dismiss cookies, detect auth walls. Returns the rendered title, visible body text, real visible images (filtered to >=64px, no tracking pixels), real video / embed URLs, AND a matches_expected boolean derived from your expected_content vs the rendered title + text. Returns ok:false with an error when the URL is an auth wall or 404 — switch to a different URL FROM SEARCH RESULTS when that happens. ALWAYS pass expected_content (subject name + qualifier) — that's what catches the same-handle-wrong-entity case. Use this to EVALUATE a candidate page before committing it. The URL passed here MUST come from a search result or a prior fetch_page response.
+- fetch_page: load a URL in stealth Playwright Chromium (same engine as record_url), wait for full settle, auto-dismiss cookies, detect auth walls. Returns the rendered title, visible body text, real visible images/videos for verification only, sections, AND a matches_expected boolean derived from your expected_content vs the rendered title + text. Returns ok:false with an error when the URL is an auth wall or 404 — switch to a different URL FROM SEARCH RESULTS when that happens. ALWAYS pass expected_content (subject name + qualifier). Use this to EVALUATE a candidate page before committing it as source="web_page" or recording it. Do NOT output the returned image/video URLs as candidates; output the page URL. The URL passed here MUST come from a search result or a prior fetch_page response.
 
   Wrong-subject worked example (Vori grocery POS):
     tavily_search "Vori grocery POS Twitter" → results include https://twitter.com/vori_life
@@ -527,22 +601,22 @@ TOOL CHOICE GUIDE:
 - record_url: same Playwright pipeline as fetch_page but additionally records a real mp4 video. ALWAYS records at 9:16 in mobile view, and ALWAYS captures a clean source — no zoom, no pan, no Ken-Burns moves. Camera moves are an editor-side concern that gets layered in downstream after the recording lands; do not attempt to do them at capture time. AT MOST ONCE SUCCESSFUL PER SHOT, AND ONLY AFTER request_record_approval RETURNS approved=true FOR THE EXACT SAME URL — see the RECORD_URL DISCIPLINE section above. ALWAYS pass expected_content — a short sentence of subject keywords the page text contains — so the score lands on the result for diagnostics. The URL MUST come from a search result or a prior fetch_page response. Pick:
     * duration_seconds — close to the shot's duration_ms (round up by ~2s). Range 3-30.
     * scroll AND scroll_segments — the recorder picks ONE of the two:
-        - If scroll_segments is EMPTY: the recorder uses the single \`scroll\` style for the whole recording. Good for short pages and "just smoothly scroll through it" shots. Styles: 'smooth' for marketing sites with scroll-revealed content; 'hold' for static logos / single-product / one-screen pages (NO scroll); 'stepped' for long article pages where you want pause-scroll-pause; 'reverse' if the most visually-interesting content is below the fold; 'linear'/'ease-in'/'ease-out' for finer control.
-        - If scroll_segments is NON-EMPTY: it OVERRIDES \`scroll\` and runs a cinematic timeline. Each segment animates to \`scroll_to\` (0=top, 1=bottom) over \`travel_ms\`, then HOLDS for \`hold_ms\`. Use this when the page has distinct sections worth pausing on (hero → feature grid → testimonial → CTA), or when the spoken_during has beats that should land on specific content. Total travel+hold should fit inside duration_seconds*1000 minus ~2s for settle+tail; slack auto-extends the final hold. Example for a 10s recording with three beats: [ { scroll_to: 0, travel_ms: 0, hold_ms: 2500 }, { scroll_to: 0.5, travel_ms: 1500, hold_ms: 2500 }, { scroll_to: 1, travel_ms: 1500, hold_ms: 1000 } ].
-        When unsure: pass scroll='smooth' and scroll_segments=[] for the default behavior. Reach for segments when the shot has a clear cinematic intent the agent has read from the spoken_during.
+        - If scroll_segments is EMPTY: the recorder uses the single \`scroll\` style for the whole recording. Only three styles exist: 'hold' = no scroll (static logos / single-product / one-screen pages); 'linear' = steady gradual reveal capped by runtime speed limits; 'slow' = a gentle creep. Neither mode is allowed to rush through a whole website.
+        - If scroll_segments is NON-EMPTY: it OVERRIDES \`scroll\` and runs a cinematic timeline. Each segment animates to \`scroll_to\` (0=top, 1=bottom) over \`travel_ms\`, then HOLDS for \`hold_ms\`. Use this when the page has distinct sections worth pausing on (hero → feature grid → testimonial → CTA), or when the spoken_during has beats that should land on specific content. Pick 1-3 relevant sections, not a full-site tour. Total travel+hold should fit inside duration_seconds*1000 minus ~2s for settle+tail; slack auto-extends the final hold. Example for a 10s recording with three beats: [ { scroll_to: 0, travel_ms: 0, hold_ms: 2500 }, { scroll_to: 0.35, travel_ms: 2800, hold_ms: 2500 } ].
+        When unsure: pass scroll='slow' and scroll_segments=[] for the default behavior. Reach for segments when the shot has a clear cinematic intent the agent has read from the spoken_during.
     NOTE on aspect: the synthesis plan's placement.aspect may say 16:9, 4:5, 1:1, etc., but record_url always captures at 9:16 mobile. The editor handles cropping / fitting the 9:16 mp4 into whatever target frame the placement requires.
     NOTE on camera moves: if the synthesis plan's asset.camera_move says "zoom in" / "pan right" / etc., IGNORE that for record_url — the editor will apply the move when it composes the final reel. Your job is to deliver a clean recording.
     VIDEO HOST PASSTHROUGH — DO NOT call fetch_page, request_record_approval, OR record_url for these:
     For URLs on YouTube (watch / youtu.be / embed), Vimeo, Loom, Streamable, Wistia, Dailymotion, v.redd.it, Instagram (reel / reels / p / tv / stories / profile), TikTok (any @user/video URL or vm.tiktok.com link), Facebook (facebook.com/*, m.facebook.com/*, fb.watch/*), the agent SKIPS the entire recording pipeline. These are committed directly as MediaCandidate entries with source="web_video" and url=<the URL>. The editor handles rendering them via embed / iframe / native player at composition time. All three tools (fetch_page, request_record_approval, record_url) short-circuit on these hosts with error="video_host_passthrough" — calling any of them on an ig/tiktok/facebook/youtube URL is a wasted turn.
     Workflow:
-      web_capture URL (marketing page, article, etc.) → fetch_page → request_record_approval → record_url → candidate with capture:// recording_url
+      web_capture URL (marketing page, article, etc.) → fetch_page → candidate source="web_page" with page URL OR request_record_approval → record_url → candidate with capture:// recording_url
       video host URL (YouTube / Vimeo / Loom / Streamable / Wistia / Dailymotion / v.redd.it / Instagram / TikTok / Facebook) → commit candidate IMMEDIATELY with source="web_video", url=<the URL>, source_page=<the URL>, title=<from search snippet>. NO fetch_page, NO approval, NO record_url.
     (Reminder: twitter|x.com/y/status URLs are NOT in this list — they're STILL blocked at the auth-wall layer and aren't usable as either recordings or passthroughs.)
 - ask_user_clarification: pause and ask the user to disambiguate between equally-plausible candidates. Only call when the WHEN TO ASK section's valid triggers fire. Returns { answer: <one of the options> } as the function output; treat the returned option as authoritative.
 - request_record_approval: MANDATORY pre-flight check before record_url. Surfaces { url, approach_description, why_this_url } to the user, who picks yes or no. Returns { approved: true|false, user_answer: string }. Do NOT call record_url unless this returned approved=true for the EXACT same URL — code-level guard rejects mismatched record_url calls.
 - AI image / video generation: NOT AVAILABLE. There is no generate_image tool. Real-world media only.
 
-When asset.method = "web_capture" on the shot's hint (the dominant method now), the agent's job is to (a) pick the best real URL via web_search + fetch_page, then (b) record_url it. The resulting capture:// URL becomes a MediaCandidate with source = "web_video", url = recording_url, source_page = final_url, title = page_title. The editor can play it directly — no extra step required.
+When asset.method = "web_capture" on the weak hint (the dominant method now), the agent's job is to (a) pick the best real URL via web_search + fetch_page, then (b) record_url it. The resulting capture:// URL becomes a MediaCandidate with source = "web_video", url = recording_url, source_page = final_url, title = page_title. The editor can play it directly — no extra step required.
 
 You can also use record_url to VERIFY a URL before committing: if the recording fails or the page_title comes back nothing like what you expected, pick a different URL.
 
@@ -560,9 +634,9 @@ Banned failure example:
 
 Rules:
 - Real-world media ONLY. AI image / video generation is NOT AVAILABLE. If you can't find media for the literal broll_description, BROADEN your search to related media about the subject (subject's other footage, subject's company / venue, the topic of the spoken line) via the IMPROVISATION LADDER below.
-- The shot's asset block carries the user's intent (web_capture means "go to this URL", stock_search means "find footage matching this query", library_search means "find user footage" — but if library was banned, treat as manual). Use these as starting points, but DO YOUR OWN research to surface better candidates.
+- The asset block is a weak hint (web_capture means "go to this URL", stock_search means "find footage matching this query", library_search means "find user footage" — but if library was banned, treat as manual). Use transcript keywords first, then these hints only to surface better candidates.
 - For "find founders together"-style intents, plan: search for the company / topic → identify the people by name → search for joint photos / interview videos → fetch promising pages → extract media URLs.
-- Cite the source_page (where you found the media) for every candidate so the editor can verify.
+- Cite source_page for every capture:// candidate. For source="web_page", source_page can equal url. Notes should say which visible page section / screen should be captured.
 - When you find a long video (e.g., YouTube interview) and only a segment is relevant, set recommended_segment_ms.
 
 NEVER RETURN EMPTY — IMPROVISATION LADDER (MANDATORY):
@@ -605,8 +679,8 @@ Output ONE JSON object (no markdown fences, no preamble) with this exact shape:
   "research_notes": "<2-3 sentences summarizing your plan + findings>",
   "candidates": [
     {
-      "source": "web_image|web_video|web_page|unresolved",
-      "url": "<concrete URL>",
+      "source": "web_video|web_page|unresolved",
+      "url": "<concrete page URL, video-host URL, or capture:// recording URL>",
       "thumbnail_url": "<url or null>",
       "source_page": "<provenance URL or null>",
       "title": "<short title or null>",
@@ -614,11 +688,18 @@ Output ONE JSON object (no markdown fences, no preamble) with this exact shape:
       "height": <int or null>,
       "duration_ms": <int or null>,
       "recommended_segment_ms": { "start_ms": <int>, "end_ms": <int> } | null,
-      "notes": "<one-sentence rationale>"
+      "recommended_scroll": "hold|slow|linear" | null,
+      "notes": "<one-sentence rationale; for web_page say what page section/screenshot/recording should be captured>"
     }
   ],
   "failure_reason": "<null when candidates >= 1; otherwise a one-sentence explanation>"
-}`;
+}
+
+recommended_scroll — YOU decide how the auto-recorder should scroll each web_page candidate (the user is never asked). Base it on what you actually saw via fetch_page (title, text, sections), not on guesswork:
+- "hold": single-screen pages — logo / hero-only pages, profile pages, app-store pages, video-player pages, anything where scrolling adds nothing.
+- "linear": scrollable pages — steady gradual reveal capped by runtime speed limits; it may stop mid-page rather than rushing to the bottom.
+- "slow": default for long/tall pages, articles, and anything where readability matters; a calm partial creep.
+Set it on every web_page candidate. For web_video candidates use null (nothing to scroll).`;
 
 function buildShotPrompt(
   shot: ShotPlan,
@@ -638,14 +719,86 @@ function buildShotPrompt(
   lines.push(
     `Target reel duration: ${(plan.total_duration_ms / 1000).toFixed(1)}s, ${plan.shots.length} shots total.`,
   );
-  lines.push(`Target full transcript: "${plan.shots.map((s) => s.spoken_during).filter(Boolean).join(' ')}"`);
+  lines.push(
+    `Curate library target: find at least ${plan.shots.length} total usable clip/page candidates across the full run (one or more per subtitle beat).`,
+  );
+  const fullTranscript = plan.shots
+    .map((s) => s.spoken_during)
+    .filter(Boolean)
+    .join(' ');
+  lines.push(`Target full transcript: "${fullTranscript}"`);
+  const contract = plan.edit_contract;
+  if (contract) {
+    const rule = contract.shots.find((s) => s.shot_idx === shot.shot_idx);
+    lines.push('');
+    lines.push('# STRICT EDIT CONTRACT FOR THIS SHOT');
+    lines.push(`Contract summary: ${contract.summary}`);
+    if (rule) {
+      lines.push(`Script trigger: ${rule.script_trigger || '(silent beat)'}`);
+      lines.push(`L1 media: ${rule.l1_media}`);
+      lines.push(`L2 visual overlay/media: ${rule.l2_visual_overlay}`);
+      lines.push(`L3 captions: ${rule.l3_captions}`);
+      lines.push(
+        `Layout: ${rule.layout.fit} at ${rule.layout.position}, aspect ${rule.layout.aspect}, scale ${rule.layout.scale}`,
+      );
+      lines.push(`Source category: ${rule.source_category}; method ${rule.source_method}`);
+      if (rule.source_instruction) lines.push(`Source instruction: ${rule.source_instruction}`);
+      if (rule.motion && rule.motion !== 'none') lines.push(`Motion: ${rule.motion}`);
+      if (rule.sfx) lines.push(`SFX: ${rule.sfx}`);
+      lines.push(
+        'These fields are mandatory. Pick media that satisfies them; do not replace the planned layout or source category with an easier generic source.',
+      );
+    } else {
+      lines.push(
+        'This shot has no exact contract row; preserve the global rules and section pattern.',
+      );
+    }
+  }
   lines.push('');
-  lines.push(`# Shot ${shot.shot_idx} (${shot.structure_role})`);
+  lines.push('Full subtitle transcript map:');
+  for (const s of plan.shots) {
+    const keywords = subtitleKeywords(s.spoken_during || '').join(', ') || '(none)';
+    lines.push(
+      `  ${s.shot_idx}: ${s.structure_role} ${(s.start_ms / 1000).toFixed(2)}s-${(s.end_ms / 1000).toFixed(2)}s — keywords: ${keywords} — "${s.spoken_during || '(silence)'}"`,
+    );
+  }
+  lines.push('');
+  lines.push('Topic research requirement before candidates:');
+  lines.push(
+    '- First infer the real subject/topic from the full transcript, not just this local shot.',
+  );
+  lines.push(
+    '- Run subject-level searches using transcript keywords to learn what the video is about and what credible media sources exist.',
+  );
+  lines.push(
+    '- Prefer media that fits the actual topic: demos, reviews, reels, interviews, product pages, founder/team pages, press, or official assets about the subject.',
+  );
+  lines.push(
+    '- Avoid duplicate obvious sources across the library. Do not default every subtitle beat to the homepage/top search result; search for a distinct page or media angle for this transcript beat.',
+  );
+  lines.push(
+    '- Then gather media for this subtitle beat using that topic context. Do not return generic or wrong-subject media unless all same-subject tiers fail.',
+  );
+  lines.push(
+    '- Return actual web page candidates for recording/screenshots. Do not return image/video URLs scraped from inside a website; use the containing page URL and explain what part to capture.',
+  );
+  const memory = relevantAgentMemory(plan, shot.spoken_during || shot.broll_description, 6);
+  if (memory.length > 0) {
+    lines.push('');
+    lines.push('Relevant past successful sources (memory; use as hints, verify if reused):');
+    for (const item of memory) lines.push(`- ${item}`);
+  }
+  lines.push('');
+  const currentKeywords = subtitleKeywords(shot.spoken_during || '');
+  lines.push(`# Library slot ${shot.shot_idx} (${shot.structure_role})`);
   lines.push(
     `time: ${(shot.start_ms / 1000).toFixed(2)}s - ${(shot.end_ms / 1000).toFixed(2)}s  (${(shot.duration_ms / 1000).toFixed(2)}s)`,
   );
   lines.push(`spoken_during: "${shot.spoken_during || '(silence)'}"`);
-  lines.push(`broll_description: ${shot.broll_description}`);
+  lines.push(
+    `subtitle_keywords: ${currentKeywords.length > 0 ? currentKeywords.join(', ') : '(infer from spoken_during)'}`,
+  );
+  lines.push(`broll_description_weak_hint: ${shot.broll_description}`);
   lines.push(`source_type: ${shot.source_type}`);
   lines.push(
     `placement: ${shot.placement.aspect} ${shot.placement.fit}@${shot.placement.position} scale=${shot.placement.scale}`,
@@ -673,7 +826,9 @@ function buildShotPrompt(
     lines.push(`  manual.instruction = "${shot.asset.manual.instruction}"`);
   }
   lines.push('');
-  lines.push('Research this shot. Find 2-5 concrete media candidates. Return JSON.');
+  lines.push(
+    'Research the topic first, then curate this library slot from the subtitle keywords and what is being talked about. Do not go by the shot idea first. Find at least 1 concrete web_page / capture recording / supported video-host candidate for this slot, and 2-5 when distinct useful options exist. Prefer page recordings/screenshots over raw images/videos scraped from pages. Return JSON.',
+  );
   return lines.join('\n');
 }
 
@@ -688,6 +843,7 @@ interface ToolCall {
 interface ToolExecContext {
   shot_idx: number;
   onClarification?: ResearchShotOptions['onClarification'];
+  reasoningLevel: CuratorReasoningLevel;
   /** Set true the first time record_url runs successfully for this
    *  shot. Subsequent record_url calls are rejected — the user wants
    *  recording to happen AT MOST once per shot. */
@@ -699,12 +855,212 @@ interface ToolExecContext {
   approvedUrl: string | null;
 }
 
+const SUBTITLE_KEYWORD_STOPWORDS = new Set([
+  'about',
+  'after',
+  'again',
+  'also',
+  'because',
+  'before',
+  'could',
+  'doing',
+  'from',
+  'have',
+  'here',
+  'into',
+  'like',
+  'more',
+  'most',
+  'only',
+  'over',
+  'really',
+  'said',
+  'says',
+  'that',
+  'their',
+  'them',
+  'then',
+  'there',
+  'these',
+  'they',
+  'this',
+  'those',
+  'through',
+  'what',
+  'when',
+  'where',
+  'which',
+  'while',
+  'with',
+  'would',
+]);
+
+function subtitleKeywords(text: string): string[] {
+  const counts = new Map<string, number>();
+  for (const match of text.toLowerCase().matchAll(/[a-z0-9][a-z0-9'$-]*/g)) {
+    const word = match[0].replace(/^'+|'+$/g, '');
+    if (word.length < 4) continue;
+    if (SUBTITLE_KEYWORD_STOPWORDS.has(word)) continue;
+    counts.set(word, (counts.get(word) ?? 0) + 1);
+  }
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1] || b[0].length - a[0].length)
+    .slice(0, 2)
+    .map(([word]) => word);
+}
+
+function memoryTokens(text: string): Set<string> {
+  const tokens = new Set<string>();
+  for (const match of text.toLowerCase().matchAll(/[a-z0-9][a-z0-9'$-]*/g)) {
+    const word = match[0].replace(/^'+|'+$/g, '');
+    if (word.length < 4 || SUBTITLE_KEYWORD_STOPWORDS.has(word)) continue;
+    tokens.add(word);
+  }
+  return tokens;
+}
+
+interface AgentMemoryEntry {
+  at: number;
+  kind: 'curator_source';
+  subject_hint: string;
+  shot_keywords: string[];
+  url: string;
+  source_page: string | null;
+  title: string | null;
+  source: MediaCandidate['source'];
+  notes: string | null;
+  recommended_scroll: ScrollStyle | null;
+}
+
+function readAgentMemory(): AgentMemoryEntry[] {
+  try {
+    if (!existsSync(AGENT_MEMORY_PATH)) return [];
+    return readFileSync(AGENT_MEMORY_PATH, 'utf8')
+      .split(/\n+/)
+      .filter(Boolean)
+      .slice(-400)
+      .map((line) => JSON.parse(line) as AgentMemoryEntry)
+      .filter((entry) => entry.kind === 'curator_source' && !!entry.url);
+  } catch {
+    return [];
+  }
+}
+
+function transcriptSubjectHint(plan: SuggestedEdit): string {
+  const text = plan.shots
+    .map((shot) => shot.spoken_during)
+    .join(' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return text.slice(0, 180);
+}
+
+function relevantAgentMemory(
+  plan: SuggestedEdit,
+  focusText: string,
+  max = 6,
+): string[] {
+  const queryTokens = memoryTokens(
+    `${transcriptSubjectHint(plan)} ${focusText}`,
+  );
+  if (queryTokens.size === 0) return [];
+  const scored = readAgentMemory()
+    .map((entry) => {
+      const haystack = [
+        entry.subject_hint,
+        entry.shot_keywords.join(' '),
+        entry.title ?? '',
+        entry.notes ?? '',
+        entry.url,
+        entry.source_page ?? '',
+      ].join(' ');
+      const entryTokens = memoryTokens(haystack);
+      let overlap = 0;
+      for (const token of queryTokens) {
+        if (entryTokens.has(token)) overlap += 1;
+      }
+      return { entry, score: overlap };
+    })
+    .filter((item) => item.score > 0)
+    .sort((a, b) => b.score - a.score || b.entry.at - a.entry.at)
+    .slice(0, max);
+  return scored.map(({ entry }) => {
+    const title = entry.title ? ` — ${entry.title}` : '';
+    const scroll =
+      entry.source === 'web_page' && entry.recommended_scroll
+        ? ` scroll=${entry.recommended_scroll}`
+        : '';
+    const notes = entry.notes ? ` (${entry.notes.slice(0, 90)})` : '';
+    return `${entry.source} ${entry.url}${title}${scroll}${notes}`;
+  });
+}
+
+function saveAgentMemory(
+  plan: SuggestedEdit,
+  shot: ShotPlan,
+  candidates: MediaCandidate[],
+): void {
+  const useful = candidates.filter(
+    (candidate) =>
+      candidate.url &&
+      candidate.source !== 'unresolved' &&
+      !candidate.url.startsWith('capture://'),
+  );
+  if (useful.length === 0) return;
+  try {
+    mkdirSync(dirname(AGENT_MEMORY_PATH), { recursive: true });
+    const subject_hint = transcriptSubjectHint(plan);
+    const shot_keywords = subtitleKeywords(shot.spoken_during || '');
+    const lines = useful.map((candidate) =>
+      JSON.stringify({
+        at: Date.now(),
+        kind: 'curator_source',
+        subject_hint,
+        shot_keywords,
+        url: candidate.url,
+        source_page: candidate.source_page ?? null,
+        title: candidate.title ?? null,
+        source: candidate.source,
+        notes: candidate.notes ?? null,
+        recommended_scroll: candidate.recommended_scroll ?? null,
+      } satisfies AgentMemoryEntry),
+    );
+    appendFileSync(AGENT_MEMORY_PATH, `${lines.join('\n')}\n`);
+  } catch {
+    /* best-effort memory */
+  }
+}
+
 async function executeTool(
   call: ToolCall,
   ctx: ToolExecContext,
 ): Promise<string> {
   try {
     const args = JSON.parse(call.arguments);
+    if (call.name === 'set_reasoning_level') {
+      const requested = String(args.reasoning_level ?? '').trim();
+      if (
+        requested !== 'none' &&
+        requested !== 'low' &&
+        requested !== 'medium' &&
+        requested !== 'high'
+      ) {
+        return JSON.stringify({
+          error: 'invalid_reasoning_level',
+          allowed: ['none', 'low', 'medium', 'high'],
+        });
+      }
+      const previous = ctx.reasoningLevel;
+      ctx.reasoningLevel = requested as CuratorReasoningLevel;
+      return JSON.stringify({
+        reasoning_level: ctx.reasoningLevel,
+        previous_reasoning_level: previous,
+        applied: modelSupportsReasoningEffort(MODEL),
+        model: MODEL,
+        applies_to: 'next_response',
+        reason: String(args.reason ?? '').slice(0, 200),
+      });
+    }
     if (call.name === 'tavily_search') {
       const query = String(args.query ?? '').trim();
       if (!query) return JSON.stringify({ error: 'empty_query' });
@@ -763,7 +1119,7 @@ async function executeTool(
       // passed. Camera moves happen downstream in the editor.
       const result = await recordUrl(requestedUrl, {
         durationMs: safeDurSec * 1000,
-        scroll: (args.scroll as ScrollStyle) ?? 'smooth',
+        scroll: (args.scroll as ScrollStyle) ?? 'slow',
         scrollSegments: rawSegments,
         expectedContent: expected.length > 0 ? expected : undefined,
         // User just approved this exact URL via request_record_approval
@@ -892,28 +1248,46 @@ function normalizeCandidate(raw: unknown): MediaCandidate | null {
   const url = typeof r.url === 'string' ? r.url.trim() : '';
   if (!url) return null;
   const sourceRaw = typeof r.source === 'string' ? r.source : '';
+  const sourcePage = typeof r.source_page === 'string' ? r.source_page : null;
+  const normalizedUrl =
+    sourceRaw === 'web_image' && sourcePage && sourcePage.trim()
+      ? sourcePage.trim()
+      : url;
   // generated_image is intentionally NOT in validSources — AI image
   // generation is blacklisted; if the model emits it, fall to 'unresolved'.
   const validSources: MediaCandidate['source'][] = [
-    'web_image',
     'web_video',
     'web_page',
     'user_provided',
     'unresolved',
   ];
-  const source = validSources.includes(sourceRaw as MediaCandidate['source'])
+  const source =
+    sourceRaw === 'web_image'
+      ? 'web_page'
+      : validSources.includes(sourceRaw as MediaCandidate['source'])
     ? (sourceRaw as MediaCandidate['source'])
     : 'unresolved';
   const segRaw = r.recommended_segment_ms as
     | { start_ms?: number; end_ms?: number }
     | null
     | undefined;
+  const scrollRaw =
+    typeof r.recommended_scroll === 'string'
+      ? r.recommended_scroll.trim().toLowerCase()
+      : '';
+  const recommended_scroll = (SCROLL_STYLES as readonly string[]).includes(
+    scrollRaw,
+  )
+    ? (scrollRaw as MediaCandidate['recommended_scroll'])
+    : source === 'web_page'
+      ? 'slow'
+      : null;
   return {
     source,
-    url,
+    url: normalizedUrl,
     thumbnail_url:
       typeof r.thumbnail_url === 'string' ? r.thumbnail_url : null,
-    source_page: typeof r.source_page === 'string' ? r.source_page : null,
+    source_page: sourcePage ?? (source === 'web_page' ? normalizedUrl : null),
     title: typeof r.title === 'string' ? r.title : null,
     width: typeof r.width === 'number' ? r.width : null,
     height: typeof r.height === 'number' ? r.height : null,
@@ -925,7 +1299,40 @@ function normalizeCandidate(raw: unknown): MediaCandidate | null {
         ? { start_ms: segRaw.start_ms, end_ms: segRaw.end_ms }
         : null,
     notes: typeof r.notes === 'string' ? r.notes : null,
+    recommended_scroll,
   };
+}
+
+function canonicalCandidateKey(candidate: MediaCandidate): string {
+  return (candidate.source_page || candidate.url)
+    .trim()
+    .replace(/[?#].*$/, '')
+    .replace(/\/$/, '')
+    .toLowerCase();
+}
+
+function verifiedCandidates(candidates: MediaCandidate[]): MediaCandidate[] {
+  const seen = new Set<string>();
+  const real = candidates.filter((candidate) => candidate.source !== 'unresolved');
+  const base = real.length > 0 ? real : candidates;
+  const out: MediaCandidate[] = [];
+  for (const candidate of base) {
+    const key = canonicalCandidateKey(candidate);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    out.push(candidate);
+  }
+  return out;
+}
+
+function verifiedFailureReason(
+  candidates: MediaCandidate[],
+  rawFailure: string | null | undefined,
+): string | null {
+  if (candidates.some((candidate) => candidate.source !== 'unresolved')) {
+    return null;
+  }
+  return rawFailure?.trim() || (candidates.length > 0 ? null : 'no_candidates_returned');
 }
 
 function extractFinalText(resp: Response): string {
@@ -1030,7 +1437,9 @@ export async function researchShot(
     { type: 'message', role: 'system', content: SYSTEM_PROMPT },
     { type: 'message', role: 'user', content: userPrompt },
   ];
-  return runAgentLoop(shot, input, opts);
+  const result = await runAgentLoop(shot, input, opts);
+  saveAgentMemory(plan, shot, result.curation.candidates);
+  return result;
 }
 
 /** Continue a prior agent session with a follow-up user instruction.
@@ -1091,10 +1500,320 @@ export async function continueShot(
   return runAgentLoop(shot, input, options);
 }
 
+// ---------- reel-level library curation ----------
+//
+// ONE agent run that sees EVERY shot and curates the full media library
+// for the reel in a single pass. This replaces N blind per-shot runs as
+// the primary discovery path: because the agent holds the whole reel in
+// context, diversity is planned up front (no duplicate sources, no
+// near-identical clips across shots) instead of patched after the fact
+// with uniqueness retries. The per-shot machinery stays as the gap-fill
+// fallback for shots the library leaves empty.
+
+/** Synthetic shot_idx used for reel-level (non-per-shot) agent events. */
+export const LIBRARY_SHOT_IDX = -1;
+
+/** Library mode never records in-loop — captures happen automatically
+ *  after curation — and clarifications stay available for subject
+ *  disambiguation. */
+const LIBRARY_TOOLS: Tool[] = TOOLS.filter(
+  (t) =>
+    !(
+      'name' in t &&
+      (t.name === 'record_url' || t.name === 'request_record_approval')
+    ),
+);
+
+const LIBRARY_SYSTEM_PROMPT = `You are a media research agent. ONE RUN = THE WHOLE REEL. Curate a complete LIBRARY of concrete media candidates covering EVERY shot/subtitle beat of a short-form vertical reel, in a single research pass.
+
+You see all the beats at once ON PURPOSE: the #1 job of this run (beyond finding usable media) is DIVERSITY — a varied library with no duplicate and no near-identical clips across shots.
+
+PROCESS:
+0. IDENTIFY THE SUBJECT. Read the full target transcript and pin down WHO/WHAT the reel is about — the named company, product, person, or topic. The SUBJECT is the constant across every beat; a beat's local words ("they raised 22 million") make no sense without the subject ("Vori raised 22 million").
+0A. BUILD A TOPIC BRIEF FIRST. Run at least one subject-level tavily_search (subject name + strongest transcript keywords). Identify: what the subject is, key people/products/events, credible source domains, likely media types (demo videos, reviews, interviews, product pages, press, founder profiles). This brief guides the WHOLE library.
+1. PLAN THE LIBRARY BEFORE SEARCHING PER-BEAT. Sketch which source TYPE each beat should get so the library spreads across: homepage/product pages, demo or review videos, founder/team pages, press articles, directories (YC / Crunchbase / Wikipedia), docs, social video. Assign the obvious anchors (homepage, YC profile, top press hit) to the beats that need them MOST — each such anchor appears AT MOST ONCE in the library.
+2. RESEARCH EACH BEAT from its 1-2 strongest spoken keywords (broll_description is a weak hint only). Chain tavily_search → fetch_page to verify pages before committing them.
+3. OUTPUT the library, assigning every candidate to exactly ONE shot_idx.
+
+DIVERSITY MANDATE (hard rules):
+- No two candidates may share the same URL or the same page (ignoring query string / hash). Code-level dedup will DROP later duplicates, leaving that beat empty — so don't emit them.
+- Near-duplicates count as duplicates: two recordings of the same homepage, two articles about the same announcement, two profile pages of the same person. Pick the strongest one for the beat that needs it most and find a DIFFERENT angle for the other beat.
+- A domain should appear at most twice across the library, and only when the two pages show meaningfully different content (say which section in notes).
+- Each shot gets 1-3 candidates ranked best-first; EVERY shot_idx listed in the user message MUST appear at least once in the library.
+
+BEAT RELEVANCE — clips must match what is being SAID:
+- A viewer pausing on a candidate's page/video during its beat should see content that matches the spoken line (or at minimum the subject). Assign each candidate to the beat whose words it actually supports — don't park a leftover source on an unrelated beat just to fill it.
+- An automatic relevance judge runs after your output and DROPS candidates that are about a different subject or unrelated to their beat — a dropped candidate wastes the slot and forces a slower per-shot rescue. In each candidate's notes, tie it to its beat's spoken words in a few words.
+
+SUBJECT ANCHORING — strong default (relaxes only at Tier 5 of the ladder):
+- EVERY search query MUST include the subject's name. "$22 million funding" is wrong; "Vori $22 million funding" is right.
+- A page must be about the subject for Tier 1-4. Returning a DIFFERENT company's media as if it were the subject's is BANNED.
+
+URL DISCIPLINE — non-negotiable:
+1. NEVER call fetch_page on a URL from your own head. Every URL you act on MUST come from a search result or a prior fetch_page response. Inventing URLs from training data is the #1 cause of 404s.
+2. ALWAYS run tavily_search before the first fetch_page for a beat unless you already verified the URL earlier in THIS run. Escalate to the built-in web_search ONLY when tavily_search returns blocked=true.
+3. Pick URLs from results verbatim — do not modify paths, swap domains, or "complete" remembered URLs.
+4. ALWAYS pass expected_content ("<subject name> <one qualifier>") to fetch_page. matches_expected=false means WRONG SUBJECT — do not use the page; pick a different result.
+5. On http_404 / http_999_bot_blocked / auth_wall_redirect / not_found_text_detected: do NOT retry the same URL; switch to a different search result. http_999_bot_blocked (LinkedIn-style bot denial) means the page can neither be fetched nor captured — never commit such a URL.
+6. If both search backends are blocked for a real subject, try trusted roots directly (subject's .com/.io/.ai, en.wikipedia.org/wiki/<Subject>, ycombinator.com/companies/<slug>, crunchbase.com/organization/<slug>, github.com/<name>) — each with expected_content set.
+
+SOURCE PREFERENCE — public over auth-walled:
+linkedin.com, x.com/twitter.com (especially /status/ URLs), and medium paywalls are auth/app-walled for logged-out visitors. Prefer public alternatives: subject's own site, Crunchbase/Wikipedia, YC directory, GitHub, public press, YouTube (not Shorts), institutional pages. When an auth-walled page IS the strongest same-subject source for a beat (e.g. the founder's LinkedIn profile, a key X post), you MAY commit it as source="web_page" — these hosts are captured as SCREENSHOTS ONLY (a recording is never attempted; it would just bounce off the wall). Flag "screenshot-only" in notes and set recommended_scroll to "hold". HARD PRECONDITION: fetch_page must have actually RENDERED it (ok, matches_expected=true) — if fetch_page returned http_999_bot_blocked or an auth-wall error, screenshots will fail the same way, so do NOT commit that URL.
+
+OUTPUT POLICY — PAGE CAPTURES, NOT SCRAPED ASSETS:
+- Normal websites / articles / company / review / demo / docs / directory pages → source="web_page" with url=<page URL>. The app auto-records the page and captures screenshots AFTER curation — you do not record anything in this loop.
+- Do NOT return raw image URLs or direct .mp4/.webm file URLs scraped from inside a page. Return the containing page as source="web_page" with notes saying which section/visual to capture.
+- VIDEO HOST PASSTHROUGH: URLs on YouTube (watch / youtu.be / embed), Vimeo, Loom, Streamable, Wistia, Dailymotion, v.redd.it, Instagram, TikTok, Facebook are committed DIRECTLY as source="web_video" with url=<the URL> — do NOT fetch_page them (the tool short-circuits with video_host_passthrough). When only a segment of a long video is relevant, set recommended_segment_ms.
+
+REASONING LEVEL CONTROL:
+Call set_reasoning_level by your own judgment: low for routine search/fetch; medium for cross-beat diversity planning and comparing mixed sources; high for conflicting evidence or hard improvisation. Lower it again for routine work and the final JSON.
+
+WHEN TO ASK THE USER — confused, don't guess:
+Call ask_user_clarification ONLY when two same-tier candidates are equally plausible on real evidence (wrong-person/wrong-company forks), the SUBJECT itself is ambiguous from the transcript, or fetched pages give conflicting signals. Never ask before searching, never ask when one more query would resolve it, never ask because you have zero candidates (walk the ladder instead). At most 2 clarifications for the WHOLE run.
+
+NEVER LEAVE A BEAT EMPTY — IMPROVISATION LADDER:
+Tier 1 EXACT → Tier 2 ADJACENT same-subject same-topic → Tier 3 same-subject any-topic (leadership/team) → Tier 4 subject brand assets (homepage hero, product shots, press kit) → Tier 5 TOPIC-ANCHORED generic visual (last resort; flag it in notes). Tool failures are NOT "no public presence" — walk the blocked-search ladder before giving up. failure_reason stays null unless the subject truly has zero public web presence.
+
+There is NO TURN LIMIT. Take as many tool calls as you need — but reuse your topic brief across beats instead of re-searching the same ground; repeated identical searches are cached anyway.
+
+Output ONE JSON object (no markdown fences, no preamble):
+{
+  "research_notes": "<2-4 sentences: subject, library strategy, how diversity was achieved>",
+  "library": [
+    {
+      "shot_idx": <int — the one shot this clip is assigned to>,
+      "source": "web_video|web_page|unresolved",
+      "url": "<concrete page URL or video-host URL>",
+      "thumbnail_url": "<url or null>",
+      "source_page": "<provenance URL or null>",
+      "title": "<short title or null>",
+      "width": <int or null>,
+      "height": <int or null>,
+      "duration_ms": <int or null>,
+      "recommended_segment_ms": { "start_ms": <int>, "end_ms": <int> } | null,
+      "recommended_scroll": "hold|slow|linear" | null,
+      "notes": "<rationale; which page section to capture; tier if improvised; why this source is DISTINCT from the rest of the library>"
+    }
+  ],
+  "failure_reason": "<null when every shot got >= 1 candidate; otherwise one sentence>"
+}
+
+recommended_scroll — YOU decide how the auto-recorder should scroll each web_page candidate (the user is never asked). Base it on what you actually saw via fetch_page (title, text, sections), not on guesswork:
+- "hold": single-screen pages — logo / hero-only pages, profile pages, app-store pages, video-player pages, anything where scrolling adds nothing.
+- "linear": scrollable pages — steady gradual reveal capped by runtime speed limits; it may stop mid-page rather than rushing to the bottom.
+- "slow": default for long/tall pages, articles, and anything where readability matters; a calm partial creep.
+Set it on every web_page candidate. For web_video candidates use null (nothing to scroll). Vary it with the page type — a library where every entry scrolls the same way reads as monotonous.`;
+
+function buildLibraryPrompt(
+  plan: SuggestedEdit,
+  shots: ShotPlan[],
+  extraUserPrompt?: string,
+): string {
+  const lines: string[] = [];
+  if (extraUserPrompt && extraUserPrompt.trim().length > 0) {
+    lines.push('# ADDITIONAL USER GUIDANCE FOR THIS RUN');
+    lines.push(extraUserPrompt.trim());
+    lines.push('');
+    lines.push(
+      'Treat the guidance above as a hard constraint. It overrides the original shot ideas wherever they conflict.',
+    );
+    lines.push('');
+  }
+  lines.push(
+    `Target reel duration: ${(plan.total_duration_ms / 1000).toFixed(1)}s, ${plan.shots.length} shots total; ${shots.length} of them need library candidates from this run.`,
+  );
+  const fullTranscript = plan.shots
+    .map((s) => s.spoken_during)
+    .filter(Boolean)
+    .join(' ');
+  lines.push(`Target full transcript: "${fullTranscript}"`);
+  if (plan.edit_contract) {
+    lines.push('');
+    lines.push('# STRICT EDIT CONTRACT');
+    lines.push(`Contract summary: ${plan.edit_contract.summary}`);
+    lines.push('Global rules:');
+    for (const rule of plan.edit_contract.global_rules.slice(0, 8)) {
+      lines.push(`- ${rule.label}: ${rule.requirement}`);
+    }
+    lines.push('');
+    lines.push('Per-shot contract rows to satisfy:');
+    const wanted = new Set(shots.map((s) => s.shot_idx));
+    for (const rule of plan.edit_contract.shots.filter((s) => wanted.has(s.shot_idx))) {
+      lines.push(
+        `  shot_idx ${rule.shot_idx}: trigger="${rule.script_trigger || '(silent)'}"; ` +
+          `L1=${rule.l1_media}; L2=${rule.l2_visual_overlay}; ` +
+          `layout=${rule.layout.fit}/${rule.layout.position}; ` +
+          `source=${rule.source_category} via ${rule.source_method}; ` +
+          `instruction=${rule.source_instruction || '(match the beat)'}`,
+      );
+    }
+    lines.push(
+      'Use these rows as hard constraints when assigning media. The final library should make the plan follow the analysis contract, not just fill empty slots.',
+    );
+  }
+  lines.push('');
+  lines.push(
+    'Beats to fill (assign every candidate to exactly one of THESE shot_idx values; every one of them must get at least 1 candidate):',
+  );
+  for (const s of shots) {
+    const keywords =
+      subtitleKeywords(s.spoken_during || '').join(', ') || '(none)';
+    lines.push(
+      `  shot_idx ${s.shot_idx}: ${s.structure_role} ${(s.start_ms / 1000).toFixed(2)}s-${(s.end_ms / 1000).toFixed(2)}s (${(s.duration_ms / 1000).toFixed(1)}s) — keywords: ${keywords} — "${s.spoken_during || '(silence)'}" — weak visual hint: ${s.broll_description}`,
+    );
+  }
+  lines.push('');
+  lines.push(
+    'Research the subject + topic first, plan the library for diversity, then fill every beat. Return JSON.',
+  );
+  const memory = relevantAgentMemory(plan, fullTranscript, 8);
+  if (memory.length > 0) {
+    lines.push('');
+    lines.push('Relevant past successful sources (memory; use as hints, verify if reused):');
+    for (const item of memory) lines.push(`- ${item}`);
+  }
+  return lines.join('\n');
+}
+
+interface RawLibraryEntry {
+  shot_idx?: unknown;
+  shot_idxs?: unknown;
+}
+
+interface RawLibrary {
+  research_notes?: string;
+  library?: unknown[];
+  failure_reason?: string | null;
+}
+
+export interface LibraryResearchResult {
+  research_notes: string;
+  /** Per-shot candidate assignments. Candidates are unique across the
+   *  whole map — a URL assigned to two shots keeps only its first
+   *  assignment. Shots the agent left empty are simply absent. */
+  assignments: Map<number, MediaCandidate[]>;
+  failure_reason: string | null;
+  usage: AgentUsage;
+  trace: AgentTrace;
+}
+
+/** Run ONE reel-level agent pass that curates the media library for all
+ *  `shots` at once (diversity planned in-context), instead of N blind
+ *  per-shot runs. Events fire with shot_idx = LIBRARY_SHOT_IDX. */
+export async function researchLibrary(
+  plan: SuggestedEdit,
+  shots: ShotPlan[],
+  opts: ResearchShotOptions = {},
+): Promise<LibraryResearchResult> {
+  const empty = (
+    failure: string,
+    notes: string,
+    trace?: AgentTrace,
+    usage?: AgentUsage,
+  ): LibraryResearchResult => ({
+    research_notes: notes,
+    assignments: new Map(),
+    failure_reason: failure,
+    usage: usage ?? { input_tokens: 0, output_tokens: 0, total_tokens: 0 },
+    trace:
+      trace ?? {
+        shot_idx: LIBRARY_SHOT_IDX,
+        turns: [],
+        final_text: '',
+        finished_at_turn: 0,
+        reason: 'api_error',
+        tokens: { input: 0, output: 0, total: 0 },
+      },
+  });
+  if (shots.length === 0) return empty('no_shots', '(no shots to research)');
+  if (opts.signal?.aborted) return empty('aborted', '(aborted before start)');
+  if (!getOpenAI()) {
+    return empty('no_api_key', '(OPENAI_API_KEY not set; curator skipped)');
+  }
+
+  // The loop only needs a shot for its shot_idx (events, trace, record
+  // budget) — give it a synthetic reel-level one.
+  const pseudoShot = { shot_idx: LIBRARY_SHOT_IDX } as ShotPlan;
+  const input: ResponseInputItem[] = [
+    { type: 'message', role: 'system', content: LIBRARY_SYSTEM_PROMPT },
+    {
+      type: 'message',
+      role: 'user',
+      content: buildLibraryPrompt(plan, shots, opts.extraUserPrompt),
+    },
+  ];
+  const result = await runAgentLoop(pseudoShot, input, opts, LIBRARY_TOOLS);
+  const finalText = result.trace.final_text;
+  if (!finalText) {
+    return empty(
+      result.curation.failure_reason ?? 'no_output',
+      result.curation.research_notes,
+      result.trace,
+      result.usage,
+    );
+  }
+
+  let parsed: RawLibrary;
+  try {
+    const cleaned = finalText
+      .trim()
+      .replace(/^```(?:json)?\s*/, '')
+      .replace(/\s*```$/, '');
+    parsed = JSON.parse(cleaned) as RawLibrary;
+  } catch (err) {
+    return empty(
+      `parse_error: ${err instanceof Error ? err.message : String(err)}`,
+      '(final output was not valid JSON)',
+      result.trace,
+      result.usage,
+    );
+  }
+
+  const validIdxs = new Set(shots.map((s) => s.shot_idx));
+  const assignments = new Map<number, MediaCandidate[]>();
+  const seenUrls = new Set<string>();
+  for (const rawEntry of Array.isArray(parsed.library) ? parsed.library : []) {
+    const candidate = normalizeCandidate(rawEntry);
+    if (!candidate) continue;
+    const entry = rawEntry as RawLibraryEntry;
+    // Accept shot_idx (canonical) or shot_idxs[0] (model drift).
+    const idxRaw =
+      typeof entry.shot_idx === 'number'
+        ? entry.shot_idx
+        : Array.isArray(entry.shot_idxs) &&
+            typeof entry.shot_idxs[0] === 'number'
+          ? entry.shot_idxs[0]
+          : null;
+    if (idxRaw === null || !validIdxs.has(idxRaw)) continue;
+    // Diversity enforcement: each source appears once in the library.
+    const key = canonicalCandidateKey(candidate);
+    if (key && seenUrls.has(key)) continue;
+    if (key) seenUrls.add(key);
+    const list = assignments.get(idxRaw) ?? [];
+    list.push(candidate);
+    assignments.set(idxRaw, list);
+  }
+  for (const shot of shots) {
+    saveAgentMemory(plan, shot, assignments.get(shot.shot_idx) ?? []);
+  }
+
+  return {
+    research_notes: parsed.research_notes?.trim() || '',
+    assignments,
+    failure_reason:
+      [...assignments.values()].some((items) => items.length > 0)
+        ? null
+        : verifiedFailureReason([], parsed.failure_reason),
+    usage: result.usage,
+    trace: result.trace,
+  };
+}
+
 async function runAgentLoop(
   shot: ShotPlan,
   input: ResponseInputItem[],
   opts: ResearchShotOptions,
+  tools: Tool[] = TOOLS,
 ): Promise<ResearchResult> {
   const { onTurn, signal } = opts;
   // getOpenAI() returns null when OPENAI_API_KEY is missing — the
@@ -1122,6 +1841,7 @@ async function runAgentLoop(
   const ctx: ToolExecContext = {
     shot_idx: shot.shot_idx,
     onClarification: opts.onClarification,
+    reasoningLevel: DEFAULT_REASONING_LEVEL,
     recordUrlCalled: false,
     approvedUrl: null,
   };
@@ -1155,12 +1875,16 @@ async function runAgentLoop(
     }
     let resp: Response;
     try {
+      const responseParams = {
+        model: MODEL,
+        input,
+        tools,
+        ...(modelSupportsReasoningEffort(MODEL)
+          ? { reasoning: { effort: ctx.reasoningLevel } }
+          : {}),
+      };
       resp = await client.responses.create(
-        {
-          model: MODEL,
-          input,
-          tools: TOOLS,
-        },
+        responseParams,
         signal ? { signal } : undefined,
       );
     } catch (err) {
@@ -1393,18 +2117,18 @@ async function runAgentLoop(
     };
   }
 
-  const candidates = Array.isArray(parsed.candidates)
+  const candidates = verifiedCandidates(Array.isArray(parsed.candidates)
     ? parsed.candidates
         .map(normalizeCandidate)
         .filter((c): c is MediaCandidate => c !== null)
-    : [];
+    : []);
 
   return {
     curation: {
       shot_idx: shot.shot_idx,
       research_notes: parsed.research_notes?.trim() || '',
       candidates,
-      failure_reason: parsed.failure_reason?.trim() || null,
+      failure_reason: verifiedFailureReason(candidates, parsed.failure_reason),
     },
     usage,
     trace: buildTrace(),

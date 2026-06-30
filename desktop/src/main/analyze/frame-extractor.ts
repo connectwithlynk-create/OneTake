@@ -88,6 +88,7 @@ export async function extractFrames(
   if (!url || timestampsMs.length === 0) return [];
   const maxDim = options?.maxDimension ?? 720;
 
+  console.error('[frames] ffmpeg pool start:', timestampsMs.length, 'timestamps');
   const extracted = await pool(timestampsMs, CONCURRENCY, async (ms) => {
     const buf = await ffmpegFrame(url, ms, maxDim);
     if (!buf) return null;
@@ -111,17 +112,30 @@ export async function extractFrames(
     return { frame, pixels: decoded.data };
   });
 
+  console.error(
+    '[frames] ffmpeg pool done:',
+    extracted.filter(Boolean).length,
+    'of',
+    timestampsMs.length,
+    'decoded; starting face pass',
+  );
+
   // Face detection runs as a sequential pass - the tfjs WASM backend is
   // one shared context, not suited to the concurrent ffmpeg pool.
+  let faceIdx = 0;
   for (const item of extracted) {
     if (item) {
+      console.error('[frames] face pass', ++faceIdx, '/', extracted.length);
       item.frame.face = await detectFaceData(
         item.pixels,
         item.frame.width,
         item.frame.height,
       );
+    } else {
+      faceIdx++;
     }
   }
+  console.error('[frames] face pass done');
 
   return extracted.map((item) => (item ? item.frame : null));
 }

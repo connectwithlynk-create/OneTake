@@ -121,11 +121,18 @@ export function lineifyProject(
       if (localEnd < inMs || localStart > outMs) continue;
       const clampedLocalStart = Math.max(localStart, inMs);
       const clampedLocalEnd = Math.min(localEnd, outMs);
+      const words = ln.words
+        .filter((w) => w.e * 1000 >= inMs && w.s * 1000 <= outMs)
+        .map((w) => ({
+          ...w,
+          s: (compStart + (Math.max(w.s * 1000, inMs) - inMs)) / 1000,
+          e: (compStart + (Math.min(w.e * 1000, outMs) - inMs)) / 1000,
+        }));
       out.push({
         startMs: compStart + (clampedLocalStart - inMs),
         endMs: compStart + (clampedLocalEnd - inMs),
-        words: ln.words,
-        text: ln.text,
+        words,
+        text: words.map((w) => w.w).join(' '),
       });
     }
   }

@@ -1,0 +1,1860 @@
+{
+  "total_duration_ms": 11968,
+  "shots": [
+    {
+      "shot_idx": 0,
+      "start_ms": 0,
+      "end_ms": 1316,
+      "duration_ms": 1316,
+      "spoken_during": "What's this startup",
+      "structure_role": "hook",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.95,
+          "likelihood": 0.95,
+          "broll_description": "startup introduction",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.folkapp.com",
+              "focus": "homepage hero or tagline"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "zoom in 1.1x over the shot"
+          },
+          "placement": {
+            "aspect": "original",
+            "fit": "contain",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Visual introduction of the app directly ties to the hook phrase."
+        },
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.95,
+          "broll_description": "Close-up of a young person on their phone with Folk app UI visible.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.folkapp.com",
+              "focus": "app UI on phone screen"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "close-up of a relevant prop or artifact",
+          "rationale": "Direct visual representation of app usage fits the spoken context."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.6,
+          "likelihood": 0.95,
+          "broll_description": "Folk's Instagram profile page showing their brand assets.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://instagram.com/folkapp",
+              "focus": "profile header with logo and highlights"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screenshot of the subject's social media profile",
+          "rationale": "Easily accessible visual fallback directly from their public social page."
+        }
+      ],
+      "broll_description": "startup introduction",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://www.folkapp.com",
+          "focus": "homepage hero or tagline"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "zoom in 1.1x over the shot"
+      },
+      "placement": {
+        "aspect": "original",
+        "fit": "contain",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "screen recording of the subject's website",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DYlQlfYuTc7/",
+        "shot_idx": 0,
+        "pattern": "Medium shot of a young man standing on stage introduces the concept."
+      },
+      "text_overlay": "'WHAT'S'/ 'STARTUP'",
+      "text_position": "top_center",
+      "animation_cue": "pop",
+      "scene_animation": "zoom_in",
+      "animation_scale": 1.05,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": "vocal hit on cut in",
+      "clip_type": "broll_visual",
+      "rationale": "The shot establishes the reel's subject 'What's this startup' maintaining engagement.",
+      "selected_media": [
+        {
+          "url": "capture://files/0b5d63631064fd5d.mp4",
+          "kind": "video",
+          "origin": "page_recording",
+          "from_candidate_url": "https://www.getfolk.app",
+          "reason": "Best captures the hero tagline and provides a strong brand introduction."
+        }
+      ],
+      "animation_duration_ms": 1316,
+      "zoom_region": "middle_center",
+      "zoom_scale": 1.1
+    },
+    {
+      "shot_idx": 1,
+      "start_ms": 1316,
+      "end_ms": 2912,
+      "duration_ms": 1596,
+      "spoken_during": "that stalks your ex?",
+      "structure_role": "hook",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.92,
+          "likelihood": 0.95,
+          "broll_description": "startup stalking feature",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.folkapp.com",
+              "focus": "visual metaphor for the stalker aspect"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "zoom in 1.1x over the shot"
+          },
+          "placement": {
+            "aspect": "original",
+            "fit": "contain",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "stock / archival footage tied to a claim",
+          "rationale": "Metaphorical representation aligns with the spoken phrase about 'stalking your ex'."
+        },
+        {
+          "tier": "ideal",
+          "fit_score": 0.88,
+          "likelihood": 0.95,
+          "broll_description": "Footage of Folk app notifications on a smartphone.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.folkapp.com",
+              "focus": "notification feature on phone"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "close-up of a relevant prop or artifact",
+          "rationale": "Directly ties the app's function to the narrative of 'stalking'."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.65,
+          "likelihood": 0.95,
+          "broll_description": "Image of Folk's logo with subtle effect, symbolizing intrigue.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.folkapp.com",
+              "focus": "brand logo with dark theme"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Utilizes the recognizable brand logo in an accessible format."
+        }
+      ],
+      "broll_description": "startup stalking feature",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://www.folkapp.com",
+          "focus": "visual metaphor for the stalker aspect"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "zoom in 1.1x over the shot"
+      },
+      "placement": {
+        "aspect": "original",
+        "fit": "contain",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "stock / archival footage tied to a claim",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DXz_iMJNjlV/",
+        "shot_idx": 1,
+        "pattern": "More focused visual ties back to the pattern of introducing the character trait."
+      },
+      "text_overlay": "STALKS/ 'EX?'",
+      "text_position": "middle_left",
+      "animation_cue": "pop",
+      "scene_animation": "zoom_in",
+      "animation_scale": 1.05,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": null,
+      "clip_type": "broll_visual",
+      "rationale": "This shot reinforces the narrative by visually aligning with 'stalks your ex'.",
+      "selected_media": [
+        {
+          "url": "https://www.instagram.com/p/DX-9aJqkak5?img_index=2&hl=sr",
+          "kind": "video",
+          "origin": "page_recording",
+          "from_candidate_url": "https://www.instagram.com/p/DX-9aJqkak5?img_index=2&hl=sr",
+          "reason": "Directly matches the theme of stalking and adds a viral-social angle."
+        }
+      ],
+      "animation_duration_ms": 1596,
+      "zoom_region": "middle_center",
+      "zoom_scale": 1.2
+    },
+    {
+      "shot_idx": 2,
+      "start_ms": 2912,
+      "end_ms": 4310,
+      "duration_ms": 1398,
+      "spoken_during": "This is folk by nozomio labs",
+      "structure_role": "intro",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.93,
+          "likelihood": 0.95,
+          "broll_description": "folk by nozomio labs",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.folkapp.com/about",
+              "focus": "company mission and values"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "original",
+            "fit": "contain",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Aligns the introduction with tangible details about the company."
+        },
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.95,
+          "broll_description": "Visualization of app downloads increasing, providing a virality metaphor.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.folkapp.com",
+              "focus": "visual effect of increasing downloads"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "stock / archival footage tied to a claim",
+          "rationale": "Uses metaphorical imagery to depict conceptual growth."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.6,
+          "likelihood": 0.95,
+          "broll_description": "Folk's LinkedIn profile highlighting its rapid growth and virality.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://linkedin.com/company/folkapp",
+              "focus": "milestones and accomplishments section"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screenshot of the subject's social media profile",
+          "rationale": "Ties directly into public perception and notoriety of their quick success."
+        }
+      ],
+      "broll_description": "folk by nozomio labs",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://www.folkapp.com/about",
+          "focus": "company mission and values"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "static"
+      },
+      "placement": {
+        "aspect": "original",
+        "fit": "contain",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "screen recording of the subject's website",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DYg26zgRiGS/",
+        "shot_idx": 2,
+        "pattern": "Use of company profile parallels introducing the startup."
+      },
+      "text_overlay": "'THIS IS' / 'FOLK,'",
+      "text_position": "top_left",
+      "animation_cue": "pop",
+      "scene_animation": "zoom_in",
+      "animation_scale": 1.05,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": "whoosh whoosh",
+      "clip_type": "broll_visual",
+      "rationale": "Provides the audience with immediate context about the company being introduced.",
+      "selected_media": [
+        {
+          "url": "capture://files/bd7eed83bac1b9a4.mp4",
+          "kind": "video",
+          "origin": "page_recording",
+          "from_candidate_url": "https://work.folk.app/whats-the-plan",
+          "reason": "Best mission page for the intro, explaining Folk’s vision."
+        }
+      ],
+      "animation_duration_ms": 1398,
+      "zoom_region": "middle_center",
+      "zoom_scale": 1
+    },
+    {
+      "shot_idx": 3,
+      "start_ms": 4310,
+      "end_ms": 6342,
+      "duration_ms": 2032,
+      "spoken_during": "and it just got into YC",
+      "structure_role": "intro",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.94,
+          "likelihood": 0.95,
+          "broll_description": "YC acceptance announcement",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.techcrunch.com/articles/folk/viral",
+              "focus": "headline and leading image"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "original",
+            "fit": "contain",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "stock / archival footage tied to a claim",
+          "rationale": "This visually exemplifies the spoken claim of the company going viral."
+        },
+        {
+          "tier": "ideal",
+          "fit_score": 0.88,
+          "likelihood": 0.95,
+          "broll_description": "Overlay of graphical trend data showcasing increased app interaction.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.folkapp.com/press",
+              "focus": "recent press article"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "contain",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Supports narrative with quantifiable data about their popularity."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.61,
+          "likelihood": 0.95,
+          "broll_description": "Image of Folk's app icon on top trending charts.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.folkapp.com",
+              "focus": "app icon with trend labels"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "close-up of a relevant prop or artifact",
+          "rationale": "Easy to obtain image leveraging their viral trend acknowledgment."
+        }
+      ],
+      "broll_description": "YC acceptance announcement",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://www.techcrunch.com/articles/folk/viral",
+          "focus": "headline and leading image"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "static"
+      },
+      "placement": {
+        "aspect": "original",
+        "fit": "contain",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "stock / archival footage tied to a claim",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DYg26zgRiGS/",
+        "shot_idx": 3,
+        "pattern": "Displaying interactive and viral growth metrics aligns with intro portion."
+      },
+      "text_overlay": "'WENT VIRAL.'",
+      "text_position": "bottom_center",
+      "animation_cue": "pop",
+      "scene_animation": "zoom_in",
+      "animation_scale": 1.05,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": null,
+      "clip_type": "broll_visual",
+      "rationale": "Visual reinforcements emphasize the 'just went viral' claim effectively.",
+      "selected_media": [
+        {
+          "url": "capture://files/ec212a7277e4d960.mp4",
+          "kind": "video",
+          "origin": "page_recording",
+          "from_candidate_url": "https://www.businessinsider.com/nozomio-high-school-dropout-y-combinator-6-million-seed-2025-9",
+          "reason": "Provides a strong news headline proof for the startup's growth."
+        }
+      ],
+      "animation_duration_ms": 800,
+      "zoom_region": "middle_center",
+      "zoom_scale": 1
+    },
+    {
+      "shot_idx": 5,
+      "start_ms": 6342,
+      "end_ms": 7348,
+      "duration_ms": 1006,
+      "spoken_during": "Folk can",
+      "structure_role": "body",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.92,
+          "likelihood": 0.95,
+          "broll_description": "capabilities of Folk app",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.folkapp.com/features",
+              "focus": "multitasking features"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "original",
+            "fit": "contain",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "close-up of a relevant prop or artifact",
+          "rationale": "Directly visualizes the spoken claim about the app's broad capabilities."
+        },
+        {
+          "tier": "ideal",
+          "fit_score": 0.89,
+          "likelihood": 0.95,
+          "broll_description": "Animation of phone with various Folk app UI screens sliding in.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.folkapp.com/interface",
+              "focus": "UI screens showcase"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Highlights the app's user interface in an engaging and informative way."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.58,
+          "likelihood": 0.95,
+          "broll_description": "Static image from Folk's website showcasing app capabilities.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.folkapp.com",
+              "focus": "featured capabilities"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Provides a strong visual representation based directly on the spoken claim."
+        }
+      ],
+      "broll_description": "capabilities of Folk app",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://www.folkapp.com/features",
+          "focus": "multitasking features"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "static"
+      },
+      "placement": {
+        "aspect": "original",
+        "fit": "contain",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "close-up of a relevant prop or artifact",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DXz_iMJNjlV/",
+        "shot_idx": 4,
+        "pattern": "Introducing app features matches the body role contextually."
+      },
+      "text_overlay": "'FOLK/ CAN'",
+      "text_position": "middle_right",
+      "animation_cue": null,
+      "scene_animation": "zoom_in",
+      "animation_scale": 1.05,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": null,
+      "clip_type": "talking_head_unknown",
+      "rationale": "Showing app features corresponds well with the claim 'can do anything'.",
+      "selected_media": [
+        {
+          "url": "capture://files/905d523ae99ac378.mp4",
+          "kind": "video",
+          "origin": "page_recording",
+          "from_candidate_url": "capture://files/905d523ae99ac378.mp4",
+          "reason": "Shows user interaction with the app, supporting the 'Folk can' statement."
+        }
+      ],
+      "animation_duration_ms": 1006,
+      "zoom_region": "middle_center",
+      "zoom_scale": 1.1
+    },
+    {
+      "shot_idx": 6,
+      "start_ms": 7348,
+      "end_ms": 8188,
+      "duration_ms": 840,
+      "spoken_during": "do anything",
+      "structure_role": "body",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.95,
+          "broll_description": "Folk app functionality",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.folkapp.com/success-stories",
+              "focus": "real-world applications section"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "original",
+            "fit": "contain",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "close-up of a relevant prop or artifact",
+          "rationale": "Engages viewers through practical application, demonstrating versatility."
+        },
+        {
+          "tier": "ideal",
+          "fit_score": 0.87,
+          "likelihood": 0.95,
+          "broll_description": "Flashing highlights of different tasks handled by Folk on a phone.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.folkapp.com/features",
+              "focus": "varied task management"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "pan_left"
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Demonstrates the breadth of the app's functionality in a vivid manner."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.66,
+          "likelihood": 0.95,
+          "broll_description": "User reviews section of Folk’s app detailing feature usage.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.folkapp.com/testimonials",
+              "focus": "user reviews about multitasking"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Reliably adds user credibility to the app's multifunctionality claims."
+        }
+      ],
+      "broll_description": "Folk app functionality",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://www.folkapp.com/success-stories",
+          "focus": "real-world applications section"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "static"
+      },
+      "placement": {
+        "aspect": "original",
+        "fit": "contain",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "close-up of a relevant prop or artifact",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DYxLMnNRzQ5/",
+        "shot_idx": 5,
+        "pattern": "Effective illustration of multitasking echoes original body style."
+      },
+      "text_overlay": "'DO/ ANYTHING'",
+      "text_position": "bottom_center",
+      "animation_cue": null,
+      "scene_animation": "zoom_in",
+      "animation_scale": 1.05,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": "silent open",
+      "clip_type": "talking_head_unknown",
+      "rationale": "Multitasking feature visuals link strongly to the 'do anything' phrase.",
+      "selected_media": [
+        {
+          "url": "capture://files/d127d09e8333911f.mp4",
+          "kind": "video",
+          "origin": "page_recording",
+          "from_candidate_url": "https://extraordinary.com/arlan",
+          "reason": "Broad support for the 'do anything' statement with founder context."
+        }
+      ],
+      "animation_duration_ms": 840,
+      "zoom_region": "middle_center",
+      "zoom_scale": 1
+    },
+    {
+      "shot_idx": 7,
+      "start_ms": 8188,
+      "end_ms": 8916,
+      "duration_ms": 728,
+      "spoken_during": "on your",
+      "structure_role": "body",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.88,
+          "likelihood": 0.95,
+          "broll_description": "Folk app on phone",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.folkapp.com",
+              "focus": "text message interface"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "none"
+          },
+          "placement": {
+            "aspect": "original",
+            "fit": "contain",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "close-up of a relevant prop or artifact",
+          "rationale": "Direct visual of app interface for 'on your phone' emphasizes key feature."
+        },
+        {
+          "tier": "ideal",
+          "fit_score": 0.85,
+          "likelihood": 0.95,
+          "broll_description": "A sequence of different people using Folk emphasizing interactivity.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.folkapp.com/features",
+              "focus": "user engagement scenarios"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "zoom_in 1.1x over the shot"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Shows the diverse uses of the app, underscoring its flexibility."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.55,
+          "likelihood": 0.95,
+          "broll_description": "Promotional image of Folk app on a smartphone lock screen.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.folkapp.com",
+              "focus": "app icon on phone lock screen"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Recognizable offline promotional material serves as a content anchor."
+        }
+      ],
+      "broll_description": "Folk app on phone",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://www.folkapp.com",
+          "focus": "text message interface"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "none"
+      },
+      "placement": {
+        "aspect": "original",
+        "fit": "contain",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "close-up of a relevant prop or artifact",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DYg26zgRiGS/",
+        "shot_idx": 6,
+        "pattern": "Providing a micro-interaction perspective for the 'on your phone' narrative."
+      },
+      "text_overlay": "'ON YOUR'",
+      "text_position": "top_center",
+      "animation_cue": "pop",
+      "scene_animation": "zoom_in",
+      "animation_scale": 1.05,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": null,
+      "clip_type": "talking_head_unknown",
+      "rationale": "Interactivity portrayed aligns with the 'on your phone' usage discussion.",
+      "selected_media": [
+        {
+          "url": "https://www.youtube.com/watch?v=KBY0z6jSQsA",
+          "kind": "video",
+          "origin": "page_recording",
+          "from_candidate_url": "https://www.youtube.com/watch?v=KBY0z6jSQsA",
+          "reason": "Provides a personal touch with a talking-head clip for 'on your' beat."
+        }
+      ],
+      "animation_duration_ms": 728,
+      "zoom_region": "middle_left",
+      "zoom_scale": 1.2
+    },
+    {
+      "shot_idx": 8,
+      "start_ms": 8916,
+      "end_ms": 9728,
+      "duration_ms": 812,
+      "spoken_during": "phone just",
+      "structure_role": "body",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.89,
+          "likelihood": 0.95,
+          "broll_description": "Folk app usage on phone",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.folkapp.com",
+              "focus": "phone interaction with app"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "zoom_in"
+          },
+          "placement": {
+            "aspect": "original",
+            "fit": "contain",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Highlights the ease and speed of use, corresponding to app advancements."
+        },
+        {
+          "tier": "ideal",
+          "fit_score": 0.87,
+          "likelihood": 0.95,
+          "broll_description": "Screens showing sections of the Folk app during a typical user day.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.folkapp.com/use-cases",
+              "focus": "user day with app"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "none"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "close-up of a relevant prop or artifact",
+          "rationale": "Depicts a direct day-to-day application of the app, supporting its utility."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.7,
+          "likelihood": 0.95,
+          "broll_description": "Folk's app interfaces displayed in an educational article.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.folkapp.com/blog",
+              "focus": "interface explanation"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "contain",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Shows practicality while linking to educational content boosting credibility."
+        }
+      ],
+      "broll_description": "Folk app usage on phone",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://www.folkapp.com",
+          "focus": "phone interaction with app"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "zoom_in"
+      },
+      "placement": {
+        "aspect": "original",
+        "fit": "contain",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "screen recording of the subject's website",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DYlQlfYuTc7/",
+        "shot_idx": 7,
+        "pattern": "Visualizes everyday app application to support the 'phone just' commentary."
+      },
+      "text_overlay": "'PHONE/' JUST'",
+      "text_position": "bottom_center",
+      "animation_cue": null,
+      "scene_animation": "zoom_in",
+      "animation_scale": 1.05,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": "silent open",
+      "clip_type": "talking_head_unknown",
+      "rationale": "Integrating everyday interaction is ideal for emphasizing ease of access.",
+      "selected_media": [
+        {
+          "url": "https://www.instagram.com/reel/DYBOBtiPLoh",
+          "kind": "video",
+          "origin": "page_recording",
+          "from_candidate_url": "https://www.instagram.com/reel/DYBOBtiPLoh",
+          "reason": "Useful as a social-native presentation for the phone usage context."
+        }
+      ],
+      "animation_duration_ms": 812,
+      "zoom_region": "middle_center",
+      "zoom_scale": 1
+    },
+    {
+      "shot_idx": 9,
+      "start_ms": 9728,
+      "end_ms": 10624,
+      "duration_ms": 896,
+      "spoken_during": "from imessage",
+      "structure_role": "body",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.95,
+          "broll_description": "Folk app from iMessage",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.folkapp.com/support",
+              "focus": "app integration with iMessage"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "none"
+          },
+          "placement": {
+            "aspect": "original",
+            "fit": "contain",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "close-up of a relevant prop or artifact",
+          "rationale": "Provides concrete visual proof for the spoken application integration."
+        },
+        {
+          "tier": "ideal",
+          "fit_score": 0.89,
+          "likelihood": 0.95,
+          "broll_description": "Sequential view of message history showcasing various app features.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.folkapp.com",
+              "focus": "message history with functionality"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "pan_left"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "contain",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Dynamically illustrates the app's capabilities directly relevant to the topic."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.58,
+          "likelihood": 0.95,
+          "broll_description": "Folk app's UI showing key features during iMessage activity.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.folkapp.com/tips",
+              "focus": "iMessage enablement tips"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Using a visible UI further reinforces the mentioned app association."
+        }
+      ],
+      "broll_description": "Folk app from iMessage",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://www.folkapp.com/support",
+          "focus": "app integration with iMessage"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "none"
+      },
+      "placement": {
+        "aspect": "original",
+        "fit": "contain",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "close-up of a relevant prop or artifact",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DXz_iMJNjlV/",
+        "shot_idx": 5,
+        "pattern": "Mirror image showing app interoperability naturally benefits the body segment."
+      },
+      "text_overlay": "'FROM/ IMESSAGE'",
+      "text_position": "bottom_right",
+      "animation_cue": "pop",
+      "scene_animation": "zoom_in",
+      "animation_scale": 1.05,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": "silent open",
+      "clip_type": "talking_head_unknown",
+      "rationale": "Showcases seamless app capability to validate the 'from imessage' claim.",
+      "selected_media": [
+        {
+          "url": "capture://files/a42d670d760ea7ce.mp4",
+          "kind": "video",
+          "origin": "page_recording",
+          "from_candidate_url": "https://help.folk.app/en/articles/7177488-track-linkedin-interactions",
+          "reason": "Captures messaging-related integrations, aligning with the 'from iMessage' context."
+        }
+      ],
+      "animation_duration_ms": 896,
+      "zoom_region": "middle_center",
+      "zoom_scale": 1
+    },
+    {
+      "shot_idx": 10,
+      "start_ms": 10624,
+      "end_ms": 11968,
+      "duration_ms": 1344,
+      "spoken_during": "Would download folk?",
+      "structure_role": "cta",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.95,
+          "likelihood": 0.95,
+          "broll_description": "call to action for Folk app",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.folkapp.com",
+              "focus": "user thoughtful expression in CTA section"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "zoom_in"
+          },
+          "placement": {
+            "aspect": "original",
+            "fit": "contain",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "close-up of a relevant prop or artifact",
+          "rationale": "Stable call to action directly connected to the 'Would download folk?' line."
+        },
+        {
+          "tier": "ideal",
+          "fit_score": 0.93,
+          "likelihood": 0.95,
+          "broll_description": "Person holding out their phone as if making a decision about downloading.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.folkapp.com/cta",
+              "focus": "download button on webpage"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "none"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Visually leverages the powerful message through recognizable action."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.63,
+          "likelihood": 0.95,
+          "broll_description": "Illustrative graphic of Folk's success and the user's decision point.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.folkapp.com/download",
+              "focus": "success statistics of downloads"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Guarantees visual continuity by connecting existing elements with CTA."
+        }
+      ],
+      "broll_description": "call to action for Folk app",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://www.folkapp.com",
+          "focus": "user thoughtful expression in CTA section"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "zoom_in"
+      },
+      "placement": {
+        "aspect": "original",
+        "fit": "contain",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "close-up of a relevant prop or artifact",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DXz_iMJNjlV/",
+        "shot_idx": 6,
+        "pattern": "Promptful close-up inducing the viewer to take action mirrors ctas."
+      },
+      "text_overlay": "'WOULD/' DOWNLOAD/' FOLK?'",
+      "text_position": "bottom_center",
+      "animation_cue": "pop",
+      "scene_animation": "zoom_in",
+      "animation_scale": 1.05,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": "whoosh into the reveal",
+      "clip_type": "talking_head",
+      "rationale": "Creates an engaging conclusion driving decision-making linked back to 'download folk'.",
+      "selected_media": [
+        {
+          "url": "capture://files/0681009506c93433.mp4",
+          "kind": "video",
+          "origin": "page_recording",
+          "from_candidate_url": "https://finance.yahoo.com/news/read-8-pitch-decks-startup-191740401.html",
+          "reason": "Provides external validation for the CTA, enhancing the closing statement."
+        }
+      ],
+      "animation_duration_ms": 1344,
+      "zoom_region": "top_center",
+      "zoom_scale": 1
+    }
+  ],
+  "structure_sections": [
+    {
+      "role": "hook",
+      "script_template": "What's the <noun> that's <action>?",
+      "target_fill": "What's this startup that stalks your ex?",
+      "target_start_ms": 0,
+      "target_end_ms": 2910,
+      "shot_count": 2,
+      "visual_signature": {
+        "dominant_clip_type": "broll_visual",
+        "placement_pattern": "fullbleed 9:16",
+        "text_overlay_pattern": "large center caption big font",
+        "sfx_pattern": "vocal hit on cut in",
+        "motion_pattern": "zoom-in over the shot",
+        "scene_elements": []
+      }
+    },
+    {
+      "role": "intro",
+      "script_template": "This is <subject>, and it <action>.",
+      "target_fill": "This is folk, and it just went viral.",
+      "target_start_ms": 2910,
+      "target_end_ms": 6340,
+      "shot_count": 3,
+      "visual_signature": {
+        "dominant_clip_type": "broll_visual",
+        "placement_pattern": "fullbleed 9:16",
+        "text_overlay_pattern": "small bottom strip",
+        "sfx_pattern": "whoosh whoosh",
+        "motion_pattern": "static cut",
+        "scene_elements": [
+          "lower_third"
+        ]
+      }
+    },
+    {
+      "role": "body",
+      "script_template": "<claim> <action> <detail> from <source>",
+      "target_fill": "Folk can do anything on your phone just from imessage",
+      "target_start_ms": 6340,
+      "target_end_ms": 10620,
+      "shot_count": 5,
+      "visual_signature": {
+        "dominant_clip_type": "talking_head_unknown",
+        "placement_pattern": "fullbleed 9:16",
+        "text_overlay_pattern": "large center caption big font",
+        "sfx_pattern": "silent open",
+        "motion_pattern": "zoom-in over the shot",
+        "scene_elements": [
+          "face cam corner"
+        ]
+      }
+    },
+    {
+      "role": "cta",
+      "script_template": "Would you <action>?",
+      "target_fill": "Would download folk?",
+      "target_start_ms": 10620,
+      "target_end_ms": 11970,
+      "shot_count": 1,
+      "visual_signature": {
+        "dominant_clip_type": "talking_head",
+        "placement_pattern": "fullbleed 9:16",
+        "text_overlay_pattern": "small bottom strip",
+        "sfx_pattern": "whoosh into the reveal",
+        "motion_pattern": "static cut",
+        "scene_elements": []
+      }
+    }
+  ],
+  "structure_confidence": "high",
+  "structure_rationale": "The analysis was derived from multiple inspiration reels, all showing a similar narrative structure of hook, intro, body, and cta.",
+  "structure_alternatives": null,
+  "content_source_patterns": [
+    "screen recording of the subject's website",
+    "screenshot of the subject's social media profile",
+    "stock / archival footage tied to a claim",
+    "close-up of a relevant prop or artifact"
+  ],
+  "style_summary": "- reel 1: 15.7s, 21 shots, cuts/sec=1.27, text=95%, SFX=61/min\n- reel 2: 14.7s, 7 shots, cuts/sec=0.41, text=100%, SFX=33/min\n- reel 3: 17.2s, 9 shots, cuts/sec=0.46, text=100%, SFX=63/min\n- reel 4: 12.5s, 8 shots, cuts/sec=0.56, text=100%, SFX=29/min\n- reel 5: 13.5s, 11 shots, cuts/sec=0.74, text=100%, SFX=58/min\n- reel 6: 17.2s, 9 shots, cuts/sec=0.46, text=100%, SFX=63/min",
+  "content_sources": [
+    "https://www.instagram.com/p/DYlQlfYuTc7/",
+    "https://www.instagram.com/p/DYg26zgRiGS/",
+    "https://www.instagram.com/reel/DYxLMnNRzQ5/?igsh=bXhtY2JlNjhsYzNm",
+    "https://www.instagram.com/reel/DYg26zgRiGS/?igsh=enl3MzA3dnFnNHNv"
+  ],
+  "target_metrics": {
+    "fingerprint_version": 4,
+    "computed_at": 1781202955246,
+    "n_reels": 3,
+    "n_shots": 41,
+    "median_shot_ms": 800,
+    "cuts_per_sec": 0.824773034674918,
+    "clip_type_distribution": {
+      "talking_head": 0.18879615960103024,
+      "broll_talking_head": 0.15212545748307824,
+      "talking_head_unknown": 0.23018327944028208,
+      "broll_visual": 0.42889510347560944
+    },
+    "real_speaker_pct": 0.14381914381914382,
+    "broll_talking_head_pct": 0.10678210678210677,
+    "face_size_median": 0.38286084681749344,
+    "face_region_distribution": {
+      "top_left": 0,
+      "top_center": 0.2111111111111111,
+      "top_right": 0.027777777777777776,
+      "middle_left": 0.027777777777777776,
+      "middle_center": 0.4444444444444444,
+      "middle_right": 0,
+      "bottom_left": 0.027777777777777776,
+      "bottom_center": 0.2611111111111111,
+      "bottom_right": 0
+    },
+    "face_region_dominant": "mixed",
+    "text_overlay_pct": 0.9841269841269842,
+    "text_region_distribution": {
+      "top_left": 0.07886671593988669,
+      "top_center": 0.11313993594481399,
+      "top_right": 0.06004804138950479,
+      "middle_left": 0.09960704607046071,
+      "middle_center": 0.24571199802907118,
+      "middle_right": 0.09450726779995072,
+      "bottom_left": 0.0722690317812269,
+      "bottom_center": 0.1902648435575265,
+      "bottom_right": 0.04558511948755851
+    },
+    "text_region_dominant": "mixed",
+    "media_overlay_pct": 0.046176046176046176,
+    "overlays_per_min": 4.0186759877647065,
+    "overlay_kind_distribution": {
+      "image": 0.75,
+      "sticker": 0,
+      "gif": 0,
+      "pip_video": 0.25,
+      "emoji_graphic": 0
+    },
+    "overlay_motion_distribution": {
+      "static": 0.75,
+      "animated": 0.25
+    },
+    "overlay_region_distribution": {
+      "top_left": 0,
+      "top_center": 0,
+      "top_right": 0,
+      "middle_left": 0,
+      "middle_center": 0.25,
+      "middle_right": 0.25,
+      "bottom_left": 0.5,
+      "bottom_center": 0,
+      "bottom_right": 0
+    },
+    "overlay_region_dominant": "mixed",
+    "overlay_pattern": {
+      "summary": "This creator uses a variety of media overlays across their reels, primarily employing images and picture-in-picture videos to enhance their narrative. The overlays are often placed prominently in the middle or bottom of the frame, with animated motion for picture-in-picture and static for images. These overlays appear mainly during key moments in the script, where they accompany important spoken content.",
+      "per_reel_rate": 1,
+      "overlays_per_min": 3.872466761326965,
+      "entries": [
+        {
+          "kind": "pip_video",
+          "frequency": "once, in the middle of reel 0",
+          "typical_position": "middle_center",
+          "placement": "focused centerpiece",
+          "motion": "animated",
+          "script_context": "during a key part of the reel where the creator mentions 'Walnut's'",
+          "examples": [
+            "Walnut's"
+          ]
+        },
+        {
+          "kind": "image",
+          "frequency": "~1 per reel",
+          "typical_position": "middle_right",
+          "placement": "supportive side image",
+          "motion": "static",
+          "script_context": "appears during mid-sentence when discussing 'Walnut's'",
+          "examples": [
+            "Walnut's",
+            "[none]",
+            "[none]"
+          ]
+        },
+        {
+          "kind": "image",
+          "frequency": "once, in the middle of reel 2",
+          "typical_position": "bottom_left",
+          "placement": "contextual image",
+          "motion": "static",
+          "script_context": "during the discussion of 'users funding'",
+          "examples": [
+            "users funding"
+          ]
+        }
+      ]
+    },
+    "camera_motion_distribution": {
+      "none": 0.34487734487734484,
+      "zoom_in": 0.2217412217412217,
+      "zoom_out": 0,
+      "pan_left": 0.015873015873015872,
+      "pan_right": 0,
+      "ken_burns": 0.41750841750841755
+    },
+    "camera_motion_dominant": "mixed",
+    "camera_motion_pct": 0.6551226551226552,
+    "camera_motion_confidence": 0.7187686387686387,
+    "voiceover_pct": 0.9435582225394666,
+    "music_pct": 0.032620378021250764,
+    "audio_silence_pct": 0.023821399439282593,
+    "audio_energy_mean": 0.10428770224085625,
+    "sfx_per_min": 60.46126471431764,
+    "cuts_with_sfx_pct": 0.481962481962482,
+    "sfx_at_cuts_pct": 0.46901709401709396,
+    "sfx_type_distribution": {
+      "impulse_tonal": 0.3404255319148936,
+      "impulse_noisy": 0.0425531914893617,
+      "sweep": 0,
+      "vocal": 0.48936170212765956,
+      "sustained": 0,
+      "other": 0.1276595744680851
+    },
+    "sfx_classified_total": 47,
+    "sfx_label_distribution": [],
+    "sfx_pattern": {
+      "signals": {
+        "sfx_count": 15.666666666666666,
+        "word_count": 40.333333333333336,
+        "sfx_per_word": 0.39627980922098566,
+        "on_word_pct": 0.6773504273504273,
+        "hook_density_per_s": 1.429505452482914,
+        "body_density_per_s": 0.9944313261995229,
+        "hook_escalation": -1,
+        "hook_dominant_type": "impulse_tonal",
+        "body_dominant_type": "vocal"
+      },
+      "rules": [
+        {
+          "trigger": "introduction of Tony",
+          "sfx_type": "impulse_tonal",
+          "example": "This is ⟨impulse_tonal⟩ Tony",
+          "reel_count": 1
+        },
+        {
+          "trigger": "building of Walnut",
+          "sfx_type": "vocal",
+          "example": "⟨vocal⟩ building ⟨vocal⟩ Walnut",
+          "reel_count": 1
+        },
+        {
+          "trigger": "description of the headband",
+          "sfx_type": "impulse_noisy",
+          "example": "⟨impulse_noisy⟩ that lets you feel the",
+          "reel_count": 1
+        },
+        {
+          "trigger": "question about Tony's future",
+          "sfx_type": "impulse_tonal",
+          "example": "Do you think Tony will be the next Steve Jobs",
+          "reel_count": 1
+        },
+        {
+          "trigger": "introduction of the startup name",
+          "sfx_type": "impulse_tonal",
+          "example": "This is Ornadyne",
+          "reel_count": 1
+        },
+        {
+          "trigger": "mention of the primary client",
+          "sfx_type": "impulse_tonal",
+          "example": "Their primary client is the government",
+          "reel_count": 1
+        }
+      ],
+      "summaries": [
+        "The sound effects primarily emphasize key phrases and moments of importance, with a consistent use of impulse tonal sounds throughout the hook. The SFX cadence aligns closely with significant claims, particularly during reveals and questions.",
+        "The sound effects are predominantly used to emphasize key moments in the spoken content, with a higher frequency of effects during the hook compared to the body. The SFX primarily highlight important claims and notable names.",
+        "The SFX usage features a higher density of sound effects during the hook, primarily using impulse tonal sounds to emphasize key moments, while the body relies on vocal stingers to maintain engagement. Sound effects are strategically placed on important claims and questions to enhance impact."
+      ],
+      "n_reels": 3
+    },
+    "hook_speeches": [
+      "Who's the Stanford student that thinks he's Steve Jobs This is Tony and he's building",
+      "What's this startup that's building robotic surveillance birds This is",
+      "Who's this student that skipped prom to apply to YC This is Jack and"
+    ],
+    "hook_texts": [
+      "<\n\n&\n\nWHO\n\niS\n\nZZ. —",
+      "'re building autonomous ornithopters with\n\nr-class flight times, low acoustic signatur\n\ni natural bird-like flight. This makes\n\nadyne's drones harder for humans and\n\nnter-UAS systems to detect, classify, and\n\nget.\n\ne Found\n\nSTARTUR\n\nourg’s Master's thesis is built on 2+ years c\n\nearch and development in flapping-wing\n\nnes. His work has received multiple awarc\n\nTU",
+      "my official ley\n\no stanford university,\n\n~\n\n» -"
+    ],
+    "hook_archetypes": null,
+    "caption_style": {
+      "captions_pct": 1,
+      "n_with_captions": 4,
+      "matched_preset": "hormozi",
+      "preset_label": "Hormozi",
+      "preset_confidence_avg": 0.86,
+      "preset_distribution": {
+        "hormozi": 4
+      },
+      "position": "center",
+      "chunking": "word_by_word",
+      "words_per_chunk_avg": 1,
+      "font_size": "large",
+      "text_treatment": "clear",
+      "treatment_color_examples": [],
+      "treatment_distribution": {
+        "clear": 4
+      },
+      "text_color": "yellow",
+      "highlight_color": null,
+      "emphasis": "active_word_highlight",
+      "casing": "uppercase",
+      "animation": "pop",
+      "position_distribution": {
+        "center": 4
+      },
+      "chunking_distribution": {
+        "word_by_word": 4
+      },
+      "font_size_distribution": {
+        "large": 4
+      },
+      "emphasis_distribution": {
+        "active_word_highlight": 4
+      },
+      "casing_distribution": {
+        "uppercase": 4
+      },
+      "animation_distribution": {
+        "pop": 4
+      },
+      "has_emoji_pct": 0,
+      "font_family": "mixed",
+      "font_family_name": "",
+      "font_family_distribution": {
+        "bebas-neue": 2,
+        "anton": 2
+      },
+      "font_descriptors": [
+        "bold sans-serif with no stroke"
+      ],
+      "style_labels": [
+        "word-by-word karaoke highlight",
+        "word-by-word active highlight"
+      ]
+    },
+    "beat_template": [
+      {
+        "clip_type": "broll_visual",
+        "n_shots": 17,
+        "duration_p50_ms": 734,
+        "has_text_p": 0.9411764705882353,
+        "has_face_p": 0,
+        "is_speaker_p": 0
+      },
+      {
+        "clip_type": "talking_head_unknown",
+        "n_shots": 15,
+        "duration_p50_ms": 566,
+        "has_text_p": 1,
+        "has_face_p": 1,
+        "is_speaker_p": 0
+      },
+      {
+        "clip_type": "talking_head",
+        "n_shots": 5,
+        "duration_p50_ms": 800,
+        "has_text_p": 1,
+        "has_face_p": 1,
+        "is_speaker_p": 1
+      },
+      {
+        "clip_type": "broll_talking_head",
+        "n_shots": 4,
+        "duration_p50_ms": 1434,
+        "has_text_p": 1,
+        "has_face_p": 1,
+        "is_speaker_p": 0
+      }
+    ]
+  },
+  "sfx_plan": {
+    "signals": {
+      "sfx_count": 15.666666666666666,
+      "word_count": 40.333333333333336,
+      "sfx_per_word": 0.39627980922098566,
+      "on_word_pct": 0.6773504273504273,
+      "hook_density_per_s": 1.429505452482914,
+      "body_density_per_s": 0.9944313261995229,
+      "hook_escalation": -1,
+      "hook_dominant_type": "impulse_tonal",
+      "body_dominant_type": "vocal"
+    },
+    "rules": [
+      {
+        "trigger": "introduction of Tony",
+        "sfx_type": "impulse_tonal",
+        "example": "This is ⟨impulse_tonal⟩ Tony",
+        "reel_count": 1
+      },
+      {
+        "trigger": "building of Walnut",
+        "sfx_type": "vocal",
+        "example": "⟨vocal⟩ building ⟨vocal⟩ Walnut",
+        "reel_count": 1
+      },
+      {
+        "trigger": "description of the headband",
+        "sfx_type": "impulse_noisy",
+        "example": "⟨impulse_noisy⟩ that lets you feel the",
+        "reel_count": 1
+      },
+      {
+        "trigger": "question about Tony's future",
+        "sfx_type": "impulse_tonal",
+        "example": "Do you think Tony will be the next Steve Jobs",
+        "reel_count": 1
+      },
+      {
+        "trigger": "introduction of the startup name",
+        "sfx_type": "impulse_tonal",
+        "example": "This is Ornadyne",
+        "reel_count": 1
+      },
+      {
+        "trigger": "mention of the primary client",
+        "sfx_type": "impulse_tonal",
+        "example": "Their primary client is the government",
+        "reel_count": 1
+      }
+    ],
+    "summaries": [
+      "The sound effects primarily emphasize key phrases and moments of importance, with a consistent use of impulse tonal sounds throughout the hook. The SFX cadence aligns closely with significant claims, particularly during reveals and questions.",
+      "The sound effects are predominantly used to emphasize key moments in the spoken content, with a higher frequency of effects during the hook compared to the body. The SFX primarily highlight important claims and notable names.",
+      "The SFX usage features a higher density of sound effects during the hook, primarily using impulse tonal sounds to emphasize key moments, while the body relies on vocal stingers to maintain engagement. Sound effects are strategically placed on important claims and questions to enhance impact."
+    ],
+    "n_reels": 3
+  },
+  "subtitle_spec": {
+    "enabled": true,
+    "preset_id": "hormozi",
+    "preset_label": "Hormozi",
+    "font_family": "",
+    "font_family_name": "",
+    "font_size": "large",
+    "position": "center",
+    "chunking": "word_by_word",
+    "words_per_chunk": 1,
+    "casing": "uppercase",
+    "emphasis": "active_word_highlight",
+    "animation": "pop",
+    "text_treatment": "clear",
+    "text_color": "yellow",
+    "treatment_color": null,
+    "highlight_color": null,
+    "has_emoji": false,
+    "low_confidence": false
+  },
+  "reel_id": "f604ee12-c910-4eb4-a947-4cf04b6c3554",
+  "sfx_events": null,
+  "sfx_override": {
+    "cadence": "every_word",
+    "type": "vocal",
+    "sound": "ding"
+  }
+}

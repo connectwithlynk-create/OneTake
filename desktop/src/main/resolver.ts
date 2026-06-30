@@ -74,14 +74,16 @@ export async function resolveReel(url: string): Promise<ResolveResult> {
     return { error: 'Invalid URL' };
   }
 
-  // Instagram: yt-dlp's extractor is currently broken (its media-info
-  // endpoint 302/403s for web sessions even with valid cookies), so use
-  // the logged-in stealth-browser resolver instead. Lazy-imported so the
-  // heavy Playwright dependency only loads when an IG URL is resolved.
-  if (detectPlatform(url) === 'instagram') {
+  // Instagram is resolved by yt-dlp first: its extractor works again and
+  // handles public reels even without a session, whereas the stealth-browser
+  // path now gets bounced to the IG home feed. The browser resolver is kept
+  // as a FALLBACK for private reels that genuinely need the logged-in
+  // cookies — see the catch / no-url branches below.
+  const isInstagram = detectPlatform(url) === 'instagram';
+  const igFallback = async (): Promise<ResolveResult> => {
     const { resolveInstagramViaBrowser } = await import('./instagram');
     return resolveInstagramViaBrowser(url);
-  }
+  };
 
   let info: any;
   try {
@@ -103,6 +105,9 @@ export async function resolveReel(url: string): Promise<ResolveResult> {
     if (e?.code === 'ENOENT') {
       return { error: 'yt-dlp not found - install it or set YT_DLP_PATH' };
     }
+    // Private IG reel (or any yt-dlp IG failure): retry via the logged-in
+    // stealth browser, which can see what the user's session can.
+    if (isInstagram) return igFallback();
     const stderr = String(e?.stderr ?? '').trim();
     return {
       error: ytdlpErrorMessage(
@@ -114,6 +119,7 @@ export async function resolveReel(url: string): Promise<ResolveResult> {
 
   const playable_url: string | undefined = info?.url;
   if (!playable_url) {
+    if (isInstagram) return igFallback();
     return { error: 'yt-dlp returned no playable URL for this video' };
   }
 

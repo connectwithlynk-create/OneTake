@@ -54,6 +54,60 @@ export interface GoogleSearchResponse {
   block_reason?: string;
 }
 
+// ---------- shared tool-result cache ----------
+//
+// Concurrent per-shot agents repeatedly hit the same searches and pages
+// (the subject's homepage, the same discovery queries). Successful
+// results are memoized in-process with a short TTL so parallel shot
+// agents share work instead of repeating a 2-5s Playwright load or a
+// Tavily call. In-flight promises are shared too: two agents asking for
+// the same URL at the same moment trigger ONE fetch. Failures and
+// blocked searches are never cached, so retries stay live.
+
+const TOOL_CACHE_TTL_MS = 10 * 60_000;
+const TOOL_CACHE_MAX_ENTRIES = 200;
+
+interface ToolCacheEntry {
+  at: number;
+  promise: Promise<unknown>;
+}
+const toolCache = new Map<string, ToolCacheEntry>();
+
+function cacheGetOrRun<T>(
+  key: string,
+  run: () => Promise<T>,
+  isCacheable: (value: T) => boolean,
+): Promise<T> {
+  const now = Date.now();
+  const hit = toolCache.get(key);
+  if (hit && now - hit.at < TOOL_CACHE_TTL_MS) {
+    return hit.promise as Promise<T>;
+  }
+  const promise = run().then(
+    (value) => {
+      if (!isCacheable(value)) toolCache.delete(key);
+      return value;
+    },
+    (err) => {
+      toolCache.delete(key);
+      throw err;
+    },
+  );
+  if (toolCache.size >= TOOL_CACHE_MAX_ENTRIES) {
+    let oldestKey: string | null = null;
+    let oldestAt = Infinity;
+    for (const [k, v] of toolCache) {
+      if (v.at < oldestAt) {
+        oldestAt = v.at;
+        oldestKey = k;
+      }
+    }
+    if (oldestKey) toolCache.delete(oldestKey);
+  }
+  toolCache.set(key, { at: now, promise });
+  return promise;
+}
+
 // ---------- tavily_search (paid API, primary discovery tool) ----------
 //
 // Bot-friendly search: a real API designed for LLM agents. No scraping,
@@ -74,8 +128,21 @@ function getTavilyClient(): ReturnType<typeof tavily> | null {
  *  curator's title/url/snippet shape. On missing API key / network
  *  error / SDK exception, returns blocked=true so the agent's
  *  fallback chain (web_search) kicks in cleanly — same contract as
- *  the old DDG / Google scrapers. */
-export async function tavilySearch(
+ *  the old DDG / Google scrapers. Successful responses are shared
+ *  across concurrent shot agents via the tool-result cache. */
+export function tavilySearch(
+  query: string,
+  n: number = 10,
+): Promise<GoogleSearchResponse> {
+  const key = `tavily:${n}:${query.trim().toLowerCase()}`;
+  return cacheGetOrRun(
+    key,
+    () => tavilySearchUncached(query, n),
+    (resp) => !resp.blocked,
+  );
+}
+
+async function tavilySearchUncached(
   query: string,
   n: number = 10,
 ): Promise<GoogleSearchResponse> {
@@ -564,7 +631,12 @@ export interface FetchPageOptions {
  *  detection). When expectedContent is supplied, also returns a
  *  keyword-overlap score so the caller can reject same-domain wrong-
  *  subject pages. Returns a failure object on invalid URL / auth wall
- *  / load error so the agent can route around the page. */
+ *  / load error so the agent can route around the page.
+ *
+ *  The expensive page load is cached per URL and shared across
+ *  concurrent shot agents; the expectedContent score (which varies per
+ *  shot) is computed per call against the cached page text, so cache
+ *  hits behave identically to fresh loads. */
 export async function fetchPage(
   url: string,
   options: FetchPageOptions = {},
@@ -582,6 +654,36 @@ export async function fetchPage(
       error: `video_host_passthrough (${url}) — this is already a video URL. Commit it directly as a MediaCandidate with source="web_video", url="${url}", source_page="${url}". Do NOT call fetch_page, request_record_approval, or record_url on video-host URLs.`,
     };
   }
+  const raw = await cacheGetOrRun(
+    `fetch:${url}`,
+    () => fetchPageRaw(url),
+    (v) => !('ok' in v),
+  );
+  if ('ok' in raw) return raw;
+  const expected = options.expectedContent?.trim() ?? '';
+  if (expected.length === 0) return raw.page;
+  // Score against the title + visible body. Title carries the
+  // strongest identity signal — an X profile titled "Profile / X"
+  // with the wrong handle won't have the subject's name in body.
+  const content_match_score = keywordMatchScore(expected, raw.score_haystack);
+  return {
+    ...raw.page,
+    content_match_score,
+    matches_expected: content_match_score >= 0.25,
+  };
+}
+
+interface RawFetchedPage {
+  /** Everything except the per-caller expectedContent scoring. */
+  page: Omit<FetchedPage, 'content_match_score' | 'matches_expected'>;
+  /** Rendered title + full visible body text, kept so each caller can
+   *  score its own expectedContent against the cached page. */
+  score_haystack: string;
+}
+
+async function fetchPageRaw(
+  url: string,
+): Promise<RawFetchedPage | FetchedPageFailure> {
   const loaded = await loadStealthPage(url);
   if (!loaded.ok) {
     return {
@@ -723,34 +825,21 @@ export async function fetchPage(
       }, MAX_MEDIA_PER_PAGE)
       .catch(() => []) as FetchedPage['videos'];
 
-    const expected = options.expectedContent?.trim() ?? '';
-    let content_match_score: number | undefined;
-    let matches_expected: boolean | undefined;
-    if (expected.length > 0) {
-      // Score against the title + visible body. Title carries the
-      // strongest identity signal — an X profile titled "Profile / X"
-      // with the wrong handle won't have the subject's name in body.
-      const haystack = `${loaded.page_title ?? ''}\n${loaded.page_text}`;
-      content_match_score = keywordMatchScore(expected, haystack);
-      matches_expected = content_match_score >= 0.25;
-    }
-
     // Layout structure for the agent to plan scroll_segments against.
     // Captured at the same viewport fetchPage used to settle the page.
     const sections = await extractPageSections(loaded.page);
 
     return {
-      url: loaded.final_url,
-      title: loaded.page_title,
-      text_excerpt,
-      images,
-      videos,
-      consent_dismissed: loaded.consent_dismissed,
-      sections,
-      ...(content_match_score !== undefined && {
-        content_match_score,
-        matches_expected,
-      }),
+      page: {
+        url: loaded.final_url,
+        title: loaded.page_title,
+        text_excerpt,
+        images,
+        videos,
+        consent_dismissed: loaded.consent_dismissed,
+        sections,
+      },
+      score_haystack: `${loaded.page_title ?? ''}\n${loaded.page_text}`,
     };
   } finally {
     await loaded.cleanup();

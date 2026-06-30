@@ -13,6 +13,8 @@ import { id } from './id';
 import { palette } from '../theme';
 import type {
   Clip,
+  CaptionFont,
+  CaptionStyle,
   ClipTag,
   Collection,
   Inspiration,
@@ -61,6 +63,7 @@ export async function createProject(
     sync_status: 'local',
     captions_enabled: 1,
     caption_style: 'karaoke',
+    caption_font: 'display',
     transitions_json: null,
     beats_json: null,
   };
@@ -124,7 +127,7 @@ export async function setProjectStatus(pid: string, status: ProjectStatus) {
 
 export async function setCaptionSettings(
   pid: string,
-  patch: { enabled?: 0 | 1; style?: string }
+  patch: { enabled?: 0 | 1; style?: CaptionStyle; font?: CaptionFont }
 ) {
   const db = await getDb();
   if (patch.enabled !== undefined) {
@@ -138,6 +141,13 @@ export async function setCaptionSettings(
     await db.runAsync(
       'UPDATE projects SET caption_style = ? WHERE id = ?',
       patch.style,
+      pid
+    );
+  }
+  if (patch.font !== undefined) {
+    await db.runAsync(
+      'UPDATE projects SET caption_font = ? WHERE id = ?',
+      patch.font,
       pid
     );
   }

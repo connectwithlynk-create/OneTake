@@ -13,7 +13,7 @@ import OpenAI from 'openai';
 import type { Response, Tool } from 'openai/resources/responses/responses';
 import type { ShotOption, SuggestedEdit } from './synthesize';
 
-const MODEL = 'gpt-4o-mini';
+const MODEL = process.env.ONETAKE_ANALYZE_MODEL?.trim() || 'gpt-4o';
 const MAX_TOKENS = 4096;
 
 const SEARCHABLE_METHODS = new Set([

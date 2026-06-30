@@ -1,0 +1,4912 @@
+{
+  "total_duration_ms": 54340,
+  "shots": [
+    {
+      "shot_idx": 0,
+      "start_ms": 0,
+      "end_ms": 985,
+      "duration_ms": 985,
+      "spoken_during": "spend a busy day with",
+      "structure_role": "hook",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.95,
+          "likelihood": 0.95,
+          "broll_description": "Dynamic day schedule visual, highlighting key activities.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://example.com/dynamic_schedule",
+              "focus": "highlighted daily time blocks"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "zoom_in"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "realistic screen recordings capturing activity progress",
+          "rationale": "Visualizing a full day at once captures the busy narrative."
+        },
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.95,
+          "broll_description": "Fast-paced school hallway scene implying morning rush.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://example.com/school_hallway_scene",
+              "focus": "students moving through hallways"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "subject footage during daily activities based on the spoken context",
+          "rationale": "School scenes effectively establish the initial activity context."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.55,
+          "likelihood": 0.95,
+          "broll_description": "Image of a front view of the school where AP classes are taken, logos visible.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://example.com/school_front",
+              "focus": "entry signage and façade"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "subject-tied imagery (social media, professional platforms)",
+          "rationale": "Straightforward capture that visually depicts the school's external environment."
+        }
+      ],
+      "broll_description": "Dynamic day schedule visual, highlighting key activities.",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://example.com/dynamic_schedule",
+          "focus": "highlighted daily time blocks"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "zoom_in"
+      },
+      "placement": {
+        "aspect": "16:9",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "realistic screen recordings capturing activity progress",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DXKV8KehV9b/",
+        "shot_idx": 0,
+        "pattern": "Using movement to draw viewer in with immediate context."
+      },
+      "text_overlay": "spend a busy day with",
+      "text_position": "middle_center",
+      "animation_cue": "dynamic slide up on entry",
+      "scene_animation": "none",
+      "animation_scale": 1,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": "vocal hit",
+      "clip_type": "broll_visual",
+      "rationale": "The opening establishes the bustling day, fitting the 'hook' with a dynamic schedule depiction."
+    },
+    {
+      "shot_idx": 1,
+      "start_ms": 985,
+      "end_ms": 2014,
+      "duration_ms": 1029,
+      "spoken_during": "with me school",
+      "structure_role": "hook",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.95,
+          "likelihood": 0.95,
+          "broll_description": "Vibrant scene of classroom environment implying daily grind.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://example.com/classroom_scene",
+              "focus": "interactive class setting"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "zoom_in"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "subject footage during daily activities based on the spoken context",
+          "rationale": "Building context around the school emphasizes daily routines."
+        },
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.95,
+          "broll_description": "Early morning daily activity planner.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://example.com/daily_planner_morning",
+              "focus": "highlight early tasks"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "realistic screen recordings capturing activity progress",
+          "rationale": "Showing a planner brings tangible relativity to the day's start."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.5,
+          "likelihood": 0.95,
+          "broll_description": "Image of a general morning routine checklist.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://example.com/morning_checklist",
+              "focus": "routine tasks overview"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "subject-tied imagery (social media, professional platforms)",
+          "rationale": "Easily recognizable task list connects audience with the routine."
+        }
+      ],
+      "broll_description": "Vibrant scene of classroom environment implying daily grind.",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://example.com/classroom_scene",
+          "focus": "interactive class setting"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "zoom_in"
+      },
+      "placement": {
+        "aspect": "16:9",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "subject footage during daily activities based on the spoken context",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DXPfhfPhjJ2/",
+        "shot_idx": 0,
+        "pattern": "Focusing on initial actions to engage viewers immediately."
+      },
+      "text_overlay": "with me school",
+      "text_position": "middle_center",
+      "animation_cue": "static hold",
+      "scene_animation": "none",
+      "animation_scale": 1,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": null,
+      "clip_type": "broll_visual",
+      "rationale": "This shot supplements the 'hook' by underlining the subject's intent to share the daily life."
+    },
+    {
+      "shot_idx": 2,
+      "start_ms": 2014,
+      "end_ms": 2277,
+      "duration_ms": 263,
+      "spoken_during": "school",
+      "structure_role": "intro",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.85,
+          "likelihood": 0.95,
+          "broll_description": "Overhead shot of a bustling school hallway during class change.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://example.com/school_hallway_busy",
+              "focus": "students transitioning between classes"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "ken_burns"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "realistic screen recordings capturing activity progress",
+          "rationale": "Depicts the lively nature of the school, aligning with the spoken content."
+        },
+        {
+          "tier": "ideal",
+          "fit_score": 0.8,
+          "likelihood": 0.95,
+          "broll_description": "Animated school timetable showing morning classes.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://example.com/school_timetable",
+              "focus": "highlighted morning schedule"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "subject footage during daily activities based on the spoken context",
+          "rationale": "A timetable animation energetically introduces the school day."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.5,
+          "likelihood": 0.95,
+          "broll_description": "A school bell ringing in a hallway scene.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://example.com/school_bell_ring",
+              "focus": "ringing bell animation"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "subject-tied imagery (social media, professional platforms)",
+          "rationale": "A bell is easily relatable as a school start signal."
+        }
+      ],
+      "broll_description": "Overhead shot of a bustling school hallway during class change.",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://example.com/school_hallway_busy",
+          "focus": "students transitioning between classes"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "ken_burns"
+      },
+      "placement": {
+        "aspect": "16:9",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "realistic screen recordings capturing activity progress",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DXFKUigDIzZ/",
+        "shot_idx": 4,
+        "pattern": "Use of school visuals to reinforce academic routine."
+      },
+      "text_overlay": "school",
+      "text_position": "middle_center",
+      "animation_cue": "ken_burns",
+      "scene_animation": "ken_burns",
+      "animation_scale": 1,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": "vocal hit",
+      "clip_type": "talking_head_unknown",
+      "rationale": "Start of full exposure to the subject's day-to-day, leveraging familiar school imagery."
+    },
+    {
+      "shot_idx": 3,
+      "start_ms": 2277,
+      "end_ms": 2934,
+      "duration_ms": 657,
+      "spoken_during": "climbing",
+      "structure_role": "intro",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.85,
+          "likelihood": 0.95,
+          "broll_description": "Climbing gym session showing active engagement.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://example.com/climbing_gym",
+              "focus": "climbers on indoor walls"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "zoom_in"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "subject footage during daily activities based on the spoken context",
+          "rationale": "Climbing representations convey physical exertion and activity."
+        },
+        {
+          "tier": "ideal",
+          "fit_score": 0.8,
+          "likelihood": 0.95,
+          "broll_description": "Rock climbing outdoor session with scenic backdrop.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://example.com/climbing_scenic",
+              "focus": "climbers against mountain scenery"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "punch_in"
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "realistic screen recordings capturing activity progress",
+          "rationale": "Scenic climbing captures both exercise and leisure dimensions effectively."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.5,
+          "likelihood": 0.95,
+          "broll_description": "Simple depiction of climbing gear set against a gym backdrop.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://example.com/climbing_gear",
+              "focus": "introductory setup"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "subject-tied imagery (social media, professional platforms)",
+          "rationale": "Gear imagery connote climbing without direct participation needed."
+        }
+      ],
+      "broll_description": "Climbing gym session showing active engagement.",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://example.com/climbing_gym",
+          "focus": "climbers on indoor walls"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "zoom_in"
+      },
+      "placement": {
+        "aspect": "16:9",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "subject footage during daily activities based on the spoken context",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DXPfhfPhjJ2/",
+        "shot_idx": 10,
+        "pattern": "Displaying diverse aspects of a typical activity."
+      },
+      "text_overlay": "climbing",
+      "text_position": "middle_center",
+      "animation_cue": "zoom_in",
+      "scene_animation": "none",
+      "animation_scale": 1,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": null,
+      "clip_type": "broll_visual",
+      "rationale": "Climbing forms the backbone of the day's activities, a core element in the broader video narrative."
+    },
+    {
+      "shot_idx": 4,
+      "start_ms": 2934,
+      "end_ms": 3350,
+      "duration_ms": 416,
+      "spoken_during": "climbing",
+      "structure_role": "intro",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.85,
+          "likelihood": 0.95,
+          "broll_description": "Fast-paced startup meeting depicting a collaborative team.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://example.com/startup_meeting",
+              "focus": "group dynamic and startup environment"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "pan_left"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "subject footage during daily activities based on the spoken context",
+          "rationale": "Visualizing internal startup activities provides corporate cadence to the timeline."
+        },
+        {
+          "tier": "ideal",
+          "fit_score": 0.8,
+          "likelihood": 0.95,
+          "broll_description": "A concise meeting room at a startup advisory, charts on the wall.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://example.com/meeting_room_advisory",
+              "focus": "exchange of ideas and problem-solving atmosphere"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "zoom_out"
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "realistic screen recordings capturing activity progress",
+          "rationale": "Static imagery ensures focus on the advisory and intellectual engagement."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.55,
+          "likelihood": 0.95,
+          "broll_description": "Startup logo slideshow with key teams highlighted.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://example.com/startup_logo_slide",
+              "focus": "Key team member contribution representation"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "subject-tied imagery (social media, professional platforms)",
+          "rationale": "Static slide representations can concisely visualize company participation."
+        }
+      ],
+      "broll_description": "Fast-paced startup meeting depicting a collaborative team.",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://example.com/startup_meeting",
+          "focus": "group dynamic and startup environment"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "pan_left"
+      },
+      "placement": {
+        "aspect": "16:9",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "subject footage during daily activities based on the spoken context",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DXFKUigDIzZ/",
+        "shot_idx": 15,
+        "pattern": "Highlighting collaboration within structured engagements."
+      },
+      "text_overlay": "a startup advisory",
+      "text_position": "middle_center",
+      "animation_cue": "pan_left",
+      "scene_animation": "ken_burns",
+      "animation_scale": 1,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": "vocal hit",
+      "clip_type": "broll_visual",
+      "rationale": "Further expanding on 'advisory work,' valuable workflow activities akin to previous sequences."
+    },
+    {
+      "shot_idx": 5,
+      "start_ms": 3350,
+      "end_ms": 4554,
+      "duration_ms": 1204,
+      "spoken_during": "a startup advisory",
+      "structure_role": "intro",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.85,
+          "likelihood": 0.95,
+          "broll_description": "Visual of a tech campus in North Bend under bright skies.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://example.com/tech_campus_north_bend",
+              "focus": "corporate infrastructure and community"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "zoom_in"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "subject footage during daily activities based on the spoken context",
+          "rationale": "Tech campuses lend insight into robust, daily engagements in operations."
+        },
+        {
+          "tier": "ideal",
+          "fit_score": 0.8,
+          "likelihood": 0.95,
+          "broll_description": "Aerial shot over North Bend showing key landmarks.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://example.com/aerial_north_bend",
+              "focus": "recognizable surrounding landmarks"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "ken_burns"
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "realistic screen recordings capturing activity progress",
+          "rationale": "Overhead view captures 'location in body' more broadly and inspires steps."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.55,
+          "likelihood": 0.95,
+          "broll_description": "Simple rendition of North Bend map illustrating location.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://example.com/north_bend_map",
+              "focus": "geographical location and introductions"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "subject-tied imagery (social media, professional platforms)",
+          "rationale": "Clarifies place-based representation and context efficiently."
+        }
+      ],
+      "broll_description": "Visual of a tech campus in North Bend under bright skies.",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://example.com/tech_campus_north_bend",
+          "focus": "corporate infrastructure and community"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "zoom_in"
+      },
+      "placement": {
+        "aspect": "16:9",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "subject footage during daily activities based on the spoken context",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DXPfhfPhjJ2/",
+        "shot_idx": 4,
+        "pattern": "Location-based shots provide geographical context and insight."
+      },
+      "text_overlay": "North Bend",
+      "text_position": "middle_center",
+      "animation_cue": "zoom_in",
+      "scene_animation": "none",
+      "animation_scale": 1,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": null,
+      "clip_type": "talking_head_unknown",
+      "rationale": "North Bend depiction adds situational detail to today's journey, exemplifying activity."
+    },
+    {
+      "shot_idx": 6,
+      "start_ms": 4554,
+      "end_ms": 5189,
+      "duration_ms": 635,
+      "spoken_during": "North Bend",
+      "structure_role": "intro",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.85,
+          "likelihood": 0.95,
+          "broll_description": "Illustrated research montage, focusing on working in a biolab.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://example.com/biolab_research",
+              "focus": "scientific equipment in action"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "none"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "subject-tied imagery (social media, professional platforms)",
+          "rationale": "Research beneath the arcane brings to light intellectual endeavors."
+        },
+        {
+          "tier": "ideal",
+          "fit_score": 0.8,
+          "likelihood": 0.95,
+          "broll_description": "Abstract visualization of diagnostic modeling tools in function.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://example.com/diagnostic_tools",
+              "focus": "tools modeling scientific experimentation"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "zoom_out"
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "split_top",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "realistic screen recordings capturing activity progress",
+          "rationale": "Science tools illustrate work functions more engagingly."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.54,
+          "likelihood": 0.95,
+          "broll_description": "Snapshot of a research binder diagram, schematic of activity process.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://example.com/research_diagram",
+              "focus": "explainers around scientific process"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "subject-tied imagery (social media, professional platforms)",
+          "rationale": "Scientific schematics support structured storytelling and context."
+        }
+      ],
+      "broll_description": "Illustrated research montage, focusing on working in a biolab.",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://example.com/biolab_research",
+          "focus": "scientific equipment in action"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "none"
+      },
+      "placement": {
+        "aspect": "16:9",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "subject-tied imagery (social media, professional platforms)",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DXFKUigDIzZ/",
+        "shot_idx": 18,
+        "pattern": "Intertwining innovation with descriptive visuals assists narrative."
+      },
+      "text_overlay": "research and",
+      "text_position": "middle_center",
+      "animation_cue": "static",
+      "scene_animation": "none",
+      "animation_scale": 1,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": "vocal hit",
+      "clip_type": "broll_visual",
+      "rationale": "The depiction of lab-based scientific inquiry set within the narrative."
+    },
+    {
+      "shot_idx": 7,
+      "start_ms": 5189,
+      "end_ms": 6305,
+      "duration_ms": 1116,
+      "spoken_during": "research and",
+      "structure_role": "intro",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.85,
+          "likelihood": 0.95,
+          "broll_description": "Open auditorium bustling with networking growth events and discussions.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://example.com/networking_event",
+              "focus": "interacting individuals in event spaces"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "zoom_in"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "realistic screen recordings capturing activity progress",
+          "rationale": "Networking venues reveal professional interactivity and thematic growth."
+        },
+        {
+          "tier": "ideal",
+          "fit_score": 0.8,
+          "likelihood": 0.95,
+          "broll_description": "Insightful display of party, catering and interaction at a sponsored event.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://example.com/catered_event",
+              "focus": "dyadic and group exchanges"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "subject footage during daily activities based on the spoken context",
+          "rationale": "Such interaction shows robust engaging narrative through dynamic expressions."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.55,
+          "likelihood": 0.95,
+          "broll_description": "Typical layout view of panel discussions during conferences.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://example.com/conference_panels",
+              "focus": "panel presentation and interactive quasi-forums"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "subject-tied imagery (social media, professional platforms)",
+          "rationale": "A standard narrative through dialogues is very compelling in conferences."
+        }
+      ],
+      "broll_description": "Open auditorium bustling with networking growth events and discussions.",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://example.com/networking_event",
+          "focus": "interacting individuals in event spaces"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "zoom_in"
+      },
+      "placement": {
+        "aspect": "16:9",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "realistic screen recordings capturing activity progress",
+      "has_overlay": true,
+      "additional_elements": [
+        {
+          "kind": "reaction_gif",
+          "description": "Corner face cam of subject actively discussing the event.",
+          "position": "middle_center",
+          "animation": "slide-in",
+          "layer": 1
+        }
+      ],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DXPfhfPhjJ2/",
+        "shot_idx": 19,
+        "pattern": "Incorporating face-time engagement during events to emphasize participation."
+      },
+      "text_overlay": "and a networking event",
+      "text_position": "middle_center",
+      "animation_cue": "zoom_in",
+      "scene_animation": "ken_burns",
+      "animation_scale": 1,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": "whoosh",
+      "clip_type": "broll_visual",
+      "rationale": "Networking events are effective milestones in a subject's daily lifecycle."
+    },
+    {
+      "shot_idx": 8,
+      "start_ms": 6305,
+      "end_ms": 7027,
+      "duration_ms": 722,
+      "spoken_during": "and a networking event",
+      "structure_role": "unspecified",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.95,
+          "broll_description": "Real public web source visualizing: and a networking event",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "",
+              "focus": "and a networking event"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "unspecified",
+          "rationale": "Auto-generated fallback: model returned an empty option for this shot; curator agent will research it via the improvisation ladder."
+        }
+      ],
+      "broll_description": "Real public web source visualizing: and a networking event",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "",
+          "focus": "and a networking event"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": null
+      },
+      "placement": {
+        "aspect": "9:16",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "unspecified",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": null,
+      "text_overlay": "",
+      "text_position": "bottom_center",
+      "animation_cue": null,
+      "scene_animation": "none",
+      "animation_scale": 1,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": null,
+      "clip_type": "broll_visual",
+      "rationale": ""
+    },
+    {
+      "shot_idx": 9,
+      "start_ms": 7027,
+      "end_ms": 7902,
+      "duration_ms": 875,
+      "spoken_during": "event I woke up at 7",
+      "structure_role": "unspecified",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.95,
+          "broll_description": "Real public web source visualizing: event I woke up at 7",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "",
+              "focus": "event I woke up at 7"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "unspecified",
+          "rationale": "Auto-generated fallback: model returned an empty option for this shot; curator agent will research it via the improvisation ladder."
+        }
+      ],
+      "broll_description": "Real public web source visualizing: event I woke up at 7",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "",
+          "focus": "event I woke up at 7"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": null
+      },
+      "placement": {
+        "aspect": "9:16",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "unspecified",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": null,
+      "text_overlay": "",
+      "text_position": "bottom_center",
+      "animation_cue": null,
+      "scene_animation": "none",
+      "animation_scale": 1,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": null,
+      "clip_type": "broll_visual",
+      "rationale": ""
+    },
+    {
+      "shot_idx": 10,
+      "start_ms": 7902,
+      "end_ms": 8143,
+      "duration_ms": 241,
+      "spoken_during": "7",
+      "structure_role": "unspecified",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.95,
+          "broll_description": "Real public web source visualizing: 7",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "",
+              "focus": "7"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "unspecified",
+          "rationale": "Auto-generated fallback: model returned an empty option for this shot; curator agent will research it via the improvisation ladder."
+        }
+      ],
+      "broll_description": "Real public web source visualizing: 7",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "",
+          "focus": "7"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": null
+      },
+      "placement": {
+        "aspect": "9:16",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "unspecified",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": null,
+      "text_overlay": "",
+      "text_position": "bottom_center",
+      "animation_cue": null,
+      "scene_animation": "none",
+      "animation_scale": 1,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": null,
+      "clip_type": "broll_visual",
+      "rationale": ""
+    },
+    {
+      "shot_idx": 11,
+      "start_ms": 8143,
+      "end_ms": 8800,
+      "duration_ms": 657,
+      "spoken_during": "took a quick shower",
+      "structure_role": "unspecified",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.95,
+          "broll_description": "Real public web source visualizing: took a quick shower",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "",
+              "focus": "took a quick shower"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "unspecified",
+          "rationale": "Auto-generated fallback: model returned an empty option for this shot; curator agent will research it via the improvisation ladder."
+        }
+      ],
+      "broll_description": "Real public web source visualizing: took a quick shower",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "",
+          "focus": "took a quick shower"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": null
+      },
+      "placement": {
+        "aspect": "9:16",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "unspecified",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": null,
+      "text_overlay": "",
+      "text_position": "bottom_center",
+      "animation_cue": null,
+      "scene_animation": "none",
+      "animation_scale": 1,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": null,
+      "clip_type": "broll_visual",
+      "rationale": ""
+    },
+    {
+      "shot_idx": 12,
+      "start_ms": 8800,
+      "end_ms": 9610,
+      "duration_ms": 810,
+      "spoken_during": "shower and headed straight to",
+      "structure_role": "unspecified",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.95,
+          "broll_description": "Real public web source visualizing: shower and headed straight to",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "",
+              "focus": "shower and headed straight to"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "unspecified",
+          "rationale": "Auto-generated fallback: model returned an empty option for this shot; curator agent will research it via the improvisation ladder."
+        }
+      ],
+      "broll_description": "Real public web source visualizing: shower and headed straight to",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "",
+          "focus": "shower and headed straight to"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": null
+      },
+      "placement": {
+        "aspect": "9:16",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "unspecified",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": null,
+      "text_overlay": "",
+      "text_position": "bottom_center",
+      "animation_cue": null,
+      "scene_animation": "none",
+      "animation_scale": 1,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": null,
+      "clip_type": "broll_visual",
+      "rationale": ""
+    },
+    {
+      "shot_idx": 13,
+      "start_ms": 9610,
+      "end_ms": 10332,
+      "duration_ms": 722,
+      "spoken_during": "to school for",
+      "structure_role": "unspecified",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.95,
+          "broll_description": "Real public web source visualizing: to school for",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "",
+              "focus": "to school for"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "unspecified",
+          "rationale": "Auto-generated fallback: model returned an empty option for this shot; curator agent will research it via the improvisation ladder."
+        }
+      ],
+      "broll_description": "Real public web source visualizing: to school for",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "",
+          "focus": "to school for"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": null
+      },
+      "placement": {
+        "aspect": "9:16",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "unspecified",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": null,
+      "text_overlay": "",
+      "text_position": "bottom_center",
+      "animation_cue": null,
+      "scene_animation": "none",
+      "animation_scale": 1,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": null,
+      "clip_type": "broll_visual",
+      "rationale": ""
+    },
+    {
+      "shot_idx": 14,
+      "start_ms": 10332,
+      "end_ms": 10748,
+      "duration_ms": 416,
+      "spoken_during": "for APES",
+      "structure_role": "unspecified",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.95,
+          "broll_description": "Real public web source visualizing: for APES",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "",
+              "focus": "for APES"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "unspecified",
+          "rationale": "Auto-generated fallback: model returned an empty option for this shot; curator agent will research it via the improvisation ladder."
+        }
+      ],
+      "broll_description": "Real public web source visualizing: for APES",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "",
+          "focus": "for APES"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": null
+      },
+      "placement": {
+        "aspect": "9:16",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "unspecified",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": null,
+      "text_overlay": "",
+      "text_position": "bottom_center",
+      "animation_cue": null,
+      "scene_animation": "none",
+      "animation_scale": 1,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": null,
+      "clip_type": "broll_visual",
+      "rationale": ""
+    },
+    {
+      "shot_idx": 15,
+      "start_ms": 10748,
+      "end_ms": 11251,
+      "duration_ms": 503,
+      "spoken_during": "APES and Gov",
+      "structure_role": "unspecified",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.95,
+          "broll_description": "Real public web source visualizing: APES and Gov",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "",
+              "focus": "APES and Gov"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "unspecified",
+          "rationale": "Auto-generated fallback: model returned an empty option for this shot; curator agent will research it via the improvisation ladder."
+        }
+      ],
+      "broll_description": "Real public web source visualizing: APES and Gov",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "",
+          "focus": "APES and Gov"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": null
+      },
+      "placement": {
+        "aspect": "9:16",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "unspecified",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": null,
+      "text_overlay": "",
+      "text_position": "bottom_center",
+      "animation_cue": null,
+      "scene_animation": "none",
+      "animation_scale": 1,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": null,
+      "clip_type": "broll_visual",
+      "rationale": ""
+    },
+    {
+      "shot_idx": 16,
+      "start_ms": 11251,
+      "end_ms": 11776,
+      "duration_ms": 525,
+      "spoken_during": "I",
+      "structure_role": "unspecified",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.95,
+          "broll_description": "Real public web source visualizing: I",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "",
+              "focus": "I"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "unspecified",
+          "rationale": "Auto-generated fallback: model returned an empty option for this shot; curator agent will research it via the improvisation ladder."
+        }
+      ],
+      "broll_description": "Real public web source visualizing: I",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "",
+          "focus": "I"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": null
+      },
+      "placement": {
+        "aspect": "9:16",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "unspecified",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": null,
+      "text_overlay": "",
+      "text_position": "bottom_center",
+      "animation_cue": null,
+      "scene_animation": "none",
+      "animation_scale": 1,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": null,
+      "clip_type": "broll_visual",
+      "rationale": ""
+    },
+    {
+      "shot_idx": 17,
+      "start_ms": 11776,
+      "end_ms": 12498,
+      "duration_ms": 722,
+      "spoken_during": "I then left",
+      "structure_role": "unspecified",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.95,
+          "broll_description": "Real public web source visualizing: I then left",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "",
+              "focus": "I then left"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "unspecified",
+          "rationale": "Auto-generated fallback: model returned an empty option for this shot; curator agent will research it via the improvisation ladder."
+        }
+      ],
+      "broll_description": "Real public web source visualizing: I then left",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "",
+          "focus": "I then left"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": null
+      },
+      "placement": {
+        "aspect": "9:16",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "unspecified",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": null,
+      "text_overlay": "",
+      "text_position": "bottom_center",
+      "animation_cue": null,
+      "scene_animation": "none",
+      "animation_scale": 1,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": null,
+      "clip_type": "broll_visual",
+      "rationale": ""
+    },
+    {
+      "shot_idx": 18,
+      "start_ms": 12498,
+      "end_ms": 12783,
+      "duration_ms": 285,
+      "spoken_during": "left early",
+      "structure_role": "unspecified",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.95,
+          "broll_description": "Real public web source visualizing: left early",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "",
+              "focus": "left early"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "unspecified",
+          "rationale": "Auto-generated fallback: model returned an empty option for this shot; curator agent will research it via the improvisation ladder."
+        }
+      ],
+      "broll_description": "Real public web source visualizing: left early",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "",
+          "focus": "left early"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": null
+      },
+      "placement": {
+        "aspect": "9:16",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "unspecified",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": null,
+      "text_overlay": "",
+      "text_position": "bottom_center",
+      "animation_cue": null,
+      "scene_animation": "none",
+      "animation_scale": 1,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": null,
+      "clip_type": "broll_visual",
+      "rationale": ""
+    },
+    {
+      "shot_idx": 19,
+      "start_ms": 12783,
+      "end_ms": 13111,
+      "duration_ms": 328,
+      "spoken_during": "early and",
+      "structure_role": "unspecified",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.95,
+          "broll_description": "Real public web source visualizing: early and",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "",
+              "focus": "early and"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "unspecified",
+          "rationale": "Auto-generated fallback: model returned an empty option for this shot; curator agent will research it via the improvisation ladder."
+        }
+      ],
+      "broll_description": "Real public web source visualizing: early and",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "",
+          "focus": "early and"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": null
+      },
+      "placement": {
+        "aspect": "9:16",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "unspecified",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": null,
+      "text_overlay": "",
+      "text_position": "bottom_center",
+      "animation_cue": null,
+      "scene_animation": "none",
+      "animation_scale": 1,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": null,
+      "clip_type": "broll_visual",
+      "rationale": ""
+    },
+    {
+      "shot_idx": 20,
+      "start_ms": 13111,
+      "end_ms": 13351,
+      "duration_ms": 240,
+      "spoken_during": "and",
+      "structure_role": "unspecified",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.95,
+          "broll_description": "Real public web source visualizing: and",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "",
+              "focus": "and"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "unspecified",
+          "rationale": "Auto-generated fallback: model returned an empty option for this shot; curator agent will research it via the improvisation ladder."
+        }
+      ],
+      "broll_description": "Real public web source visualizing: and",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "",
+          "focus": "and"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": null
+      },
+      "placement": {
+        "aspect": "9:16",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "unspecified",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": null,
+      "text_overlay": "",
+      "text_position": "bottom_center",
+      "animation_cue": null,
+      "scene_animation": "none",
+      "animation_scale": 1,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": null,
+      "clip_type": "broll_visual",
+      "rationale": ""
+    },
+    {
+      "shot_idx": 21,
+      "start_ms": 13351,
+      "end_ms": 15409,
+      "duration_ms": 2058,
+      "spoken_during": "and drove out to North Bend to return my ski",
+      "structure_role": "unspecified",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.95,
+          "broll_description": "Real public web source visualizing: and drove out to North Bend to return my ski",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "",
+              "focus": "and drove out to North Bend to return my ski"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "unspecified",
+          "rationale": "Auto-generated fallback: model returned an empty option for this shot; curator agent will research it via the improvisation ladder."
+        }
+      ],
+      "broll_description": "Real public web source visualizing: and drove out to North Bend to return my ski",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "",
+          "focus": "and drove out to North Bend to return my ski"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": null
+      },
+      "placement": {
+        "aspect": "9:16",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "unspecified",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": null,
+      "text_overlay": "",
+      "text_position": "bottom_center",
+      "animation_cue": null,
+      "scene_animation": "none",
+      "animation_scale": 1,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": null,
+      "clip_type": "broll_visual",
+      "rationale": ""
+    },
+    {
+      "shot_idx": 22,
+      "start_ms": 15409,
+      "end_ms": 15693,
+      "duration_ms": 284,
+      "spoken_during": "While",
+      "structure_role": "unspecified",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.95,
+          "broll_description": "Real public web source visualizing: While",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "",
+              "focus": "While"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "unspecified",
+          "rationale": "Auto-generated fallback: model returned an empty option for this shot; curator agent will research it via the improvisation ladder."
+        }
+      ],
+      "broll_description": "Real public web source visualizing: While",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "",
+          "focus": "While"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": null
+      },
+      "placement": {
+        "aspect": "9:16",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "unspecified",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": null,
+      "text_overlay": "",
+      "text_position": "bottom_center",
+      "animation_cue": null,
+      "scene_animation": "none",
+      "animation_scale": 1,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": null,
+      "clip_type": "broll_visual",
+      "rationale": ""
+    },
+    {
+      "shot_idx": 23,
+      "start_ms": 15693,
+      "end_ms": 16262,
+      "duration_ms": 569,
+      "spoken_during": "While driving",
+      "structure_role": "unspecified",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.95,
+          "broll_description": "Real public web source visualizing: While driving",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "",
+              "focus": "While driving"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "unspecified",
+          "rationale": "Auto-generated fallback: model returned an empty option for this shot; curator agent will research it via the improvisation ladder."
+        }
+      ],
+      "broll_description": "Real public web source visualizing: While driving",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "",
+          "focus": "While driving"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": null
+      },
+      "placement": {
+        "aspect": "9:16",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "unspecified",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": null,
+      "text_overlay": "",
+      "text_position": "bottom_center",
+      "animation_cue": null,
+      "scene_animation": "none",
+      "animation_scale": 1,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": null,
+      "clip_type": "broll_visual",
+      "rationale": ""
+    },
+    {
+      "shot_idx": 24,
+      "start_ms": 16262,
+      "end_ms": 17181,
+      "duration_ms": 919,
+      "spoken_during": "I did modeling work for",
+      "structure_role": "unspecified",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.95,
+          "broll_description": "Real public web source visualizing: I did modeling work for",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "",
+              "focus": "I did modeling work for"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "unspecified",
+          "rationale": "Auto-generated fallback: model returned an empty option for this shot; curator agent will research it via the improvisation ladder."
+        }
+      ],
+      "broll_description": "Real public web source visualizing: I did modeling work for",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "",
+          "focus": "I did modeling work for"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": null
+      },
+      "placement": {
+        "aspect": "9:16",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "unspecified",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": null,
+      "text_overlay": "",
+      "text_position": "bottom_center",
+      "animation_cue": null,
+      "scene_animation": "none",
+      "animation_scale": 1,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": null,
+      "clip_type": "broll_visual",
+      "rationale": ""
+    },
+    {
+      "shot_idx": 25,
+      "start_ms": 17181,
+      "end_ms": 17969,
+      "duration_ms": 788,
+      "spoken_during": "for my internship",
+      "structure_role": "unspecified",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.95,
+          "broll_description": "Real public web source visualizing: for my internship",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "",
+              "focus": "for my internship"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "unspecified",
+          "rationale": "Auto-generated fallback: model returned an empty option for this shot; curator agent will research it via the improvisation ladder."
+        }
+      ],
+      "broll_description": "Real public web source visualizing: for my internship",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "",
+          "focus": "for my internship"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": null
+      },
+      "placement": {
+        "aspect": "9:16",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "unspecified",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": null,
+      "text_overlay": "",
+      "text_position": "bottom_center",
+      "animation_cue": null,
+      "scene_animation": "none",
+      "animation_scale": 1,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": null,
+      "clip_type": "broll_visual",
+      "rationale": ""
+    },
+    {
+      "shot_idx": 26,
+      "start_ms": 17969,
+      "end_ms": 19829,
+      "duration_ms": 1860,
+      "spoken_during": "I'm currently at ISB a comp",
+      "structure_role": "unspecified",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.95,
+          "broll_description": "Real public web source visualizing: I'm currently at ISB a comp",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "",
+              "focus": "I'm currently at ISB a comp"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "unspecified",
+          "rationale": "Auto-generated fallback: model returned an empty option for this shot; curator agent will research it via the improvisation ladder."
+        }
+      ],
+      "broll_description": "Real public web source visualizing: I'm currently at ISB a comp",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "",
+          "focus": "I'm currently at ISB a comp"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": null
+      },
+      "placement": {
+        "aspect": "9:16",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "unspecified",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": null,
+      "text_overlay": "",
+      "text_position": "bottom_center",
+      "animation_cue": null,
+      "scene_animation": "none",
+      "animation_scale": 1,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": null,
+      "clip_type": "broll_visual",
+      "rationale": ""
+    },
+    {
+      "shot_idx": 27,
+      "start_ms": 19829,
+      "end_ms": 20858,
+      "duration_ms": 1029,
+      "spoken_during": "comp biolab and I'm working",
+      "structure_role": "unspecified",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.95,
+          "broll_description": "Real public web source visualizing: comp biolab and I'm working",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "",
+              "focus": "comp biolab and I'm working"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "unspecified",
+          "rationale": "Auto-generated fallback: model returned an empty option for this shot; curator agent will research it via the improvisation ladder."
+        }
+      ],
+      "broll_description": "Real public web source visualizing: comp biolab and I'm working",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "",
+          "focus": "comp biolab and I'm working"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": null
+      },
+      "placement": {
+        "aspect": "9:16",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "unspecified",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": null,
+      "text_overlay": "",
+      "text_position": "bottom_center",
+      "animation_cue": null,
+      "scene_animation": "none",
+      "animation_scale": 1,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": null,
+      "clip_type": "broll_visual",
+      "rationale": ""
+    },
+    {
+      "shot_idx": 28,
+      "start_ms": 20858,
+      "end_ms": 21515,
+      "duration_ms": 657,
+      "spoken_during": "working on preeclampsia",
+      "structure_role": "unspecified",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.95,
+          "broll_description": "Real public web source visualizing: working on preeclampsia",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "",
+              "focus": "working on preeclampsia"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "unspecified",
+          "rationale": "Auto-generated fallback: model returned an empty option for this shot; curator agent will research it via the improvisation ladder."
+        }
+      ],
+      "broll_description": "Real public web source visualizing: working on preeclampsia",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "",
+          "focus": "working on preeclampsia"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": null
+      },
+      "placement": {
+        "aspect": "9:16",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "unspecified",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": null,
+      "text_overlay": "",
+      "text_position": "bottom_center",
+      "animation_cue": null,
+      "scene_animation": "none",
+      "animation_scale": 1,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": null,
+      "clip_type": "broll_visual",
+      "rationale": ""
+    },
+    {
+      "shot_idx": 29,
+      "start_ms": 21515,
+      "end_ms": 22960,
+      "duration_ms": 1445,
+      "spoken_during": "preeclampsia diagnostic modeling",
+      "structure_role": "unspecified",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.95,
+          "broll_description": "Real public web source visualizing: preeclampsia diagnostic modeling",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "",
+              "focus": "preeclampsia diagnostic modeling"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "unspecified",
+          "rationale": "Auto-generated fallback: model returned an empty option for this shot; curator agent will research it via the improvisation ladder."
+        }
+      ],
+      "broll_description": "Real public web source visualizing: preeclampsia diagnostic modeling",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "",
+          "focus": "preeclampsia diagnostic modeling"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": null
+      },
+      "placement": {
+        "aspect": "9:16",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "unspecified",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": null,
+      "text_overlay": "",
+      "text_position": "bottom_center",
+      "animation_cue": null,
+      "scene_animation": "none",
+      "animation_scale": 1,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": null,
+      "clip_type": "broll_visual",
+      "rationale": ""
+    },
+    {
+      "shot_idx": 30,
+      "start_ms": 22960,
+      "end_ms": 24448,
+      "duration_ms": 1488,
+      "spoken_during": "Then after some side",
+      "structure_role": "unspecified",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.95,
+          "broll_description": "Real public web source visualizing: Then after some side",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "",
+              "focus": "Then after some side"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "unspecified",
+          "rationale": "Auto-generated fallback: model returned an empty option for this shot; curator agent will research it via the improvisation ladder."
+        }
+      ],
+      "broll_description": "Real public web source visualizing: Then after some side",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "",
+          "focus": "Then after some side"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": null
+      },
+      "placement": {
+        "aspect": "9:16",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "unspecified",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": null,
+      "text_overlay": "",
+      "text_position": "bottom_center",
+      "animation_cue": null,
+      "scene_animation": "none",
+      "animation_scale": 1,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": null,
+      "clip_type": "broll_visual",
+      "rationale": ""
+    },
+    {
+      "shot_idx": 31,
+      "start_ms": 24448,
+      "end_ms": 25937,
+      "duration_ms": 1489,
+      "spoken_during": "side questing in North Bend I",
+      "structure_role": "unspecified",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.95,
+          "broll_description": "Real public web source visualizing: side questing in North Bend I",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "",
+              "focus": "side questing in North Bend I"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "unspecified",
+          "rationale": "Auto-generated fallback: model returned an empty option for this shot; curator agent will research it via the improvisation ladder."
+        }
+      ],
+      "broll_description": "Real public web source visualizing: side questing in North Bend I",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "",
+          "focus": "side questing in North Bend I"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": null
+      },
+      "placement": {
+        "aspect": "9:16",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "unspecified",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": null,
+      "text_overlay": "",
+      "text_position": "bottom_center",
+      "animation_cue": null,
+      "scene_animation": "none",
+      "animation_scale": 1,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": null,
+      "clip_type": "broll_visual",
+      "rationale": ""
+    },
+    {
+      "shot_idx": 32,
+      "start_ms": 25937,
+      "end_ms": 26418,
+      "duration_ms": 481,
+      "spoken_during": "I came back to a",
+      "structure_role": "unspecified",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.95,
+          "broll_description": "Real public web source visualizing: I came back to a",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "",
+              "focus": "I came back to a"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "unspecified",
+          "rationale": "Auto-generated fallback: model returned an empty option for this shot; curator agent will research it via the improvisation ladder."
+        }
+      ],
+      "broll_description": "Real public web source visualizing: I came back to a",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "",
+          "focus": "I came back to a"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": null
+      },
+      "placement": {
+        "aspect": "9:16",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "unspecified",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": null,
+      "text_overlay": "",
+      "text_position": "bottom_center",
+      "animation_cue": null,
+      "scene_animation": "none",
+      "animation_scale": 1,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": null,
+      "clip_type": "broll_visual",
+      "rationale": ""
+    },
+    {
+      "shot_idx": 33,
+      "start_ms": 26418,
+      "end_ms": 26618,
+      "duration_ms": 200,
+      "spoken_during": "a two",
+      "structure_role": "unspecified",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.95,
+          "broll_description": "Real public web source visualizing: a two",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "",
+              "focus": "a two"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "unspecified",
+          "rationale": "Auto-generated fallback: model returned an empty option for this shot; curator agent will research it via the improvisation ladder."
+        }
+      ],
+      "broll_description": "Real public web source visualizing: a two",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "",
+          "focus": "a two"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": null
+      },
+      "placement": {
+        "aspect": "9:16",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "unspecified",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": null,
+      "text_overlay": "",
+      "text_position": "bottom_center",
+      "animation_cue": null,
+      "scene_animation": "none",
+      "animation_scale": 1,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": null,
+      "clip_type": "broll_visual",
+      "rationale": ""
+    },
+    {
+      "shot_idx": 34,
+      "start_ms": 26618,
+      "end_ms": 27122,
+      "duration_ms": 504,
+      "spoken_during": "two hour advisory",
+      "structure_role": "unspecified",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.95,
+          "broll_description": "Real public web source visualizing: two hour advisory",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "",
+              "focus": "two hour advisory"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "unspecified",
+          "rationale": "Auto-generated fallback: model returned an empty option for this shot; curator agent will research it via the improvisation ladder."
+        }
+      ],
+      "broll_description": "Real public web source visualizing: two hour advisory",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "",
+          "focus": "two hour advisory"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": null
+      },
+      "placement": {
+        "aspect": "9:16",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "unspecified",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": null,
+      "text_overlay": "",
+      "text_position": "bottom_center",
+      "animation_cue": null,
+      "scene_animation": "none",
+      "animation_scale": 1,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": null,
+      "clip_type": "broll_visual",
+      "rationale": ""
+    },
+    {
+      "shot_idx": 35,
+      "start_ms": 27122,
+      "end_ms": 27713,
+      "duration_ms": 591,
+      "spoken_during": "advisory meeting with",
+      "structure_role": "unspecified",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.95,
+          "broll_description": "Real public web source visualizing: advisory meeting with",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "",
+              "focus": "advisory meeting with"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "unspecified",
+          "rationale": "Auto-generated fallback: model returned an empty option for this shot; curator agent will research it via the improvisation ladder."
+        }
+      ],
+      "broll_description": "Real public web source visualizing: advisory meeting with",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "",
+          "focus": "advisory meeting with"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": null
+      },
+      "placement": {
+        "aspect": "9:16",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "unspecified",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": null,
+      "text_overlay": "",
+      "text_position": "bottom_center",
+      "animation_cue": null,
+      "scene_animation": "none",
+      "animation_scale": 1,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": null,
+      "clip_type": "broll_visual",
+      "rationale": ""
+    },
+    {
+      "shot_idx": 36,
+      "start_ms": 27713,
+      "end_ms": 28282,
+      "duration_ms": 569,
+      "spoken_during": "with Carthick from",
+      "structure_role": "unspecified",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.95,
+          "broll_description": "Real public web source visualizing: with Carthick from",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "",
+              "focus": "with Carthick from"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "unspecified",
+          "rationale": "Auto-generated fallback: model returned an empty option for this shot; curator agent will research it via the improvisation ladder."
+        }
+      ],
+      "broll_description": "Real public web source visualizing: with Carthick from",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "",
+          "focus": "with Carthick from"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": null
+      },
+      "placement": {
+        "aspect": "9:16",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "unspecified",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": null,
+      "text_overlay": "",
+      "text_position": "bottom_center",
+      "animation_cue": null,
+      "scene_animation": "none",
+      "animation_scale": 1,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": null,
+      "clip_type": "broll_visual",
+      "rationale": ""
+    },
+    {
+      "shot_idx": 37,
+      "start_ms": 28282,
+      "end_ms": 29661,
+      "duration_ms": 1379,
+      "spoken_during": "from Lush Life talking through Presonance",
+      "structure_role": "unspecified",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.95,
+          "broll_description": "Real public web source visualizing: from Lush Life talking through Presonance",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "",
+              "focus": "from Lush Life talking through Presonance"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "unspecified",
+          "rationale": "Auto-generated fallback: model returned an empty option for this shot; curator agent will research it via the improvisation ladder."
+        }
+      ],
+      "broll_description": "Real public web source visualizing: from Lush Life talking through Presonance",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "",
+          "focus": "from Lush Life talking through Presonance"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": null
+      },
+      "placement": {
+        "aspect": "9:16",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "unspecified",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": null,
+      "text_overlay": "",
+      "text_position": "bottom_center",
+      "animation_cue": null,
+      "scene_animation": "none",
+      "animation_scale": 1,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": null,
+      "clip_type": "broll_visual",
+      "rationale": ""
+    },
+    {
+      "shot_idx": 38,
+      "start_ms": 29661,
+      "end_ms": 32025,
+      "duration_ms": 2364,
+      "spoken_during": "Presonance a comp neuro ad tool I'm building to simulate ad",
+      "structure_role": "unspecified",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.95,
+          "broll_description": "Real public web source visualizing: Presonance a comp neuro ad tool I'm building to simulate ad",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "",
+              "focus": "Presonance a comp neuro ad tool I'm building to simulate ad"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "unspecified",
+          "rationale": "Auto-generated fallback: model returned an empty option for this shot; curator agent will research it via the improvisation ladder."
+        }
+      ],
+      "broll_description": "Real public web source visualizing: Presonance a comp neuro ad tool I'm building to simulate ad",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "",
+          "focus": "Presonance a comp neuro ad tool I'm building to simulate ad"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": null
+      },
+      "placement": {
+        "aspect": "9:16",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "unspecified",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": null,
+      "text_overlay": "",
+      "text_position": "bottom_center",
+      "animation_cue": null,
+      "scene_animation": "none",
+      "animation_scale": 1,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": null,
+      "clip_type": "broll_visual",
+      "rationale": ""
+    },
+    {
+      "shot_idx": 39,
+      "start_ms": 32025,
+      "end_ms": 33491,
+      "duration_ms": 1466,
+      "spoken_during": "ad responses After",
+      "structure_role": "unspecified",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.95,
+          "broll_description": "Real public web source visualizing: ad responses After",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "",
+              "focus": "ad responses After"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "unspecified",
+          "rationale": "Auto-generated fallback: model returned an empty option for this shot; curator agent will research it via the improvisation ladder."
+        }
+      ],
+      "broll_description": "Real public web source visualizing: ad responses After",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "",
+          "focus": "ad responses After"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": null
+      },
+      "placement": {
+        "aspect": "9:16",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "unspecified",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": null,
+      "text_overlay": "",
+      "text_position": "bottom_center",
+      "animation_cue": null,
+      "scene_animation": "none",
+      "animation_scale": 1,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": null,
+      "clip_type": "broll_visual",
+      "rationale": ""
+    },
+    {
+      "shot_idx": 40,
+      "start_ms": 33491,
+      "end_ms": 33798,
+      "duration_ms": 307,
+      "spoken_during": "After that",
+      "structure_role": "unspecified",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.95,
+          "broll_description": "Real public web source visualizing: After that",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "",
+              "focus": "After that"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "unspecified",
+          "rationale": "Auto-generated fallback: model returned an empty option for this shot; curator agent will research it via the improvisation ladder."
+        }
+      ],
+      "broll_description": "Real public web source visualizing: After that",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "",
+          "focus": "After that"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": null
+      },
+      "placement": {
+        "aspect": "9:16",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "unspecified",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": null,
+      "text_overlay": "",
+      "text_position": "bottom_center",
+      "animation_cue": null,
+      "scene_animation": "none",
+      "animation_scale": 1,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": null,
+      "clip_type": "broll_visual",
+      "rationale": ""
+    },
+    {
+      "shot_idx": 41,
+      "start_ms": 33798,
+      "end_ms": 35002,
+      "duration_ms": 1204,
+      "spoken_during": "that I went straight to climbing",
+      "structure_role": "unspecified",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.95,
+          "broll_description": "Real public web source visualizing: that I went straight to climbing",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "",
+              "focus": "that I went straight to climbing"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "unspecified",
+          "rationale": "Auto-generated fallback: model returned an empty option for this shot; curator agent will research it via the improvisation ladder."
+        }
+      ],
+      "broll_description": "Real public web source visualizing: that I went straight to climbing",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "",
+          "focus": "that I went straight to climbing"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": null
+      },
+      "placement": {
+        "aspect": "9:16",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "unspecified",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": null,
+      "text_overlay": "",
+      "text_position": "bottom_center",
+      "animation_cue": null,
+      "scene_animation": "none",
+      "animation_scale": 1,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": null,
+      "clip_type": "broll_visual",
+      "rationale": ""
+    },
+    {
+      "shot_idx": 42,
+      "start_ms": 35002,
+      "end_ms": 36972,
+      "duration_ms": 1970,
+      "spoken_during": "Then a WTAI networking",
+      "structure_role": "unspecified",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.95,
+          "broll_description": "Real public web source visualizing: Then a WTAI networking",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "",
+              "focus": "Then a WTAI networking"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "unspecified",
+          "rationale": "Auto-generated fallback: model returned an empty option for this shot; curator agent will research it via the improvisation ladder."
+        }
+      ],
+      "broll_description": "Real public web source visualizing: Then a WTAI networking",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "",
+          "focus": "Then a WTAI networking"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": null
+      },
+      "placement": {
+        "aspect": "9:16",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "unspecified",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": null,
+      "text_overlay": "",
+      "text_position": "bottom_center",
+      "animation_cue": null,
+      "scene_animation": "none",
+      "animation_scale": 1,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": null,
+      "clip_type": "broll_visual",
+      "rationale": ""
+    },
+    {
+      "shot_idx": 43,
+      "start_ms": 36972,
+      "end_ms": 37891,
+      "duration_ms": 919,
+      "spoken_during": "networking event",
+      "structure_role": "unspecified",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.95,
+          "broll_description": "Real public web source visualizing: networking event",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "",
+              "focus": "networking event"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "unspecified",
+          "rationale": "Auto-generated fallback: model returned an empty option for this shot; curator agent will research it via the improvisation ladder."
+        }
+      ],
+      "broll_description": "Real public web source visualizing: networking event",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "",
+          "focus": "networking event"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": null
+      },
+      "placement": {
+        "aspect": "9:16",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "unspecified",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": null,
+      "text_overlay": "",
+      "text_position": "bottom_center",
+      "animation_cue": null,
+      "scene_animation": "none",
+      "animation_scale": 1,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": null,
+      "clip_type": "broll_visual",
+      "rationale": ""
+    },
+    {
+      "shot_idx": 44,
+      "start_ms": 37891,
+      "end_ms": 38679,
+      "duration_ms": 788,
+      "spoken_during": "where I met a",
+      "structure_role": "unspecified",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.95,
+          "broll_description": "Real public web source visualizing: where I met a",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "",
+              "focus": "where I met a"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "unspecified",
+          "rationale": "Auto-generated fallback: model returned an empty option for this shot; curator agent will research it via the improvisation ladder."
+        }
+      ],
+      "broll_description": "Real public web source visualizing: where I met a",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "",
+          "focus": "where I met a"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": null
+      },
+      "placement": {
+        "aspect": "9:16",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "unspecified",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": null,
+      "text_overlay": "",
+      "text_position": "bottom_center",
+      "animation_cue": null,
+      "scene_animation": "none",
+      "animation_scale": 1,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": null,
+      "clip_type": "broll_visual",
+      "rationale": ""
+    },
+    {
+      "shot_idx": 45,
+      "start_ms": 38679,
+      "end_ms": 38879,
+      "duration_ms": 200,
+      "spoken_during": "a bunch of",
+      "structure_role": "unspecified",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.95,
+          "broll_description": "Real public web source visualizing: a bunch of",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "",
+              "focus": "a bunch of"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "unspecified",
+          "rationale": "Auto-generated fallback: model returned an empty option for this shot; curator agent will research it via the improvisation ladder."
+        }
+      ],
+      "broll_description": "Real public web source visualizing: a bunch of",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "",
+          "focus": "a bunch of"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": null
+      },
+      "placement": {
+        "aspect": "9:16",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "unspecified",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": null,
+      "text_overlay": "",
+      "text_position": "bottom_center",
+      "animation_cue": null,
+      "scene_animation": "none",
+      "animation_scale": 1,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": null,
+      "clip_type": "broll_visual",
+      "rationale": ""
+    },
+    {
+      "shot_idx": 46,
+      "start_ms": 38879,
+      "end_ms": 40017,
+      "duration_ms": 1138,
+      "spoken_during": "of cool people and talked to people from",
+      "structure_role": "unspecified",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.95,
+          "broll_description": "Real public web source visualizing: of cool people and talked to people from",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "",
+              "focus": "of cool people and talked to people from"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "unspecified",
+          "rationale": "Auto-generated fallback: model returned an empty option for this shot; curator agent will research it via the improvisation ladder."
+        }
+      ],
+      "broll_description": "Real public web source visualizing: of cool people and talked to people from",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "",
+          "focus": "of cool people and talked to people from"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": null
+      },
+      "placement": {
+        "aspect": "9:16",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "unspecified",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": null,
+      "text_overlay": "",
+      "text_position": "bottom_center",
+      "animation_cue": null,
+      "scene_animation": "none",
+      "animation_scale": 1,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": null,
+      "clip_type": "broll_visual",
+      "rationale": ""
+    },
+    {
+      "shot_idx": 47,
+      "start_ms": 40017,
+      "end_ms": 40980,
+      "duration_ms": 963,
+      "spoken_during": "from Google who were actually",
+      "structure_role": "unspecified",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.95,
+          "broll_description": "Real public web source visualizing: from Google who were actually",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "",
+              "focus": "from Google who were actually"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "unspecified",
+          "rationale": "Auto-generated fallback: model returned an empty option for this shot; curator agent will research it via the improvisation ladder."
+        }
+      ],
+      "broll_description": "Real public web source visualizing: from Google who were actually",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "",
+          "focus": "from Google who were actually"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": null
+      },
+      "placement": {
+        "aspect": "9:16",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "unspecified",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": null,
+      "text_overlay": "",
+      "text_position": "bottom_center",
+      "animation_cue": null,
+      "scene_animation": "none",
+      "animation_scale": 1,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": null,
+      "clip_type": "broll_visual",
+      "rationale": ""
+    },
+    {
+      "shot_idx": 48,
+      "start_ms": 40980,
+      "end_ms": 42599,
+      "duration_ms": 1619,
+      "spoken_during": "actually interested in what we're building It",
+      "structure_role": "unspecified",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.95,
+          "broll_description": "Real public web source visualizing: actually interested in what we're building It",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "",
+              "focus": "actually interested in what we're building It"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "unspecified",
+          "rationale": "Auto-generated fallback: model returned an empty option for this shot; curator agent will research it via the improvisation ladder."
+        }
+      ],
+      "broll_description": "Real public web source visualizing: actually interested in what we're building It",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "",
+          "focus": "actually interested in what we're building It"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": null
+      },
+      "placement": {
+        "aspect": "9:16",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "unspecified",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": null,
+      "text_overlay": "",
+      "text_position": "bottom_center",
+      "animation_cue": null,
+      "scene_animation": "none",
+      "animation_scale": 1,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": null,
+      "clip_type": "broll_visual",
+      "rationale": ""
+    },
+    {
+      "shot_idx": 49,
+      "start_ms": 42599,
+      "end_ms": 44547,
+      "duration_ms": 1948,
+      "spoken_during": "It was already about 9 so I headed home",
+      "structure_role": "unspecified",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.95,
+          "broll_description": "Real public web source visualizing: It was already about 9 so I headed home",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "",
+              "focus": "It was already about 9 so I headed home"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "unspecified",
+          "rationale": "Auto-generated fallback: model returned an empty option for this shot; curator agent will research it via the improvisation ladder."
+        }
+      ],
+      "broll_description": "Real public web source visualizing: It was already about 9 so I headed home",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "",
+          "focus": "It was already about 9 so I headed home"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": null
+      },
+      "placement": {
+        "aspect": "9:16",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "unspecified",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": null,
+      "text_overlay": "",
+      "text_position": "bottom_center",
+      "animation_cue": null,
+      "scene_animation": "none",
+      "animation_scale": 1,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": null,
+      "clip_type": "broll_visual",
+      "rationale": ""
+    },
+    {
+      "shot_idx": 50,
+      "start_ms": 44547,
+      "end_ms": 45839,
+      "duration_ms": 1292,
+      "spoken_during": "home and then finished research",
+      "structure_role": "unspecified",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.95,
+          "broll_description": "Real public web source visualizing: home and then finished research",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "",
+              "focus": "home and then finished research"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "unspecified",
+          "rationale": "Auto-generated fallback: model returned an empty option for this shot; curator agent will research it via the improvisation ladder."
+        }
+      ],
+      "broll_description": "Real public web source visualizing: home and then finished research",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "",
+          "focus": "home and then finished research"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": null
+      },
+      "placement": {
+        "aspect": "9:16",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "unspecified",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": null,
+      "text_overlay": "",
+      "text_position": "bottom_center",
+      "animation_cue": null,
+      "scene_animation": "none",
+      "animation_scale": 1,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": null,
+      "clip_type": "broll_visual",
+      "rationale": ""
+    },
+    {
+      "shot_idx": 51,
+      "start_ms": 45839,
+      "end_ms": 46736,
+      "duration_ms": 897,
+      "spoken_during": "research for a neuromorphic",
+      "structure_role": "unspecified",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.95,
+          "broll_description": "Real public web source visualizing: research for a neuromorphic",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "",
+              "focus": "research for a neuromorphic"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "unspecified",
+          "rationale": "Auto-generated fallback: model returned an empty option for this shot; curator agent will research it via the improvisation ladder."
+        }
+      ],
+      "broll_description": "Real public web source visualizing: research for a neuromorphic",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "",
+          "focus": "research for a neuromorphic"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": null
+      },
+      "placement": {
+        "aspect": "9:16",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "unspecified",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": null,
+      "text_overlay": "",
+      "text_position": "bottom_center",
+      "animation_cue": null,
+      "scene_animation": "none",
+      "animation_scale": 1,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": null,
+      "clip_type": "broll_visual",
+      "rationale": ""
+    },
+    {
+      "shot_idx": 52,
+      "start_ms": 46736,
+      "end_ms": 47634,
+      "duration_ms": 898,
+      "spoken_during": "neuromorphic memory paper I'm co",
+      "structure_role": "unspecified",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.95,
+          "broll_description": "Real public web source visualizing: neuromorphic memory paper I'm co",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "",
+              "focus": "neuromorphic memory paper I'm co"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "unspecified",
+          "rationale": "Auto-generated fallback: model returned an empty option for this shot; curator agent will research it via the improvisation ladder."
+        }
+      ],
+      "broll_description": "Real public web source visualizing: neuromorphic memory paper I'm co",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "",
+          "focus": "neuromorphic memory paper I'm co"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": null
+      },
+      "placement": {
+        "aspect": "9:16",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "unspecified",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": null,
+      "text_overlay": "",
+      "text_position": "bottom_center",
+      "animation_cue": null,
+      "scene_animation": "none",
+      "animation_scale": 1,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": null,
+      "clip_type": "broll_visual",
+      "rationale": ""
+    },
+    {
+      "shot_idx": 53,
+      "start_ms": 47634,
+      "end_ms": 49320,
+      "duration_ms": 1686,
+      "spoken_during": "co authoring It got to about 12",
+      "structure_role": "unspecified",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.95,
+          "broll_description": "Real public web source visualizing: co authoring It got to about 12",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "",
+              "focus": "co authoring It got to about 12"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "unspecified",
+          "rationale": "Auto-generated fallback: model returned an empty option for this shot; curator agent will research it via the improvisation ladder."
+        }
+      ],
+      "broll_description": "Real public web source visualizing: co authoring It got to about 12",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "",
+          "focus": "co authoring It got to about 12"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": null
+      },
+      "placement": {
+        "aspect": "9:16",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "unspecified",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": null,
+      "text_overlay": "",
+      "text_position": "bottom_center",
+      "animation_cue": null,
+      "scene_animation": "none",
+      "animation_scale": 1,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": null,
+      "clip_type": "broll_visual",
+      "rationale": ""
+    },
+    {
+      "shot_idx": 54,
+      "start_ms": 49320,
+      "end_ms": 50524,
+      "duration_ms": 1204,
+      "spoken_during": "12 so I edited this",
+      "structure_role": "unspecified",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.95,
+          "broll_description": "Real public web source visualizing: 12 so I edited this",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "",
+              "focus": "12 so I edited this"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "unspecified",
+          "rationale": "Auto-generated fallback: model returned an empty option for this shot; curator agent will research it via the improvisation ladder."
+        }
+      ],
+      "broll_description": "Real public web source visualizing: 12 so I edited this",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "",
+          "focus": "12 so I edited this"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": null
+      },
+      "placement": {
+        "aspect": "9:16",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "unspecified",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": null,
+      "text_overlay": "",
+      "text_position": "bottom_center",
+      "animation_cue": null,
+      "scene_animation": "none",
+      "animation_scale": 1,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": null,
+      "clip_type": "broll_visual",
+      "rationale": ""
+    },
+    {
+      "shot_idx": 55,
+      "start_ms": 50524,
+      "end_ms": 51684,
+      "duration_ms": 1160,
+      "spoken_during": "this video and then finally",
+      "structure_role": "unspecified",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.95,
+          "broll_description": "Real public web source visualizing: this video and then finally",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "",
+              "focus": "this video and then finally"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "unspecified",
+          "rationale": "Auto-generated fallback: model returned an empty option for this shot; curator agent will research it via the improvisation ladder."
+        }
+      ],
+      "broll_description": "Real public web source visualizing: this video and then finally",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "",
+          "focus": "this video and then finally"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": null
+      },
+      "placement": {
+        "aspect": "9:16",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "unspecified",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": null,
+      "text_overlay": "",
+      "text_position": "bottom_center",
+      "animation_cue": null,
+      "scene_animation": "none",
+      "animation_scale": 1,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": null,
+      "clip_type": "broll_visual",
+      "rationale": ""
+    },
+    {
+      "shot_idx": 56,
+      "start_ms": 51684,
+      "end_ms": 52559,
+      "duration_ms": 875,
+      "spoken_during": "finally went to bed at like 1",
+      "structure_role": "unspecified",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.95,
+          "broll_description": "Real public web source visualizing: finally went to bed at like 1",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "",
+              "focus": "finally went to bed at like 1"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "unspecified",
+          "rationale": "Auto-generated fallback: model returned an empty option for this shot; curator agent will research it via the improvisation ladder."
+        }
+      ],
+      "broll_description": "Real public web source visualizing: finally went to bed at like 1",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "",
+          "focus": "finally went to bed at like 1"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": null
+      },
+      "placement": {
+        "aspect": "9:16",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "unspecified",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": null,
+      "text_overlay": "",
+      "text_position": "bottom_center",
+      "animation_cue": null,
+      "scene_animation": "none",
+      "animation_scale": 1,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": null,
+      "clip_type": "broll_visual",
+      "rationale": ""
+    },
+    {
+      "shot_idx": 57,
+      "start_ms": 52559,
+      "end_ms": 54340,
+      "duration_ms": 1781,
+      "spoken_during": "1 Follow for more busy days",
+      "structure_role": "unspecified",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.95,
+          "broll_description": "Real public web source visualizing: 1 Follow for more busy days",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "",
+              "focus": "1 Follow for more busy days"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "unspecified",
+          "rationale": "Auto-generated fallback: model returned an empty option for this shot; curator agent will research it via the improvisation ladder."
+        }
+      ],
+      "broll_description": "Real public web source visualizing: 1 Follow for more busy days",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "",
+          "focus": "1 Follow for more busy days"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": null
+      },
+      "placement": {
+        "aspect": "9:16",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "unspecified",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": null,
+      "text_overlay": "",
+      "text_position": "bottom_center",
+      "animation_cue": null,
+      "scene_animation": "none",
+      "animation_scale": 1,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": null,
+      "clip_type": "broll_visual",
+      "rationale": ""
+    }
+  ],
+  "structure_sections": [
+    {
+      "role": "hook",
+      "script_template": "How do <number> <subject> even <achieve competitive action>?",
+      "target_fill": "spend a busy day with me",
+      "target_start_ms": 0,
+      "target_end_ms": 2010,
+      "shot_count": 2,
+      "visual_signature": {
+        "dominant_clip_type": "broll_visual",
+        "placement_pattern": "fullbleed 9:16",
+        "text_overlay_pattern": "large center caption big font",
+        "sfx_pattern": "vocal hit on cut in",
+        "motion_pattern": "static cut",
+        "scene_elements": []
+      }
+    },
+    {
+      "role": "intro",
+      "script_template": "I woke up at <time> and headed to <first activity>",
+      "target_fill": "school climbing a startup advisory North Bend research and a networking event I woke up at 7 took a quick shower and headed straight to school for APES and Gov",
+      "target_start_ms": 2010,
+      "target_end_ms": 11800,
+      "shot_count": 11,
+      "visual_signature": {
+        "dominant_clip_type": "talking_head_unknown",
+        "placement_pattern": "fullbleed 9:16",
+        "text_overlay_pattern": "small bottom strip",
+        "sfx_pattern": "silent open",
+        "motion_pattern": "zoom-in over the shot",
+        "scene_elements": []
+      }
+    },
+    {
+      "role": "morningRoutine",
+      "script_template": "I then <action> and went to <activity>",
+      "target_fill": "I came back to a two-hour advisory meeting",
+      "target_start_ms": 11800,
+      "target_end_ms": 26910,
+      "shot_count": 23,
+      "visual_signature": {
+        "dominant_clip_type": "broll_visual",
+        "placement_pattern": "fullbleed 9:16",
+        "text_overlay_pattern": "large center caption big font",
+        "sfx_pattern": "whoosh whoosh",
+        "motion_pattern": "punch in",
+        "scene_elements": []
+      }
+    },
+    {
+      "role": "afternoonRoutine",
+      "script_template": "<event>s where I met <people>",
+      "target_fill": "with Carthick from Lush Life talking through Presonance a comp neuro ad tool I'm building",
+      "target_start_ms": 26910,
+      "target_end_ms": 43500,
+      "shot_count": 19,
+      "visual_signature": {
+        "dominant_clip_type": "talking_head_unknown",
+        "placement_pattern": "split-screen top",
+        "text_overlay_pattern": "small bottom strip",
+        "sfx_pattern": "vocal hit on cut in",
+        "motion_pattern": "type-on text",
+        "scene_elements": [
+          "face cam corner"
+        ]
+      }
+    },
+    {
+      "role": "eveningRoutine",
+      "script_template": "and then <action> for <activity>",
+      "target_fill": "It was already about 9 so I headed home",
+      "target_start_ms": 43500,
+      "target_end_ms": 50190,
+      "shot_count": 12,
+      "visual_signature": {
+        "dominant_clip_type": "broll_visual",
+        "placement_pattern": "fullbleed 9:16",
+        "text_overlay_pattern": "large center caption big font",
+        "sfx_pattern": "silent open",
+        "motion_pattern": "static cut",
+        "scene_elements": []
+      }
+    },
+    {
+      "role": "cta",
+      "script_template": "Follow for more <theme>",
+      "target_fill": "Follow for more busy days",
+      "target_start_ms": 50190,
+      "target_end_ms": 54340,
+      "shot_count": 4,
+      "visual_signature": {
+        "dominant_clip_type": "talking_head_unknown",
+        "placement_pattern": "fullbleed 9:16",
+        "text_overlay_pattern": "none",
+        "sfx_pattern": "whoosh whoosh",
+        "motion_pattern": "static cut",
+        "scene_elements": []
+      }
+    }
+  ],
+  "structure_confidence": "high",
+  "structure_rationale": "The structure of the target reel closely mirrors the inspiration reels' sequence—hook, intro, multiple body sections categorized by activities followed by the cta.",
+  "structure_alternatives": null,
+  "content_source_patterns": [
+    "subject footage during daily activities based on the spoken context",
+    "realistic screen recordings capturing activity progress",
+    "subject-tied imagery (social media, professional platforms)",
+    "institutional pages showing subject's academic and professional context"
+  ],
+  "style_summary": "- reel 1: 82.8s, 58 shots, cuts/sec=0.69, text=97%, SFX=136/min\n- reel 2: 48.1s, 41 shots, cuts/sec=0.83, text=98%, SFX=100/min\n- reel 3: 98.9s, 75 shots, cuts/sec=0.75, text=96%, SFX=116/min",
+  "content_sources": [
+    "https://www.instagram.com/p/DXKV8KehV9b/",
+    "https://www.instagram.com/p/DXPfhfPhjJ2/",
+    "https://www.instagram.com/p/DXFKUigDIzZ/"
+  ],
+  "target_metrics": {
+    "fingerprint_version": 4,
+    "computed_at": 1780539464131,
+    "n_reels": 3,
+    "n_shots": 174,
+    "median_shot_ms": 1100,
+    "cuts_per_sec": 0.7560477880250408,
+    "clip_type_distribution": {
+      "talking_head": 0.010635725883660142,
+      "broll_talking_head": 0.10229656961979094,
+      "talking_head_unknown": 0.30206350160317347,
+      "broll_visual": 0.5850042028933755
+    },
+    "real_speaker_pct": 0.022007289038407624,
+    "broll_talking_head_pct": 0.06786094757499299,
+    "face_size_median": 0.2870426038901011,
+    "face_region_distribution": {
+      "top_left": 0.09880762512341461,
+      "top_center": 0.11468064099643045,
+      "top_right": 0.03269537480063796,
+      "middle_left": 0.07887142097668413,
+      "middle_center": 0.46240601503759393,
+      "middle_right": 0.12816131237183867,
+      "bottom_left": 0.03341687552213868,
+      "bottom_center": 0.050960735171261484,
+      "bottom_right": 0
+    },
+    "face_region_dominant": "mixed",
+    "text_overlay_pct": 0.9670423324922904,
+    "text_region_distribution": {
+      "top_left": 0.05936657051961323,
+      "top_center": 0.055150720762166594,
+      "top_right": 0.03506542841543759,
+      "middle_left": 0.08074431018937096,
+      "middle_center": 0.13246383779473433,
+      "middle_right": 0.06073112377674253,
+      "bottom_left": 0.11950260980115275,
+      "bottom_center": 0.35067772898890287,
+      "bottom_right": 0.10629766975187911
+    },
+    "text_region_dominant": "mixed",
+    "media_overlay_pct": 0.04347070367255396,
+    "overlays_per_min": 3.1282744535099005,
+    "overlay_kind_distribution": {
+      "image": 0.4166666666666667,
+      "sticker": 0,
+      "gif": 0.06666666666666667,
+      "pip_video": 0.43333333333333335,
+      "emoji_graphic": 0.08333333333333333
+    },
+    "overlay_motion_distribution": {
+      "static": 0.5,
+      "animated": 0.5
+    },
+    "overlay_region_distribution": {
+      "top_left": 0.08333333333333333,
+      "top_center": 0,
+      "top_right": 0,
+      "middle_left": 0.08333333333333333,
+      "middle_center": 0.5499999999999999,
+      "middle_right": 0.08333333333333333,
+      "bottom_left": 0.06666666666666667,
+      "bottom_center": 0.13333333333333333,
+      "bottom_right": 0
+    },
+    "overlay_region_dominant": "middle_center",
+    "camera_motion_distribution": {
+      "none": 0.5242644359472514,
+      "zoom_in": 0.06699582977564934,
+      "zoom_out": 0.04787302058713128,
+      "pan_left": 0.11300854256639979,
+      "pan_right": 0.0777348793274843,
+      "ken_burns": 0.17012329179608385
+    },
+    "camera_motion_dominant": "none",
+    "camera_motion_pct": 0.47573556405274864,
+    "camera_motion_confidence": 0.7288427730548234,
+    "voiceover_pct": 0.7973949862672289,
+    "music_pct": 0.11457072450495541,
+    "audio_silence_pct": 0.08803428922781587,
+    "audio_energy_mean": 0.06978864326784517,
+    "sfx_per_min": 117.5089689877595,
+    "cuts_with_sfx_pct": 0.5567012428744977,
+    "sfx_at_cuts_pct": 0.2741578014184397,
+    "sfx_type_distribution": {
+      "impulse_tonal": 0.017391304347826087,
+      "impulse_noisy": 0.1108695652173913,
+      "sweep": 0.006521739130434782,
+      "vocal": 0.8543478260869565,
+      "sustained": 0,
+      "other": 0.010869565217391304
+    },
+    "sfx_classified_total": 460,
+    "hook_speeches": [
+      "How do two high schoolers end up at the biggest tech conference in the world where tickets are over 3",
+      "Oh no it's not good Oh Oh Oh That was me",
+      "How do three high schoolers even compete against PhD teams from Stanford Harvard and MIT at a Harvard"
+    ],
+    "hook_texts": [
+      "=e 3\n\n=\n\n-—\n\nHow do two high\n\nschoolers end up at the\n\n-\n\nA\n\n-",
+      "4\n\n-\n\nVD)\n\nAA |\n\nNo way bro got in\n\nfm\n\n\"\n\nI",
+      "amp\n\nHi\n\n1] Is\n\nSC\n\nlers. -\n\nBa\n\nPe\n\nRA\n\nor’ {"
+    ],
+    "hook_archetypes": null,
+    "caption_style": {
+      "captions_pct": 1,
+      "n_with_captions": 3,
+      "matched_preset": "",
+      "preset_label": "",
+      "preset_confidence_avg": 0.6166666666666667,
+      "preset_distribution": {},
+      "position": "center",
+      "chunking": "phrase",
+      "words_per_chunk_avg": 4.666666666666667,
+      "font_size": "large",
+      "text_treatment": "clear",
+      "treatment_color_examples": [
+        "black"
+      ],
+      "treatment_distribution": {
+        "bordered": 1,
+        "clear": 2
+      },
+      "text_color": "white",
+      "highlight_color": null,
+      "emphasis": "none",
+      "casing": "sentence_case",
+      "animation": "none",
+      "position_distribution": {
+        "lower_third": 1,
+        "center": 2
+      },
+      "chunking_distribution": {
+        "phrase": 3
+      },
+      "font_size_distribution": {
+        "medium": 1,
+        "large": 2
+      },
+      "emphasis_distribution": {
+        "none": 3
+      },
+      "casing_distribution": {
+        "sentence_case": 3
+      },
+      "animation_distribution": {
+        "none": 3
+      },
+      "has_emoji_pct": 0.3333333333333333,
+      "font_family": "poppins",
+      "font_family_name": "Poppins",
+      "font_family_distribution": {
+        "kanit": 1,
+        "poppins": 2
+      },
+      "font_descriptors": [
+        "bold sans-serif"
+      ],
+      "style_labels": [
+        "phrase with bordered text",
+        "phrase captions"
+      ]
+    },
+    "beat_template": [
+      {
+        "clip_type": "broll_visual",
+        "n_shots": 112,
+        "duration_p50_ms": 1033,
+        "has_text_p": 0.9732142857142857,
+        "has_face_p": 0,
+        "is_speaker_p": 0
+      },
+      {
+        "clip_type": "talking_head_unknown",
+        "n_shots": 49,
+        "duration_p50_ms": 1367,
+        "has_text_p": 0.9387755102040817,
+        "has_face_p": 1,
+        "is_speaker_p": 0
+      },
+      {
+        "clip_type": "broll_talking_head",
+        "n_shots": 10,
+        "duration_p50_ms": 1917,
+        "has_text_p": 1,
+        "has_face_p": 1,
+        "is_speaker_p": 0
+      },
+      {
+        "clip_type": "talking_head",
+        "n_shots": 3,
+        "duration_p50_ms": 634,
+        "has_text_p": 1,
+        "has_face_p": 1,
+        "is_speaker_p": 1
+      }
+    ]
+  },
+  "subtitle_spec": {
+    "enabled": true,
+    "preset_id": "",
+    "preset_label": "",
+    "font_family": "poppins",
+    "font_family_name": "Poppins",
+    "font_size": "large",
+    "position": "center",
+    "chunking": "phrase",
+    "words_per_chunk": 5,
+    "casing": "sentence_case",
+    "emphasis": "none",
+    "animation": "none",
+    "text_treatment": "clear",
+    "text_color": "white",
+    "treatment_color": "black",
+    "highlight_color": null,
+    "has_emoji": false,
+    "low_confidence": false
+  }
+}

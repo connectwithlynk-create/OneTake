@@ -1,0 +1,35 @@
+{
+  "picks": [
+    {
+      "timestamp_ms": 24074,
+      "reason": "This frame likely shows the Cluli tool being introduced as an assistant for online meetings.",
+      "file": "6420c207c0a82b82-0.png"
+    },
+    {
+      "timestamp_ms": 69103,
+      "reason": "This frame likely shows the Cluli desktop application interface and tutorial.",
+      "file": "6420c207c0a82b82-1.png"
+    },
+    {
+      "timestamp_ms": 129563,
+      "reason": "This frame likely shows the invisibility feature of Cluli during a meeting.",
+      "file": "6420c207c0a82b82-2.png"
+    },
+    {
+      "timestamp_ms": 169970,
+      "reason": "This frame likely shows the text information output from Cluli after a meeting.",
+      "file": "6420c207c0a82b82-3.png"
+    },
+    {
+      "timestamp_ms": 345362,
+      "reason": "This frame likely shows the pricing details of BlueDot, providing a comparison context.",
+      "file": "6420c207c0a82b82-4.png"
+    },
+    {
+      "timestamp_ms": 387343,
+      "reason": "This frame likely shows a summary of the comparison between Cluli and BlueDot.",
+      "file": "6420c207c0a82b82-5.png"
+    }
+  ],
+  "source_mp4_path": "/Users/rahulpeesa/Documents/GitHub/OneTake/desktop/.library/source-videos/be90c729eba529d9.mp4"
+}

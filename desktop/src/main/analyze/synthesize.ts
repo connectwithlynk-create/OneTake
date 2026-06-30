@@ -33,6 +33,11 @@ import type { SfxType } from './sfx-classify';
 import { deriveSubtitleSpec, type SubtitleSpec } from './subtitle-spec';
 import type { TranscriptWord } from './transcribe';
 import type { CaptionPosition, ClipType, FrameRegion, ReelShot } from './types';
+import {
+  ensureEditContract,
+  type EditContract,
+  type EditContractValidation,
+} from './edit-contract';
 
 // gpt-4o handles the multi-idea schema reliably; mini was emitting 1
 // idea per shot or stubbed-empty entries due to truncation + weak
@@ -472,6 +477,12 @@ export interface SuggestedEdit {
   /** Original target video's own audio gain, 0-1 (default 1). This is the
    *  voiceover/talking-head track the reel is built on. */
   narration_volume?: number;
+  /** Machine-readable contract derived from the reference analysis and
+   *  generated plan. The editor/curator should follow this strictly. */
+  edit_contract?: EditContract;
+  /** Latest deterministic validation of the current plan against
+   *  edit_contract. Recomputed after synthesis and before cache writes. */
+  contract_validation?: EditContractValidation;
 }
 
 /** One recorded user prompt, for the per-reel prompt history that will
@@ -750,7 +761,10 @@ function summarizeStyleShot(shot: ReelShot, idx: number): string {
   }
   if (shot.overlays.length > 0) {
     const ovs = shot.overlays
-      .map((o) => `${o.kind}/${o.motion}@${o.region}`)
+      .map((o) => {
+        const spoken = o.spoken_window?.replace(/\s+/g, ' ').trim();
+        return `${o.kind}/${o.motion}@${o.region}${spoken ? ` while "${spoken.slice(0, 90)}"` : ''}`;
+      })
       .join(', ');
     parts.push(`       overlays: ${shot.overlays.length} — ${ovs}`);
   }
@@ -809,6 +823,31 @@ function summarizeStyleReel(
   );
   if (analysis.hook_speech) {
     lines.push(`- spoken hook: "${analysis.hook_speech}"`);
+  }
+  if (analysis.style_signature) {
+    const sig = analysis.style_signature;
+    lines.push(
+      `- Clipnosis proprietary signature (${Math.round(sig.confidence * 100)}% confidence): ${sig.summary}`,
+    );
+    lines.push(
+      `  layout grammar: ${sig.grammar.layout_sequence.slice(0, 8).join(' -> ')}`,
+    );
+    lines.push(
+      `  layer grammar: ${sig.grammar.layer_sequence.slice(0, 8).join(' | ')}`,
+    );
+    if (sig.script_visual_rules.length > 0) {
+      lines.push(
+        `  script-to-visual rules: ${sig.script_visual_rules
+          .slice(0, 4)
+          .map((rule) =>
+            `when ${rule.trigger_keywords.join('/') || 'matched beat'} -> ${rule.visual_response}`,
+          )
+          .join('; ')}`,
+      );
+    }
+    lines.push(
+      `  reproduction rules: ${sig.reproduction_rules.slice(0, 5).join(' | ')}`,
+    );
   }
   lines.push(
     `- mix: vo=${(analysis.voiceover_pct * 100).toFixed(0)}% / music=${(analysis.music_pct * 100).toFixed(0)}% / ` +
@@ -1068,6 +1107,8 @@ Step 1.5 — For each shot, define its CANVAS COMPOSITION (the editor needs to k
   - placement.scale: fraction of canvas area, 0-1. 1.0 = full canvas; ~0.3 = typical PiP; 0.5 = split.
 
 Mirror the inspiration's composition by SCRIPT POSITION. If the inspiration hook is a centered talking head, the target hook should be too; if proof beats use screen recordings, product clips, screenshots, split-screen, or PiP, use those layouts on the matching target proof beats; if CTA returns to talking head or logo card, preserve that transition. If every inspiration shot is fullbleed 9:16, your shots are too. If inspiration uses PiP / split-screen, use it on the same kind of spoken beat, not randomly.
+
+Layer 2 script matching: when the inspiration shows a Layer 2 visual because a specific entity, event, claim, number, product, post, page, or quote is being mentioned, the target edit should do the same. For example: if an invitation card appears while the script names an event, use an event/page/card visual when the target script names its analogous event; if a screenshot appears while a metric is said, use a metric/source screenshot at that spoken beat. Encode this through placement, broll_description, source_type, animation_cue, and text_overlay_pattern. Do not describe Layer 2 as a random decoration; tie it to the spoken trigger.
 
 Step 1.7 — MEDIA OVERLAY LAYERS ARE DISABLED. Do not generate sticker/logo/reaction/lower-third/corner-face-cam layers on top of shots. For every shot, set has_overlay=false and additional_elements=[]. The burned-in text caption (text_overlay) is separate and still allowed.
 
@@ -2028,7 +2069,7 @@ export async function synthesize(
   }
   const { transcript, inspirationReels, vocabulary, metrics } = input;
   if (transcript.length === 0) {
-    return {
+    return ensureEditContract({
       total_duration_ms: 0,
       shots: [],
       structure_sections: [],
@@ -2041,7 +2082,7 @@ export async function synthesize(
       target_metrics: metrics ?? null,
       sfx_plan: metrics?.sfx_pattern ?? null,
       subtitle_spec: deriveSubtitleSpec(metrics?.caption_style),
-    };
+    }, input.brief ?? null);
   }
 
   // Pick the inspiration reel closest in duration to target for shot count,
@@ -2324,7 +2365,7 @@ export async function synthesize(
     }
   }
 
-  return {
+  const result: SuggestedEdit = {
     total_duration_ms: targetDurationMs,
     shots: planned,
     structure_sections: sections,
@@ -2339,4 +2380,5 @@ export async function synthesize(
     sfx_plan: metrics?.sfx_pattern ?? null,
     subtitle_spec: deriveSubtitleSpec(metrics?.caption_style),
   };
+  return ensureEditContract(result, input.brief ?? null);
 }

@@ -7,7 +7,8 @@
 //
 // Output is a CurationResult — one ShotCuration per shot with 2-5
 // candidates and the agent's research_notes explaining its strategy.
-import type { ShotPlan } from '../analyze/synthesize';
+import type { ShotPlan, SceneElement } from '../analyze/synthesize';
+import type { ScrollStyle } from './web-record';
 
 export type MediaSource =
   | 'web_image'      // image URL found via web search / page fetch
@@ -38,6 +39,30 @@ export interface MediaCandidate {
   recommended_segment_ms?: { start_ms: number; end_ms: number } | null;
   /** Agent's rationale: why this candidate fits the shot. */
   notes?: string | null;
+  /** For web_page candidates: the scroll style the research agent
+   *  judged best for recording this page (it saw the page's title,
+   *  text, and sections via fetch_page). Auto-capture uses this
+   *  directly instead of asking the user. Null/absent → 'smooth'. */
+  recommended_scroll?: ScrollStyle | null;
+  /** Auto-captured screen RECORDING (capture:// mp4) gathered from this
+   *  output after curation, with no approval prompt. For web_page outputs
+   *  this is a fresh screen recording of the page; for web_video outputs
+   *  it's the playable video itself. Null when the source isn't capturable
+   *  or capture failed. See curator/auto-capture.ts. */
+  auto_recording_url?: string | null;
+  /** Auto-captured SCREENSHOT stills (capture:// images) gathered from
+   *  this output. Page screenshots for web_page; extracted video frames
+   *  for web_video. Empty/undefined when none were captured. */
+  auto_screenshots?: AutoScreenshot[];
+}
+
+/** One auto-gathered still — a page screenshot or an extracted video
+ *  frame — addressable by the renderer via its capture:// URL. */
+export interface AutoScreenshot {
+  /** capture:// URL usable directly in <img src>. */
+  image_url: string;
+  /** Absolute filesystem path to the image, when known. */
+  image_path?: string | null;
 }
 
 /** An alternative shot concept the agent surfaces when the primary
@@ -77,6 +102,19 @@ export interface ShotCuration {
    *  broll_description / asset / source_type are the new ones, while
    *  timing and structure_role are preserved from the original. */
   rewritten_shot?: ShotPlan | null;
+  /** The shot's overlay layers (plan.additional_elements) auto-curated to
+   *  real web media — each element with resolved_url filled where the
+   *  curator could source it. Aligned 1:1 with the shot's
+   *  additional_elements. Absent/null for shots with no overlay (the
+   *  has_overlay=false case) or when overlay curation was skipped. The
+   *  renderer merges these onto the plan shot so the preview shows the
+   *  real overlay instead of a placeholder. */
+  resolved_overlays?: SceneElement[] | null;
+  /** True when the shot is fulfilled by the user's own footage
+   *  (asset.method === 'library_search') and web research was skipped
+   *  on purpose. Zero candidates is the EXPECTED final state here, not
+   *  a pending or failed one. */
+  library_fulfilled?: boolean;
 }
 
 /** One round-trip with the model during a shot's research. Captures

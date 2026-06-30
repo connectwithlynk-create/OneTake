@@ -1,10 +1,13 @@
+import { execFile } from 'child_process';
+import { promisify } from 'util';
 import { annotateShots } from './annotate';
 import {
   audioMetricsForShots,
   extractReelAudio,
   type ShotAudio,
 } from './audio';
-import { extractShotFrames } from './frame-extractor';
+import { detectCaptionStyle } from './caption-style';
+import { extractShotFrames, type ExtractedFrame } from './frame-extractor';
 import { detectScenes } from './scene-detect';
 import {
   detectSfxOnsets,
@@ -13,9 +16,19 @@ import {
   type ShotSfx,
 } from './sfx';
 import { classifyOnset } from './sfx-classify';
+import {
+  audioSetModelAvailable,
+  classifyOnsetsAudioSet,
+} from './sfx-audioset';
+import {
+  analyzeSfxContext,
+  type SfxContext,
+  type TypedSfxEvent,
+} from './sfx-context';
 import { captionShots, type ShotFramesForCaption } from './shot-caption';
 import { spokenWindow, transcribeReel } from './transcribe';
 import type { SfxClassifiedEvent } from './types';
+import type { SfxFeatures } from './sfx-classify';
 import { detectSpeaker, type ShotSpeakerInfo } from './speaker';
 import { runVAD, speechMaskFromProbs } from './vad';
 import {
@@ -23,15 +36,113 @@ import {
   FRAME_REGIONS,
   OVERLAY_KINDS,
   OVERLAY_MOTIONS,
+  CAMERA_MOTION_KINDS,
   type ClipType,
   type FrameRegion,
   type OverlayKind,
   type OverlayMotion,
+  type CameraMotionKind,
   type ReelShot,
+  type CaptionStyleProfile,
 } from './types';
+import { detectAllMotion } from './motion';
+import {
+  buildClipnosisStyleSignature,
+  type ClipnosisStyleSignature,
+} from './style-signature';
+
+/** Zeroed acoustic features, used when a model-classified onset couldn't
+ *  also produce heuristic features (e.g. window clamped at the buffer
+ *  edge). Keeps SfxClassifiedEvent.features non-null. */
+const EMPTY_SFX_FEATURES: SfxFeatures = {
+  peak_rms: 0,
+  baseline_rms: 0,
+  spike_ratio: 0,
+  delta_centroid_hz: 0,
+  delta_flatness: 0,
+  delta_voice_band_ratio: 0,
+  delta_high_band_ratio: 0,
+};
 
 /** Bump when the analysis algorithm changes meaningfully. */
-export const ANALYSIS_VERSION = 23;
+export const ANALYSIS_VERSION = 32;
+
+type TextRole = NonNullable<ReelShot['text_moments'][number]['role']>;
+
+const IMAGE_TEXT_VISUAL_RE =
+  /\b(invitation|flyer|poster|card|slide|screenshot|screen grab|tweet|post|profile|article|headline|document|chart|graph|logo|badge|sticker|callout|panel)\b/i;
+const LAYERED_VISUAL_RE =
+  /\b(overlaid|overlay|floating|foreground|insert|card|panel|top media|bottom media|split|picture[\s-]*in[\s-]*picture|pip)\b/i;
+
+function wordTokens(text: string): string[] {
+  return text
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s']/gu, ' ')
+    .split(/\s+/)
+    .map((w) => w.trim())
+    .filter((w) => w.length >= 3);
+}
+
+function transcriptOverlap(text: string, spoken: string): number {
+  const words = wordTokens(text);
+  if (words.length === 0) return 0;
+  const spokenSet = new Set(wordTokens(spoken));
+  if (spokenSet.size === 0) return 0;
+  let matched = 0;
+  for (const word of words) if (spokenSet.has(word)) matched += 1;
+  return matched / words.length;
+}
+
+function looksLikeImageTextShot(shot: ReelShot): boolean {
+  const visual = shot.visual_caption ?? '';
+  return IMAGE_TEXT_VISUAL_RE.test(visual);
+}
+
+function classifyTextMomentRole(
+  shot: ReelShot,
+  text: ReelShot['text_moments'][number],
+): { role: TextRole; confidence: number } {
+  const clean = text.text.replace(/\s+/g, ' ').trim();
+  if (clean.length < 3 || !/[A-Za-z0-9]/.test(clean)) {
+    return { role: 'unknown', confidence: 0.25 };
+  }
+  const [row, col] = text.region.split('_');
+  const overlap = transcriptOverlap(clean, shot.spoken_window);
+  const imageTextShot = looksLikeImageTextShot(shot);
+  const area = Math.max(0, text.bbox.w * text.bbox.h);
+  const centered = col === 'center';
+  const subtitleBand = row === 'bottom' || row === 'middle';
+
+  if (overlap >= 0.45 && subtitleBand && centered) {
+    return { role: 'subtitle', confidence: Math.min(0.98, 0.62 + overlap * 0.35) };
+  }
+  if (overlap >= 0.65 && subtitleBand) {
+    return { role: 'subtitle', confidence: Math.min(0.95, 0.55 + overlap * 0.35) };
+  }
+  if (imageTextShot && (row === 'top' || row === 'middle' || area > 0.015)) {
+    return { role: 'image_text', confidence: 0.86 };
+  }
+  if (row === 'top' && overlap < 0.25) {
+    return { role: 'title', confidence: 0.72 };
+  }
+  if (overlap < 0.18 && area > 0.02) {
+    return { role: 'image_text', confidence: 0.68 };
+  }
+  if (overlap >= 0.35 && subtitleBand) {
+    return { role: 'subtitle', confidence: 0.68 };
+  }
+  return { role: 'unknown', confidence: 0.4 };
+}
+
+function classifyTextMomentRoles(shots: ReelShot[]): void {
+  for (const shot of shots) {
+    for (const text of shot.text_moments) {
+      const classified = classifyTextMomentRole(shot, text);
+      text.role = classified.role;
+      text.role_confidence = classified.confidence;
+    }
+  }
+}
 
 export interface ReelAnalysisInput {
   playableUrl: string;
@@ -97,6 +208,10 @@ export interface ReelAnalysisResult {
   cuts_with_sfx_pct: number;
   /** Of all SFX onsets, the fraction that land near a shot boundary. */
   sfx_at_cuts_pct: number;
+  /** How this reel uses SFX relative to the spoken transcript + structure
+   *  (cadence, hook escalation, which moments get a hit) — see
+   *  sfx-context.ts. Null when no audio/transcript was available. */
+  sfx_context: SfxContext | null;
   /** Fraction of shots that contain at least one media overlay
    *  (sticker / GIF / image / PiP video / emoji graphic). Text
    *  captions are NOT counted here — see text_overlay_pct for those. */
@@ -113,6 +228,28 @@ export interface ReelAnalysisResult {
   /** Distribution across the 3x3 grid for overlay centroids. Null when
    *  no overlays. */
   overlay_region_distribution: Record<FrameRegion, number> | null;
+  /** Fraction of shots in each measured camera-motion bucket (optical
+   *  flow). Buckets always present with value 0 for a stable shape.
+   *  Null when no shots had a motion estimate. */
+  camera_motion_distribution: Record<CameraMotionKind, number> | null;
+  /** The single motion bucket covering >40% of shots, 'mixed' when none
+   *  dominates, or null when no estimates. ('none' can be dominant — a
+   *  reel of static holds.) */
+  camera_motion_dominant: CameraMotionKind | 'mixed' | null;
+  /** Mean detection confidence across shots that had an estimate, [0,1].
+   *  Null when no estimates. */
+  camera_motion_confidence: number | null;
+  /** Spoken-word caption (burned-in subtitle) style for the reel —
+   *  position, word-by-word vs sentence chunking, active-word highlight,
+   *  casing, animation, font/color. `present: false` when the reel has no
+   *  spoken-word captions. Null when no OPENAI_API_KEY or the vision call
+   *  failed. Filled in by analyzeReel — deriveMetrics is pure and can't
+   *  run the vision pass. */
+  caption_style: CaptionStyleProfile | null;
+  /** Clipnosis-owned fusion layer over detector outputs: rhythm grammar,
+   *  L1/L2/L3 layer grammar, script-to-visual triggers, and reproduction
+   *  rules. This is the product's proprietary edit fingerprint. */
+  style_signature: ClipnosisStyleSignature | null;
 }
 
 function median(values: number[]): number {
@@ -160,11 +297,17 @@ export function deriveMetrics(
       sfx_per_min: 0,
       cuts_with_sfx_pct: 0,
       sfx_at_cuts_pct: 0,
+      sfx_context: null,
       media_overlay_pct: 0,
       overlays_per_min: 0,
       overlay_kind_distribution: null,
       overlay_motion_distribution: null,
       overlay_region_distribution: null,
+      camera_motion_distribution: null,
+      camera_motion_dominant: null,
+      camera_motion_confidence: null,
+      caption_style: null,
+      style_signature: null,
     };
   }
   const durations = shots.map((s) => s.end_ms - s.start_ms);
@@ -272,6 +415,33 @@ export function deriveMetrics(
     overlayRegionDist = r;
   }
 
+  // Camera-motion aggregates — fraction of shots in each measured bucket.
+  // Only shots that produced an estimate count toward the denominator, so
+  // a reel where flow couldn't run isn't reported as all-static.
+  const motionShots = shots.filter((s) => s.detected_motion !== null);
+  let cameraMotionDist: Record<CameraMotionKind, number> | null = null;
+  let cameraMotionDominant: CameraMotionKind | 'mixed' | null = null;
+  let cameraMotionConfidence: number | null = null;
+  if (motionShots.length > 0) {
+    const c = Object.fromEntries(
+      CAMERA_MOTION_KINDS.map((x) => [x, 0]),
+    ) as Record<CameraMotionKind, number>;
+    let confSum = 0;
+    for (const s of motionShots) {
+      const m = s.detected_motion!;
+      c[m.kind]++;
+      confSum += m.confidence;
+    }
+    const total = motionShots.length;
+    const [topKind, topCount] = Object.entries(c).sort(
+      ([, a], [, b]) => b - a,
+    )[0] as [CameraMotionKind, number];
+    cameraMotionDominant = topCount / total > 0.4 ? topKind : 'mixed';
+    for (const key of CAMERA_MOTION_KINDS) c[key] /= total;
+    cameraMotionDist = c;
+    cameraMotionConfidence = confSum / total;
+  }
+
   // Audio aggregates - duration-weighted across shots.
   let weightedRmsSum = 0;
   let weightedSilenceSum = 0;
@@ -328,12 +498,20 @@ export function deriveMetrics(
     cuts_with_sfx_pct: cutsWithSfxPct,
     // Filled in by analyzeReel - deriveMetrics can't see the raw events.
     sfx_at_cuts_pct: 0,
+    sfx_context: null,
     media_overlay_pct: shotsWithOverlay / shots.length,
     overlays_per_min:
       totalDur > 0 ? (allOverlays.length * 60_000) / totalDur : 0,
     overlay_kind_distribution: overlayKindDist,
     overlay_motion_distribution: overlayMotionDist,
     overlay_region_distribution: overlayRegionDist,
+    camera_motion_distribution: cameraMotionDist,
+    camera_motion_dominant: cameraMotionDominant,
+    camera_motion_confidence: cameraMotionConfidence,
+    // Filled in by analyzeReel — deriveMetrics can't run the vision pass.
+    caption_style: null,
+    // Filled in by analyzeReel after caption style + SFX context are known.
+    style_signature: null,
   };
 }
 
@@ -344,12 +522,50 @@ export function deriveMetrics(
  * representative frame per shot (face detection) -> Light-ASD speaker
  * detection per shot -> OCR each -> derive aggregate metrics.
  */
+const execFileAsync = promisify(execFile);
+
+/** Probe a media source's duration (ms) via ffprobe. Returns 0 on
+ *  failure. The Instagram browser resolver returns duration_ms = 0
+ *  (the media API response it intercepts omits it), so without this the
+ *  analyzer would bail on every IG reel — read the duration straight
+ *  from the playable stream instead. */
+async function probeDurationMs(url: string): Promise<number> {
+  const ffprobe = process.env.FFPROBE_PATH || 'ffprobe';
+  try {
+    const { stdout } = await execFileAsync(
+      ffprobe,
+      [
+        '-v',
+        'error',
+        '-show_entries',
+        'format=duration',
+        '-of',
+        'default=noprint_wrappers=1:nokey=1',
+        url,
+      ],
+      { timeout: 30_000 },
+    );
+    const sec = parseFloat(stdout.trim());
+    return Number.isFinite(sec) && sec > 0 ? Math.round(sec * 1000) : 0;
+  } catch {
+    return 0;
+  }
+}
+
 export async function analyzeReel(
   input: ReelAnalysisInput,
 ): Promise<ReelAnalysisResult> {
-  if (input.durationMs <= 0) {
+  let durationMs = input.durationMs;
+  if (durationMs <= 0) {
+    // Resolver gave no duration (e.g. the IG browser resolver) — probe
+    // the playable stream directly before giving up.
+    durationMs = await probeDurationMs(input.playableUrl);
+    console.error('[analyze] probed duration', durationMs, 'ms');
+  }
+  if (durationMs <= 0) {
     return { shots: [], ...deriveMetrics([], 0) };
   }
+  input = { ...input, durationMs };
   console.error('[analyze] start, duration', input.durationMs, 'ms');
   const shots = await detectScenes(input.playableUrl, input.durationMs);
   console.error('[analyze] detected', shots.length, 'shots');
@@ -374,24 +590,85 @@ export async function analyzeReel(
     'with face)',
   );
 
+  // The three expensive stages below — SyncNet speaker detection, the
+  // audio pipeline (extract → VAD → transcribe → SFX), and per-shot
+  // vision captioning — share no data with each other, so they run
+  // CONCURRENTLY and join at annotation. Each branch stays best-effort
+  // and degrades gracefully on its own, exactly as the serial version did.
+
   // Speaker detection (SyncNet) - best-effort; never aborts the pipeline.
   // Pass the rep-frame face flags so no-face shots skip the heavy work.
-  let speaker: ShotSpeakerInfo[];
-  try {
-    const hasFaceHints = reps.map((r) => r?.face != null);
-    speaker = await detectSpeaker(input.playableUrl, shots, hasFaceHints);
-  } catch (err) {
-    console.error(
-      '[analyze] speaker detection failed:',
-      err instanceof Error ? err.message : String(err),
-    );
-    speaker = shots.map(() => ({
+  // This is the single most expensive stage (~3-5s per face shot) and is
+  // only used for talking-head/speaker clip typing — irrelevant to
+  // subtitle-style or overlay analysis. ANALYZE_SKIP_SPEAKER=1 skips it
+  // (verdicts become 'unknown') so caption/style iteration runs fast.
+  const skipSpeaker = process.env.ANALYZE_SKIP_SPEAKER === '1';
+  const unknownSpeaker = (): ShotSpeakerInfo[] =>
+    shots.map(() => ({
       verdict: 'unknown' as const,
       confidence: 0,
       sync_conf: 0,
     }));
-  }
-  console.error('[analyze] speaker detection done');
+  const speakerPromise: Promise<ShotSpeakerInfo[]> = (async () => {
+    if (skipSpeaker) {
+      console.error(
+        '[analyze] speaker detection SKIPPED (ANALYZE_SKIP_SPEAKER)',
+      );
+      return unknownSpeaker();
+    }
+    try {
+      const hasFaceHints = reps.map((r) => r?.face != null);
+      const speaker = await detectSpeaker(
+        input.playableUrl,
+        shots,
+        hasFaceHints,
+      );
+      console.error('[analyze] speaker detection done');
+      return speaker;
+    } catch (err) {
+      console.error(
+        '[analyze] speaker detection failed:',
+        err instanceof Error ? err.message : String(err),
+      );
+      return unknownSpeaker();
+    }
+  })();
+
+  // Per-shot motion-aware caption via OpenAI vision. We pass the
+  // FIRST and LAST sample frames so the LLM can describe in-shot
+  // motion (zoom, pan, scroll) instead of treating every shot as a
+  // static moment. Falls back to single-frame caption when only one
+  // sample is available. Returns all-null when no OPENAI_API_KEY.
+  // Needs only the already-extracted frames, so it overlaps the
+  // speaker + audio branches.
+  const captionsPromise: Promise<(string | null)[]> = (async () => {
+    try {
+      const captionInputs: (ShotFramesForCaption | null)[] = shotFrames.map(
+        (sf) => {
+          const valid = sf.samples.filter(
+            (s): s is NonNullable<typeof s> => s !== null && !!s.jpegBase64,
+          );
+          if (valid.length === 0) {
+            // Last resort: try the rep frame alone.
+            if (sf.rep?.jpegBase64) {
+              return { start: sf.rep.jpegBase64, end: sf.rep.jpegBase64 };
+            }
+            return null;
+          }
+          const first = valid[0].jpegBase64;
+          const last = valid[valid.length - 1].jpegBase64;
+          return { start: first, end: last };
+        },
+      );
+      return await captionShots(captionInputs);
+    } catch (err) {
+      console.error(
+        '[shot-caption] batch failed:',
+        err instanceof Error ? err.message : String(err),
+      );
+      return shotFrames.map(() => null);
+    }
+  })();
 
   // Audio extraction + VAD + SFX + per-shot metrics. Best-effort
   // throughout; never aborts the pipeline. VAD/SFX failures degrade
@@ -403,19 +680,21 @@ export async function analyzeReel(
     speech_pct: 0,
     music_pct: 0,
   }));
-  let shotAudio: ShotAudio[] = audioFallback;
-  let shotSfx: ShotSfx[] = shots.map(() => ({
-    sfx_count: 0,
-    sfx_at_start: false,
-  }));
-  let sfxClassificationsPerShot: SfxClassifiedEvent[][] = shots.map(
-    () => [],
-  );
-  let sfxAtCutsPct = 0;
-  let hookSpeech: string | null = null;
-  let transcriptWords: import('./transcribe').TranscriptWord[] = [];
-  try {
-    const samples = await extractReelAudio(input.playableUrl);
+  const audioPromise = (async () => {
+    let shotAudio: ShotAudio[] = audioFallback;
+    let shotSfx: ShotSfx[] = shots.map(() => ({
+      sfx_count: 0,
+      sfx_at_start: false,
+    }));
+    let sfxClassificationsPerShot: SfxClassifiedEvent[][] = shots.map(
+      () => [],
+    );
+    let sfxAtCutsPct = 0;
+    let sfxContext: SfxContext | null = null;
+    let hookSpeech: string | null = null;
+    let transcriptWords: import('./transcribe').TranscriptWord[] = [];
+    try {
+      const samples = await extractReelAudio(input.playableUrl);
     if (samples) {
       let speechMask: boolean[] | undefined;
       try {
@@ -484,13 +763,33 @@ export async function analyzeReel(
           (sfxAtCutsPct * 100).toFixed(0) + '% land near a cut',
         );
 
-        // Acoustic-type classification for each detected onset. Replaces
-        // the earlier identity-matching attempts (MFCC-cosine, Shazam-
-        // hash) — both failed on impulse SFX layered under voiceover.
-        // Type classification is robust to mixing and is what downstream
-        // (autocut + script-gen) actually needs.
+        // Type classification for each detected onset.
+        //
+        // The PANNs CNN14 (AudioSet) model is GATED OFF in the reel path
+        // by default: it cannot name SFX buried under voiceover — verified
+        // 2026-06-10, even SOTA source separation (demucs) recovered 0/23
+        // onsets because the SFX energy is ~15-20 dB under the voice and
+        // gets destroyed, not exposed. On real reels it produced only
+        // garbage false-positives ("Rapping", "Animal"). So reels rely on
+        // the delta-spectrum heuristic buckets (which work on buried SFX).
+        // The model still earns its keep labeling the CLEAN myinstants SFX
+        // library offline — see scripts/index-myinstants-audioset.ts and
+        // export/sfx-resolve.ts. Set SFX_MODEL_IN_REELS=1 to re-enable the
+        // hybrid for experimentation.
+        const onsetMsAll = sfxEvents.map((e) => e.ms);
+        const useModel = process.env.SFX_MODEL_IN_REELS === '1';
+        const modelResults: Awaited<
+          ReturnType<typeof classifyOnsetsAudioSet>
+        > = useModel
+          ? await classifyOnsetsAudioSet(samples, onsetMsAll, speechMask)
+          : onsetMsAll.map(() => null);
+        const resultByMs = new Map(
+          onsetMsAll.map((ms, i) => [ms, modelResults[i]]),
+        );
+
         sfxClassificationsPerShot = shots.map(() => []);
-        let classifiedEvents = 0;
+        let modelEvents = 0;
+        let heuristicEvents = 0;
         for (let s = 0; s < shots.length; s++) {
           const shot = shots[s];
           const eventsInShot = sfxEvents.filter(
@@ -498,25 +797,71 @@ export async function analyzeReel(
           );
           const perEvent: SfxClassifiedEvent[] = [];
           for (const ev of eventsInShot) {
-            const cls = classifyOnset(samples, ev.ms);
-            if (cls) {
+            const model = resultByMs.get(ev.ms);
+            // Heuristic features are still computed (cheap, pure DSP) so
+            // every event carries the raw acoustic features regardless of
+            // which classifier won — useful for debugging / future ML.
+            const heur = classifyOnset(samples, ev.ms);
+            if (model) {
               perEvent.push({
                 ms: ev.ms,
-                type: cls.type,
-                confidence: cls.confidence,
-                features: cls.features,
+                type: model.bucket,
+                confidence: model.confidence,
+                features:
+                  heur?.features ?? EMPTY_SFX_FEATURES,
+                source: 'model',
+                label: model.top,
+                labels: model.labels,
               });
-              classifiedEvents++;
+              modelEvents++;
+            } else if (heur) {
+              perEvent.push({
+                ms: ev.ms,
+                type: heur.type,
+                confidence: heur.confidence,
+                features: heur.features,
+                source: 'heuristic',
+              });
+              heuristicEvents++;
             }
           }
           sfxClassificationsPerShot[s] = perEvent;
         }
         console.error(
-          '[sfx-classify] classified',
-          classifiedEvents,
-          'of',
+          '[sfx-classify]',
+          modelEvents,
+          'by model +',
+          heuristicEvents,
+          'by heuristic of',
           sfxEvents.length,
           'onsets',
+          !useModel
+            ? '(model gated off in reels — heuristic only)'
+            : audioSetModelAvailable()
+              ? ''
+              : '(model absent: heuristic-only)',
+        );
+
+        // SFX-in-context: correlate the typed onsets with the transcript
+        // word stream + structure to recover the USAGE PATTERN (cadence,
+        // hook escalation, which moments get a hit). Hook window = the
+        // first shot; reel length = analysis duration.
+        const typedSfxEvents: TypedSfxEvent[] = sfxClassificationsPerShot
+          .flat()
+          .map((e) => ({ ms: e.ms, type: e.type }));
+        const hookMs = shots[0]?.end_ms ?? 5000;
+        sfxContext = await analyzeSfxContext(
+          typedSfxEvents,
+          transcriptWords,
+          shots,
+          hookMs,
+          input.durationMs,
+        );
+        console.error(
+          '[sfx-context]',
+          sfxContext.llm ? 'llm' : 'template',
+          '—',
+          sfxContext.pattern_summary,
         );
       } catch (err) {
         console.error(
@@ -527,12 +872,38 @@ export async function analyzeReel(
     } else {
       console.error('[audio] extraction returned no samples');
     }
-  } catch (err) {
-    console.error(
-      '[audio] failed:',
-      err instanceof Error ? err.message : String(err),
-    );
-  }
+    } catch (err) {
+      console.error(
+        '[audio] failed:',
+        err instanceof Error ? err.message : String(err),
+      );
+    }
+    return {
+      shotAudio,
+      shotSfx,
+      sfxClassificationsPerShot,
+      sfxAtCutsPct,
+      sfxContext,
+      hookSpeech,
+      transcriptWords,
+    };
+  })();
+
+  // Join the three concurrent branches.
+  const [speaker, audioResult, captions] = await Promise.all([
+    speakerPromise,
+    audioPromise,
+    captionsPromise,
+  ]);
+  const {
+    shotAudio,
+    shotSfx,
+    sfxClassificationsPerShot,
+    sfxAtCutsPct,
+    sfxContext,
+    hookSpeech,
+    transcriptWords,
+  } = audioResult;
 
   const annotated = await annotateShots(
     shotFrames,
@@ -576,30 +947,44 @@ export async function analyzeReel(
     );
   }
 
-  // Per-shot motion-aware caption via OpenAI vision. We pass the
-  // FIRST and LAST sample frames so the LLM can describe in-shot
-  // motion (zoom, pan, scroll) instead of treating every shot as a
-  // static moment. Falls back to single-frame caption when only one
-  // sample is available. Returns all-null when no OPENAI_API_KEY.
-  try {
-    const captionInputs: (ShotFramesForCaption | null)[] = shotFrames.map(
-      (sf) => {
-        const valid = sf.samples.filter(
-          (s): s is NonNullable<typeof s> => s !== null && !!s.jpegBase64,
-        );
-        if (valid.length === 0) {
-          // Last resort: try the rep frame alone.
-          if (sf.rep?.jpegBase64) {
-            return { start: sf.rep.jpegBase64, end: sf.rep.jpegBase64 };
-          }
-          return null;
+  // Per-shot camera-motion detection via block-based optical flow on the
+  // already-extracted sample frames. Best-effort: failures leave
+  // detected_motion null and the pipeline continues. ANALYZE_SKIP_MOTION=1
+  // skips it for fast caption/style iteration.
+  if (process.env.ANALYZE_SKIP_MOTION === '1') {
+    console.error('[motion] detection SKIPPED (ANALYZE_SKIP_MOTION)');
+  } else {
+    try {
+      const motions = detectAllMotion(shotFrames);
+      let detected = 0;
+      let moving = 0;
+      for (let i = 0; i < annotated.length; i++) {
+        annotated[i].detected_motion = motions[i] ?? null;
+        if (motions[i]) {
+          detected++;
+          if (motions[i]!.kind !== 'none') moving++;
         }
-        const first = valid[0].jpegBase64;
-        const last = valid[valid.length - 1].jpegBase64;
-        return { start: first, end: last };
-      },
-    );
-    const captions = await captionShots(captionInputs);
+      }
+      console.error(
+        '[motion] estimated',
+        detected,
+        'of',
+        annotated.length,
+        'shots (',
+        moving,
+        'with camera motion)',
+      );
+    } catch (err) {
+      console.error(
+        '[motion] failed:',
+        err instanceof Error ? err.message : String(err),
+      );
+    }
+  }
+
+  // Captions were computed concurrently with speaker + audio above;
+  // here we just attach them to the annotated shots.
+  {
     let filled = 0;
     for (let i = 0; i < annotated.length; i++) {
       annotated[i].visual_caption = captions[i] ?? null;
@@ -614,17 +999,59 @@ export async function analyzeReel(
         'shots (motion-aware)',
       );
     }
-  } catch (err) {
-    console.error(
-      '[shot-caption] batch failed:',
-      err instanceof Error ? err.message : String(err),
-    );
   }
+
+  classifyTextMomentRoles(annotated);
+  console.error('[text-role] classified OCR lines as subtitle/image/title/unknown');
 
   const metrics = deriveMetrics(annotated, input.durationMs);
   // deriveMetrics can't see the raw event list or the transcription
   // result, so we fill those in here.
   metrics.sfx_at_cuts_pct = sfxAtCutsPct;
+  metrics.sfx_context = sfxContext;
   metrics.hook_speech = hookSpeech;
+
+  // Spoken-word caption (subtitle) STYLE. OCR already told us WHERE text
+  // sits; this vision pass tells us what the captions LOOK like — bold vs
+  // thin, white vs colored, all-caps, one-word-at-a-time vs sentences,
+  // pop/karaoke animation, emoji. We reuse the already-extracted sample
+  // frames (no extra ffmpeg pass), aligned 1:1 with the shots. Best-effort:
+  // null when no OPENAI_API_KEY or the call fails.
+  try {
+    const framesByShot = shotFrames.map((sf) =>
+      sf.samples.filter((f): f is ExtractedFrame => f !== null),
+    );
+    metrics.caption_style = await detectCaptionStyle(annotated, framesByShot);
+    if (metrics.caption_style?.present) {
+      console.error(
+        '[caption-style]',
+        metrics.caption_style.style_label || '(captions present)',
+      );
+    }
+  } catch (err) {
+    console.error(
+      '[caption-style] failed:',
+      err instanceof Error ? err.message : String(err),
+    );
+  }
+
+  metrics.style_signature = buildClipnosisStyleSignature({
+    shots: annotated,
+    durationMs: input.durationMs,
+    medianShotMs: metrics.median_shot_ms,
+    cutsPerSec: metrics.cuts_per_sec,
+    captionStyle: metrics.caption_style,
+    sfxContext: metrics.sfx_context,
+    sfxPerMin: metrics.sfx_per_min,
+    cutsWithSfxPct: metrics.cuts_with_sfx_pct,
+  });
+  if (metrics.style_signature) {
+    console.error(
+      '[clipnosis-signature]',
+      metrics.style_signature.summary,
+      `conf=${Math.round(metrics.style_signature.confidence * 100)}%`,
+    );
+  }
+
   return { shots: annotated, ...metrics };
 }

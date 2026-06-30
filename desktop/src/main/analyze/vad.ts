@@ -8,6 +8,7 @@
 import { existsSync } from 'fs';
 import { join, resolve } from 'path';
 import * as ort from 'onnxruntime-web';
+import { initOrt } from './ort-init';
 import { FRAME_SAMPLES, SAMPLE_RATE_VAD } from './audio';
 
 /** Same dev/prod model-dir resolution as speaker.ts — tries env var,
@@ -46,6 +47,7 @@ let sessionPromise: Promise<ort.InferenceSession> | null = null;
 function getSession(): Promise<ort.InferenceSession> {
   if (!sessionPromise) {
     sessionPromise = (async () => {
+      initOrt();
       const session = await ort.InferenceSession.create(
         join(MODEL_DIR, 'silero_vad.onnx'),
       );

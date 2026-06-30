@@ -45,6 +45,7 @@ const MIN_SCENE_MS = 600;
 // Minimum gap between two picked frames. Even if the LLM picks
 // adjacent scenes whose midpoints happen to be close, dedupe.
 const MIN_FRAME_GAP_MS = 1500;
+const ALLOWED_FRAME_ASPECTS = [16 / 9, 1, 9 / 16] as const;
 
 export type VideoFrameStage =
   | 'cache_check'
@@ -299,7 +300,15 @@ async function extractFrame(
   sourceMp4: string,
   timestamp_ms: number,
   outPath: string,
+  targetAspect?: number | null,
 ): Promise<void> {
+  const filters =
+    targetAspect && targetAspect > 0
+      ? [
+          '-vf',
+          `crop=${cropExpr(targetAspect)}`,
+        ]
+      : [];
   await execFileAsync(
     FFMPEG,
     [
@@ -313,12 +322,44 @@ async function extractFrame(
       sourceMp4,
       '-frames:v',
       '1',
+      ...filters,
       '-q:v',
       '2',
       outPath,
     ],
     { maxBuffer: 32 * 1024 * 1024, timeout: 30_000 },
   );
+}
+
+async function probeVideoSize(sourceMp4: string): Promise<{ width: number; height: number } | null> {
+  try {
+    await execFileAsync(FFMPEG, ['-nostdin', '-i', sourceMp4], {
+      maxBuffer: 4 * 1024 * 1024,
+      timeout: 15_000,
+    });
+  } catch (e: any) {
+    const stderr = String(e?.stderr ?? '');
+    const match = stderr.match(/Video:[^\n,]*(?:,[^\n,]*)*,\s*(\d{2,5})x(\d{2,5})[\s,]/i);
+    if (!match) return null;
+    return { width: Number(match[1]), height: Number(match[2]) };
+  }
+  return null;
+}
+
+function nearestAllowedAspect(width: number, height: number): number {
+  const aspect = width / Math.max(1, height);
+  return ALLOWED_FRAME_ASPECTS.reduce((best, candidate) => {
+    const bestScore = Math.abs(Math.log(aspect / best));
+    const score = Math.abs(Math.log(aspect / candidate));
+    return score < bestScore ? candidate : best;
+  });
+}
+
+function cropExpr(aspect: number): string {
+  // Center-crop to the requested ratio while preserving source resolution as
+  // much as possible. ffmpeg evaluates these expressions against iw/ih.
+  const a = aspect.toFixed(8);
+  return `if(gte(iw/ih\\,${a})\\,ih*${a}\\,iw):if(gte(iw/ih\\,${a})\\,ih\\,iw/${a}):(iw-ow)/2:(ih-oh)/2`;
 }
 
 interface CachedFrames {
@@ -496,6 +537,10 @@ export async function videoScreenshots(
   // 4. Extract frames.
   ensureDir(cacheDir);
   ensureDir(CAPTURES_DIR_PATH);
+  const sourceSize = await probeVideoSize(dl.path);
+  const targetAspect = sourceSize
+    ? nearestAllowedAspect(sourceSize.width, sourceSize.height)
+    : null;
   const cached: CachedFrames['picks'] = [];
   const frames: VideoFrame[] = [];
   for (let i = 0; i < picks.length; i++) {
@@ -507,7 +552,7 @@ export async function videoScreenshots(
       message: `frame ${i + 1}/${picks.length} @ ${(p.timestamp_ms / 1000).toFixed(2)}s — ${p.reason}`,
     });
     try {
-      await extractFrame(dl.path, p.timestamp_ms, outPath);
+      await extractFrame(dl.path, p.timestamp_ms, outPath, targetAspect);
     } catch (e) {
       const msg = `ffmpeg frame extract failed: ${e instanceof Error ? e.message : String(e)}`;
       emit({ stage: 'error', message: msg });

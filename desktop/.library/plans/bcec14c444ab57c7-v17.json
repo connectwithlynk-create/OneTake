@@ -1,0 +1,1486 @@
+{
+  "total_duration_ms": 98380,
+  "shots": [
+    {
+      "shot_idx": 0,
+      "start_ms": 0,
+      "end_ms": 7197,
+      "duration_ms": 7197,
+      "spoken_during": "How do three high schoolers even compete against PhD teams from Stanford Harvard and MIT at a Harvard Hackathon Well it starts with",
+      "structure_role": "hook",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.95,
+          "likelihood": 0.95,
+          "broll_description": "Close-up of three high school students with intense focus in a collaborative environment, displaying determination.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://twitter.com/similar_competition_hashtags",
+              "focus": "high school student teams participating"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "zoom in 1.1x over the shot"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screenshot of the subject's social media profile",
+          "rationale": "Sets the stage with an image of young students rising to the challenge."
+        },
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.95,
+          "broll_description": "Aerial view over a major university campus, with overlay text highlighting 'Harvard', 'MIT', and 'Stanford'.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://maps.harvard.edu",
+              "focus": "Harvard campus aerial view"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Gives geographical context to the competition."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.6,
+          "likelihood": 0.95,
+          "broll_description": "Static image of Harvard University's iconic gates with motivating text overlay.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.harvard.edu",
+              "focus": "main entrance image"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Easy-to-source fallback emphasizing the iconic location of the hackathon."
+        }
+      ],
+      "broll_description": "Close-up of three high school students with intense focus in a collaborative environment, displaying determination.",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://twitter.com/similar_competition_hashtags",
+          "focus": "high school student teams participating"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "zoom in 1.1x over the shot"
+      },
+      "placement": {
+        "aspect": "16:9",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "screenshot of the subject's social media profile",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DYg26zgRiGS/",
+        "shot_idx": 0,
+        "pattern": "Inspiration from static close-up shot introducing the startup."
+      },
+      "text_overlay": "'How do three high schoolers compete?'",
+      "text_position": "middle_center",
+      "animation_cue": "pop",
+      "scene_animation": "zoom_in",
+      "animation_scale": 1,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": "vocal hit",
+      "clip_type": "broll_visual",
+      "rationale": "Introduces the challenge setting, reflecting the original reel's dynamic opening."
+    },
+    {
+      "shot_idx": 1,
+      "start_ms": 7197,
+      "end_ms": 25181,
+      "duration_ms": 17984,
+      "spoken_during": "with a 6 hour flight where Patrick watched anime the whole time and Jerry and I locked in researching We landed checked in and instead of sleeping we biked around Boston till like midnight Then we woke up at 7 got to Harvard sat through a couple talks and then started building something we thought was insane MedSim a 3D trauma centered simulation",
+      "structure_role": "intro",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.95,
+          "likelihood": 0.95,
+          "broll_description": "Screen recording of Boston cityscapes transitioning into late-night streets as bikes move through.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.bostonusa.com",
+              "focus": "nighttime city views"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "contain",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Highlights the transition from flight to late-night biking, showing dedication."
+        },
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.95,
+          "broll_description": "Collage of time-lapse animations showing the passage from daytime flight to nighttime hustle in Boston.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.massport.com/logan-airport",
+              "focus": "flight-related animations"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Captures the intensity and flow of events at the start of their challenge."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.6,
+          "likelihood": 0.95,
+          "broll_description": "Static image showcasing a flight map illustrating journey from West Coast to Boston.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.flightaware.com",
+              "focus": "flight map visualization"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "A clear fallback illustrating the physical journey undertaken."
+        }
+      ],
+      "broll_description": "Screen recording of Boston cityscapes transitioning into late-night streets as bikes move through.",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://www.bostonusa.com",
+          "focus": "nighttime city views"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "static"
+      },
+      "placement": {
+        "aspect": "16:9",
+        "fit": "contain",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "screen recording of the subject's website",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DYg26zgRiGS/",
+        "shot_idx": 1,
+        "pattern": "Inspiration from city-focused visual elements during key transitions."
+      },
+      "text_overlay": "with a 6 hour flight...",
+      "text_position": "bottom_center",
+      "animation_cue": "static",
+      "scene_animation": "none",
+      "animation_scale": 1,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": null,
+      "clip_type": "broll_visual",
+      "rationale": "Conveys the energy shift from traveling to active participation."
+    },
+    {
+      "shot_idx": 2,
+      "start_ms": 25181,
+      "end_ms": 33134,
+      "duration_ms": 7953,
+      "spoken_during": "simulation on top of role models Where you upload a picture it builds a 3D version sends out agents and tells you what's inefficient and how to fix it After talking to a few judges",
+      "structure_role": "body",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.95,
+          "broll_description": "Creative app screen recording showing input of a photo, 3D model building, and agent deployment UI.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://example.medsimapp.com",
+              "focus": "key app functionality demonstrations"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Shows the innovative aspect of the MedSim app directly relevant to the spoken content."
+        },
+        {
+          "tier": "ideal",
+          "fit_score": 0.85,
+          "likelihood": 0.95,
+          "broll_description": "Close-up capture of a student's hands operating a computer while 3D simulation visuals play on-screen.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://twitter.com/student_project_medsim",
+              "focus": "hands on keyboard with simulation on screen"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "contain",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screenshot of the subject's social media profile",
+          "rationale": "Illustrates the hands-on development process linked to the main product feature."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.6,
+          "likelihood": 0.95,
+          "broll_description": "Static representation of MedSim logo with illustrative 3D model background elements.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.medsimproject.com",
+              "focus": "logo with visual elements"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Provides a branding-focused fallback highlight."
+        }
+      ],
+      "broll_description": "Creative app screen recording showing input of a photo, 3D model building, and agent deployment UI.",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://example.medsimapp.com",
+          "focus": "key app functionality demonstrations"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "static"
+      },
+      "placement": {
+        "aspect": "16:9",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "screen recording of the subject's website",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DYg26zgRiGS/",
+        "shot_idx": 2,
+        "pattern": "Inspiration from showcasing app function via screen recording."
+      },
+      "text_overlay": "3D trauma simulation on role models.",
+      "text_position": "bottom_center",
+      "animation_cue": "karaoke_fill",
+      "scene_animation": "ken_burns",
+      "animation_scale": 1,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": "whoosh",
+      "clip_type": "broll_visual",
+      "rationale": "Demonstrates the core technology being developed at the hackathon."
+    },
+    {
+      "shot_idx": 3,
+      "start_ms": 33134,
+      "end_ms": 48284,
+      "duration_ms": 15150,
+      "spoken_during": "judges we got some feedback messed around a bit got an MVP working and did some dumb shit and then we biked to MassGen to get validation So while validating we realized this is not even close to good enough So we're like okay cool we're pulling an all nighter Right before we start",
+      "structure_role": "action",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.85,
+          "likelihood": 0.95,
+          "broll_description": "Split-screen of judges providing feedback with students implementing quick changes on-screen.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://example.academic_feedback.com",
+              "focus": "judges critiquing projects"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "split_bottom",
+            "position": "middle_center",
+            "scale": 0.5
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Captures the iterative process in response to feedback loop."
+        },
+        {
+          "tier": "ideal",
+          "fit_score": 0.8,
+          "likelihood": 0.95,
+          "broll_description": "Aerial footage of Massachusetts General Hospital, integrated with validation quest narrative.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.massgeneral.org",
+              "focus": "main hospital building"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Highlights a significant check-point within their validation journey."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.65,
+          "likelihood": 0.95,
+          "broll_description": "Document-style static image of a judge's evaluation sheet with notes.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://www.hackathonfeedback.com",
+              "focus": "evaluation sheet example"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Fallback to signify the importance of feedback on their project."
+        }
+      ],
+      "broll_description": "Split-screen of judges providing feedback with students implementing quick changes on-screen.",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://example.academic_feedback.com",
+          "focus": "judges critiquing projects"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "static"
+      },
+      "placement": {
+        "aspect": "16:9",
+        "fit": "split_bottom",
+        "position": "middle_center",
+        "scale": 0.5
+      },
+      "source_type": "screen recording of the subject's website",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DYg26zgRiGS/",
+        "shot_idx": 3,
+        "pattern": "Inspired by logo card transitions highlighting branding."
+      },
+      "text_overlay": "Feedback led to MVP adjustments.",
+      "text_position": "middle_center",
+      "animation_cue": "static",
+      "scene_animation": "none",
+      "animation_scale": 1,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": "vocal hit",
+      "clip_type": "broll_visual",
+      "rationale": "Explores the iterative approach of refining their idea based on feedback."
+    },
+    {
+      "shot_idx": 4,
+      "start_ms": 48284,
+      "end_ms": 54720,
+      "duration_ms": 6436,
+      "spoken_during": "start I see some reel that says you lock in harder without a shirt So obviously we chug a Monster and start coding shirts off",
+      "structure_role": "reaction",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.88,
+          "likelihood": 0.95,
+          "broll_description": "Animated social media reel showing unconventional hackathon tips being vividly demonstrated.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://instagram.com/inspirationalhacks",
+              "focus": "untraditional hackathon tips"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "zoom in 1.1x over the shot"
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screenshot of the subject's social media profile",
+          "rationale": "Reflects the whimsical and humorous component of the journey."
+        },
+        {
+          "tier": "ideal",
+          "fit_score": 0.8,
+          "likelihood": 0.95,
+          "broll_description": "Experience reel of students brainstorming creatively in a quirky manner.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://tumblr.com/techstudentsideas",
+              "focus": "brainstorming sessions"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "contain",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Emphasizes the unique approach and humor involved in the Hackathon process."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.7,
+          "likelihood": 0.95,
+          "broll_description": "Static image of an open Monster drink can with code on a nearby screen.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://pinterest.com/codesnacks",
+              "focus": "tech snack imagery"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Illustrates a quirky yet specific aspect of their informal productivity hack."
+        }
+      ],
+      "broll_description": "Animated social media reel showing unconventional hackathon tips being vividly demonstrated.",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://instagram.com/inspirationalhacks",
+          "focus": "untraditional hackathon tips"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "zoom in 1.1x over the shot"
+      },
+      "placement": {
+        "aspect": "9:16",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "screenshot of the subject's social media profile",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DYg26zgRiGS/",
+        "shot_idx": 4,
+        "pattern": "Inspired by creative approach and narrative tone projection."
+      },
+      "text_overlay": "Lock in harder without a shirt.",
+      "text_position": "middle_center",
+      "animation_cue": "pop",
+      "scene_animation": "zoom_in",
+      "animation_scale": 1,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": null,
+      "clip_type": "broll_visual",
+      "rationale": "Highlights a light-hearted moment with visual cues of informal innovation."
+    },
+    {
+      "shot_idx": 5,
+      "start_ms": 54720,
+      "end_ms": 59832,
+      "duration_ms": 5112,
+      "spoken_during": "Five hours later we have zero sleep completely fried and we actually have something decent",
+      "structure_role": "realization",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.92,
+          "likelihood": 0.95,
+          "broll_description": "Close-up of a computer screen with code running successfully before students celebrate quietly.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://github.com/successfulhackathons",
+              "focus": "moment of coding success"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "contain",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Captures a quiet yet significant milestone of achievement in coding."
+        },
+        {
+          "tier": "ideal",
+          "fit_score": 0.85,
+          "likelihood": 0.95,
+          "broll_description": "Short animated sequence representing the mind's fatigue fading into accomplishment.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://medium.com/studentscode",
+              "focus": "accomplishment visual transition"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Reflects exhaustion turning into a rewarding moment."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.6,
+          "likelihood": 0.95,
+          "broll_description": "Static infographic showing fatigue scales aligning with productivity spikes.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://behance.net/fatiguemetrics",
+              "focus": "productivity infographic"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Fallback to represent the realization of work and effort combined."
+        }
+      ],
+      "broll_description": "Close-up of a computer screen with code running successfully before students celebrate quietly.",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://github.com/successfulhackathons",
+          "focus": "moment of coding success"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "static"
+      },
+      "placement": {
+        "aspect": "16:9",
+        "fit": "contain",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "screen recording of the subject's website",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DYg26zgRiGS/",
+        "shot_idx": 5,
+        "pattern": "Inspired by depiction of outcomes after extended effort."
+      },
+      "text_overlay": "Zero sleep but something decent.",
+      "text_position": "middle_center",
+      "animation_cue": "pop",
+      "scene_animation": "none",
+      "animation_scale": 1,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": null,
+      "clip_type": "talking_head",
+      "rationale": "Illustrates the reward of pulling through an all-nighter with visual motifs."
+    },
+    {
+      "shot_idx": 6,
+      "start_ms": 59832,
+      "end_ms": 63808,
+      "duration_ms": 3976,
+      "spoken_during": "One problem we're being judged on our pitch decks and we don't have one So",
+      "structure_role": "problem",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.85,
+          "likelihood": 0.95,
+          "broll_description": "Image of empty pitch deck slides on a laptop screen with the text 'Last Minute Panic'.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://slideshare.net/emptydecks",
+              "focus": "last defeat"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "zoom in 1.1x over the shot"
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Signals the issue that arises from unpreparedness in a visible form."
+        },
+        {
+          "tier": "ideal",
+          "fit_score": 0.8,
+          "likelihood": 0.95,
+          "broll_description": "Animation of pitch deck templates rapidly cycling through, stopping at 'Empty'.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://canva.com/pitchdecktemplates",
+              "focus": "empty template animation"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "contain",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Shares the anxiety and urgency in bracing for immediate presentation."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.65,
+          "likelihood": 0.95,
+          "broll_description": "Static motivational poster with the phrase 'Present or Perish'.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://behance.net/motivationaldesign",
+              "focus": "motivational poster"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Simple fallback delivering the tension of needing to present without resources."
+        }
+      ],
+      "broll_description": "Image of empty pitch deck slides on a laptop screen with the text 'Last Minute Panic'.",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://slideshare.net/emptydecks",
+          "focus": "last defeat"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "zoom in 1.1x over the shot"
+      },
+      "placement": {
+        "aspect": "9:16",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "screen recording of the subject's website",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DYg26zgRiGS/",
+        "shot_idx": 6,
+        "pattern": "Inspired by visual depiction of dilemmas and their outcomes."
+      },
+      "text_overlay": "Problem: No pitch decks.",
+      "text_position": "bottom_center",
+      "animation_cue": "karaoke_fill",
+      "scene_animation": "zoom_in",
+      "animation_scale": 1,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": null,
+      "clip_type": "talking_head",
+      "rationale": "Communicates the last-minute problem in simple relatable terms."
+    },
+    {
+      "shot_idx": 7,
+      "start_ms": 63808,
+      "end_ms": 75169,
+      "duration_ms": 11361,
+      "spoken_during": "So we sprint back to Harvard throw together slides on zero sleep and practice in the bathroom until we can say it without thinking We pitch and at that point we're too tired to even care what happened until they start announcing winners",
+      "structure_role": "pivot",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.9,
+          "likelihood": 0.95,
+          "broll_description": "Footage of students in a frantic run, intercut with snippets of slide deck creation.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://vimeo.com/footagehacker",
+              "focus": "urgency in creating presentations"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Demonstrates the pivot from problem to solution with energy and motion."
+        },
+        {
+          "tier": "ideal",
+          "fit_score": 0.85,
+          "likelihood": 0.95,
+          "broll_description": "Rapid storyboard sketchening of the team's bathroom practice.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://dribbble.com/impromptusketch",
+              "focus": "narrative sketch"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "contain",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Visually narrates the impromptu switch and their adaptation techniques."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.6,
+          "likelihood": 0.95,
+          "broll_description": "Static clipart showcasing a bathroom with speech bubbles indicating practice.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://pixabay.com/vectors/bathroom-practice",
+              "focus": "practice atmosphere"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "9:16",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Fallback option conveying the rigor practiced for the presentation."
+        }
+      ],
+      "broll_description": "Footage of students in a frantic run, intercut with snippets of slide deck creation.",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://vimeo.com/footagehacker",
+          "focus": "urgency in creating presentations"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "static"
+      },
+      "placement": {
+        "aspect": "9:16",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "screen recording of the subject's website",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DYg26zgRiGS/",
+        "shot_idx": 7,
+        "pattern": "Feedback loops and role shifts showcased."
+      },
+      "text_overlay": "Sprinting to Harvard with no sleep.",
+      "text_position": "middle_center",
+      "animation_cue": "pop",
+      "scene_animation": "none",
+      "animation_scale": 1,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": "whoosh",
+      "clip_type": "broll_visual",
+      "rationale": "Portrays an intense phase with high pressure and immediate problem-solving."
+    },
+    {
+      "shot_idx": 8,
+      "start_ms": 75169,
+      "end_ms": 98380,
+      "duration_ms": 23211,
+      "spoken_during": "And then they call our name Jerry and I sprint up Patrick already left and somehow we pulled it off Three high schoolers Most of it I think the biggest thing from this weekend is just how much the team matters None of that happens without the random dumb stuff The dance breaks the croissant eating just staying sane while everything is kind of falling apart Why season a week So yeah stay tuned",
+      "structure_role": "cta",
+      "options": [
+        {
+          "tier": "ideal",
+          "fit_score": 0.93,
+          "likelihood": 0.95,
+          "broll_description": "Victory shot of the students celebrating on a high school stage, capturing elation.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://flickr.com/photos/highschoolstages",
+              "focus": "students celebrating success"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "ken_burns"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Celebrates the conclusion and deserved recognition of their efforts in style."
+        },
+        {
+          "tier": "ideal",
+          "fit_score": 0.88,
+          "likelihood": 0.95,
+          "broll_description": "Time-lapse of team bonding activities interspersed with a dance break.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://vimeo.com/teambondinginsight",
+              "focus": "team dynamics in action"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": "static"
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "contain",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Illustrates the different essential components that contribute to team success."
+        },
+        {
+          "tier": "fallback",
+          "fit_score": 0.7,
+          "likelihood": 0.95,
+          "broll_description": "Inspirational banner showcasing a running track with 'Stay Tuned' etched on the side.",
+          "asset": {
+            "method": "web_capture",
+            "web_capture": {
+              "url": "https://behance.net/inspirationalbanner",
+              "focus": "motivational tracking"
+            },
+            "library_search": null,
+            "stock_search": null,
+            "generate_image": null,
+            "manual": null,
+            "camera_move": null
+          },
+          "placement": {
+            "aspect": "16:9",
+            "fit": "fill",
+            "position": "middle_center",
+            "scale": 1
+          },
+          "source_type": "screen recording of the subject's website",
+          "rationale": "Generic motivator concluding the reel with a calming call-to-action."
+        }
+      ],
+      "broll_description": "Victory shot of the students celebrating on a high school stage, capturing elation.",
+      "asset": {
+        "method": "web_capture",
+        "web_capture": {
+          "url": "https://flickr.com/photos/highschoolstages",
+          "focus": "students celebrating success"
+        },
+        "library_search": null,
+        "stock_search": null,
+        "generate_image": null,
+        "manual": null,
+        "camera_move": "ken_burns"
+      },
+      "placement": {
+        "aspect": "16:9",
+        "fit": "fill",
+        "position": "middle_center",
+        "scale": 1
+      },
+      "source_type": "screen recording of the subject's website",
+      "has_overlay": false,
+      "additional_elements": [],
+      "inspired_by": {
+        "url": "https://www.instagram.com/p/DYg26zgRiGS/",
+        "shot_idx": 8,
+        "pattern": "Motivational climax fitting the narrative culmination."
+      },
+      "text_overlay": "The team matters. STAY TUNED.",
+      "text_position": "middle_center",
+      "animation_cue": "karaoke_fill",
+      "scene_animation": "ken_burns",
+      "animation_scale": 1,
+      "animation_easing": "ease-in-out",
+      "animation_origin": "middle_center",
+      "overlay_scale": 1,
+      "overlay_opacity": 1,
+      "sfx_cue": "vocal hit",
+      "clip_type": "talking_head",
+      "rationale": "Brings the narrative to a relatable and uplifting conclusion, emphasizing teamwork."
+    }
+  ],
+  "structure_sections": [
+    {
+      "role": "hook",
+      "script_template": "What's this <descriptor> that's <action>? This is",
+      "target_fill": "How do three high schoolers even compete against PhD teams from Stanford Harvard and MIT at a Harvard Hackathon Well it starts with",
+      "target_start_ms": 0,
+      "target_end_ms": 7200,
+      "shot_count": 1,
+      "visual_signature": {
+        "dominant_clip_type": "broll_visual",
+        "placement_pattern": "fullbleed 9:16",
+        "text_overlay_pattern": "large center caption big font",
+        "sfx_pattern": "vocal hit on cut in",
+        "motion_pattern": "zoom-in over the shot",
+        "scene_elements": []
+      }
+    },
+    {
+      "role": "intro",
+      "script_template": "This is <subject>, and they <action>. They <unexpected action> instead of <expected action>.",
+      "target_fill": "with a 6 hour flight where Patrick watched anime the whole time and Jerry and I locked in researching We landed checked in and instead of sleeping we biked around Boston till like midnight Then we woke up at 7 got to Harvard sat through a couple talks and then started building something we thought was insane MedSim a 3D trauma centered simulation",
+      "target_start_ms": 7200,
+      "target_end_ms": 25180,
+      "shot_count": 1,
+      "visual_signature": {
+        "dominant_clip_type": "broll_visual",
+        "placement_pattern": "split-screen top",
+        "text_overlay_pattern": "small bottom strip",
+        "sfx_pattern": "silent open",
+        "motion_pattern": "static cut",
+        "scene_elements": []
+      }
+    },
+    {
+      "role": "body",
+      "script_template": "<action 1> on top of <framework>. Where <function>. After <event>.",
+      "target_fill": "simulation on top of role models Where you upload a picture it builds a 3D version sends out agents and tells you what's inefficient and how to fix it After talking to a few judges",
+      "target_start_ms": 25180,
+      "target_end_ms": 33130,
+      "shot_count": 1,
+      "visual_signature": {
+        "dominant_clip_type": "broll_visual",
+        "placement_pattern": "fullbleed 9:16",
+        "text_overlay_pattern": "large center caption big font",
+        "sfx_pattern": "whoosh whoosh",
+        "motion_pattern": "ken_burns",
+        "scene_elements": []
+      }
+    },
+    {
+      "role": "action",
+      "script_template": "<unexpected action> and <unexpected action> until <realization>. Then, <decision>.",
+      "target_fill": "judges we got some feedback messed around a bit got an MVP working and did some dumb shit and then we biked to MassGen to get validation So while validating we realized this is not even close to good enough So we're like okay cool we're pulling an all nighter Right before we start",
+      "target_start_ms": 33130,
+      "target_end_ms": 48280,
+      "shot_count": 1,
+      "visual_signature": {
+        "dominant_clip_type": "broll_visual",
+        "placement_pattern": "PiP bottom right",
+        "text_overlay_pattern": "none",
+        "sfx_pattern": "vocal hit on cut in",
+        "motion_pattern": "static cut",
+        "scene_elements": []
+      }
+    },
+    {
+      "role": "reaction",
+      "script_template": "I see <stimulus>, and we <reaction>. So <action>.",
+      "target_fill": "start I see some reel that says you lock in harder without a shirt So obviously we chug a Monster and start coding shirts off",
+      "target_start_ms": 48280,
+      "target_end_ms": 54720,
+      "shot_count": 1,
+      "visual_signature": {
+        "dominant_clip_type": "broll_visual",
+        "placement_pattern": "fullbleed 9:16",
+        "text_overlay_pattern": "small bottom strip",
+        "sfx_pattern": "silent open",
+        "motion_pattern": "zoom-in over the shot",
+        "scene_elements": []
+      }
+    },
+    {
+      "role": "realization",
+      "script_template": "<time> later, <realization>.",
+      "target_fill": "Five hours later we have zero sleep completely fried and we actually have something decent",
+      "target_start_ms": 54720,
+      "target_end_ms": 59830,
+      "shot_count": 1,
+      "visual_signature": {
+        "dominant_clip_type": "talking_head",
+        "placement_pattern": "middle_center",
+        "text_overlay_pattern": "none",
+        "sfx_pattern": "silent open",
+        "motion_pattern": "static cut",
+        "scene_elements": []
+      }
+    },
+    {
+      "role": "problem",
+      "script_template": "One problem, <title>. So <reaction>.",
+      "target_fill": "One problem we're being judged on our pitch decks and we don't have one So",
+      "target_start_ms": 59830,
+      "target_end_ms": 63810,
+      "shot_count": 1,
+      "visual_signature": {
+        "dominant_clip_type": "talking_head",
+        "placement_pattern": "middle_center",
+        "text_overlay_pattern": "none",
+        "sfx_pattern": "whoosh whoosh",
+        "motion_pattern": "zoom-in over the shot",
+        "scene_elements": []
+      }
+    },
+    {
+      "role": "pivot",
+      "script_template": "<reaction>, <action>, and <unexpected action>. Finally, <outcome>.",
+      "target_fill": "So we sprint back to Harvard throw together slides on zero sleep and practice in the bathroom until we can say it without thinking We pitch and at that point we're too tired to even care what happened until they start announcing winners",
+      "target_start_ms": 63810,
+      "target_end_ms": 75170,
+      "shot_count": 1,
+      "visual_signature": {
+        "dominant_clip_type": "broll_visual",
+        "placement_pattern": "fullbleed 9:16",
+        "text_overlay_pattern": "large center caption big font",
+        "sfx_pattern": "whoosh whoosh",
+        "motion_pattern": "zoom-in over the shot",
+        "scene_elements": []
+      }
+    },
+    {
+      "role": "cta",
+      "script_template": "And then <outcome>. I think <insight>. Why <theme>. So <invitation>.",
+      "target_fill": "And then they call our name Jerry and I sprint up Patrick already left and somehow we pulled it off Three high schoolers Most of it I think the biggest thing from this weekend is just how much the team matters None of that happens without the random dumb stuff The dance breaks the croissant eating just staying sane while everything is kind of falling apart Why season a week So yeah stay tuned",
+      "target_start_ms": 75170,
+      "target_end_ms": 98380,
+      "shot_count": 1,
+      "visual_signature": {
+        "dominant_clip_type": "talking_head",
+        "placement_pattern": "fullbleed 9:16",
+        "text_overlay_pattern": "none",
+        "sfx_pattern": "vocal hit on cut in",
+        "motion_pattern": "ken_burns",
+        "scene_elements": []
+      }
+    }
+  ],
+  "structure_confidence": "high",
+  "structure_rationale": "The template mirrors a competitive challenge followed by a series of reactive and proactive actions leading to success, similar to the inspiration structure.",
+  "structure_alternatives": null,
+  "content_source_patterns": [
+    "screen recording of the subject's website",
+    "screenshot of the subject's social media profile"
+  ],
+  "style_summary": "- reel 1: 17.3s, 9 shots, cuts/sec=0.46, text=100%, SFX=62/min",
+  "content_sources": [
+    "https://www.instagram.com/p/DYg26zgRiGS/"
+  ],
+  "target_metrics": {
+    "fingerprint_version": 4,
+    "computed_at": 1780551874109,
+    "n_reels": 1,
+    "n_shots": 9,
+    "median_shot_ms": 1400,
+    "cuts_per_sec": 0.4619204342052082,
+    "clip_type_distribution": {
+      "talking_head": 0.23592586177031005,
+      "broll_talking_head": 0,
+      "talking_head_unknown": 0.0654194814943126,
+      "broll_visual": 0.6986546567353774
+    },
+    "real_speaker_pct": 0.1111111111111111,
+    "broll_talking_head_pct": 0,
+    "face_size_median": 0.3887533068656921,
+    "face_region_distribution": {
+      "top_left": 0,
+      "top_center": 0,
+      "top_right": 0,
+      "middle_left": 0,
+      "middle_center": 0.5,
+      "middle_right": 0,
+      "bottom_left": 0,
+      "bottom_center": 0.5,
+      "bottom_right": 0
+    },
+    "face_region_dominant": "mixed",
+    "text_overlay_pct": 1,
+    "text_region_distribution": {
+      "top_left": 0.0392156862745098,
+      "top_center": 0.11764705882352941,
+      "top_right": 0.11764705882352941,
+      "middle_left": 0.058823529411764705,
+      "middle_center": 0.2647058823529412,
+      "middle_right": 0.1568627450980392,
+      "bottom_left": 0.029411764705882353,
+      "bottom_center": 0.20588235294117646,
+      "bottom_right": 0.00980392156862745
+    },
+    "text_region_dominant": "mixed",
+    "media_overlay_pct": 0,
+    "overlays_per_min": 0,
+    "overlay_kind_distribution": null,
+    "overlay_motion_distribution": null,
+    "overlay_region_distribution": null,
+    "overlay_region_dominant": null,
+    "overlay_pattern": null,
+    "camera_motion_distribution": {
+      "none": 0.3333333333333333,
+      "zoom_in": 0.1111111111111111,
+      "zoom_out": 0,
+      "pan_left": 0,
+      "pan_right": 0,
+      "ken_burns": 0.5555555555555556
+    },
+    "camera_motion_dominant": "ken_burns",
+    "camera_motion_pct": 0.6666666666666667,
+    "camera_motion_confidence": 0.7077777777777778,
+    "voiceover_pct": 0.9558465111676181,
+    "music_pct": 0.007315664876724984,
+    "audio_silence_pct": 0.03683782395565697,
+    "audio_energy_mean": 0.09589190415927507,
+    "sfx_per_min": 62.3592586177031,
+    "cuts_with_sfx_pct": 0.3333333333333333,
+    "sfx_at_cuts_pct": 0.16666666666666666,
+    "sfx_type_distribution": {
+      "impulse_tonal": 0.2222222222222222,
+      "impulse_noisy": 0,
+      "sweep": 0,
+      "vocal": 0.6666666666666666,
+      "sustained": 0,
+      "other": 0.1111111111111111
+    },
+    "sfx_classified_total": 18,
+    "hook_speeches": [
+      "What's this startup that's building robotic surveillance birds This is"
+    ],
+    "hook_texts": [
+      "'re building autonomous ornithopters with\n\nr-class flight times, low acoustic signatur\n\ni natural bird-like flight. This makes\n\nadyne's drones harder for humans and\n\nnter-UAS systems to detect, classify, and\n\nget.\n\ne Found\n\nSTARTUR\n\nourg’s Master's thesis is built on 2+ years c\n\nearch and development in flapping-wing\n\nnes. His work has received multiple awarc\n\nTU"
+    ],
+    "hook_archetypes": null,
+    "caption_style": {
+      "captions_pct": 1,
+      "n_with_captions": 1,
+      "matched_preset": "",
+      "preset_label": "",
+      "preset_confidence_avg": 0.86,
+      "preset_distribution": {},
+      "position": "center",
+      "chunking": "word_by_word",
+      "words_per_chunk_avg": 1,
+      "font_size": "large",
+      "text_treatment": "clear",
+      "treatment_color_examples": [],
+      "treatment_distribution": {
+        "clear": 1
+      },
+      "text_color": "yellow",
+      "highlight_color": null,
+      "emphasis": "active_word_highlight",
+      "casing": "uppercase",
+      "animation": "pop",
+      "position_distribution": {
+        "center": 1
+      },
+      "chunking_distribution": {
+        "word_by_word": 1
+      },
+      "font_size_distribution": {
+        "large": 1
+      },
+      "emphasis_distribution": {
+        "active_word_highlight": 1
+      },
+      "casing_distribution": {
+        "uppercase": 1
+      },
+      "animation_distribution": {
+        "pop": 1
+      },
+      "has_emoji_pct": 0,
+      "font_family": "bebas-neue",
+      "font_family_name": "Bebas Neue",
+      "font_family_distribution": {
+        "bebas-neue": 1
+      },
+      "font_descriptors": [
+        "bold sans-serif with no stroke"
+      ],
+      "style_labels": [
+        "word-by-word karaoke highlight"
+      ]
+    },
+    "beat_template": [
+      {
+        "clip_type": "broll_visual",
+        "n_shots": 7,
+        "duration_p50_ms": 1400,
+        "has_text_p": 1,
+        "has_face_p": 0,
+        "is_speaker_p": 0
+      },
+      {
+        "clip_type": "talking_head",
+        "n_shots": 1,
+        "duration_p50_ms": 4086,
+        "has_text_p": 1,
+        "has_face_p": 1,
+        "is_speaker_p": 1
+      },
+      {
+        "clip_type": "talking_head_unknown",
+        "n_shots": 1,
+        "duration_p50_ms": 1133,
+        "has_text_p": 1,
+        "has_face_p": 1,
+        "is_speaker_p": 0
+      }
+    ]
+  },
+  "subtitle_spec": {
+    "enabled": true,
+    "preset_id": "",
+    "preset_label": "",
+    "font_family": "bebas-neue",
+    "font_family_name": "Bebas Neue",
+    "font_size": "large",
+    "position": "center",
+    "chunking": "word_by_word",
+    "words_per_chunk": 1,
+    "casing": "uppercase",
+    "emphasis": "active_word_highlight",
+    "animation": "pop",
+    "text_treatment": "clear",
+    "text_color": "yellow",
+    "treatment_color": null,
+    "highlight_color": null,
+    "has_emoji": false,
+    "low_confidence": false
+  }
+}

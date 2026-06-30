@@ -1,0 +1,20 @@
+{
+  "key": "09b3c7f96c16ed87",
+  "version": 20,
+  "created_at": 1781311582584,
+  "shot_count": 9,
+  "hook_preview": "What's this startup that's",
+  "target_label": "File: 42EC1C5A-2CEC-49F9-960A-8FFE3017C0DD.MP4",
+  "target_kind": "local_video",
+  "target_file_path": "/Users/rahulpeesa/Downloads/42EC1C5A-2CEC-49F9-960A-8FFE3017C0DD.MP4",
+  "library_urls": [
+    "https://www.instagram.com/p/DYlQlfYuTc7/",
+    "https://www.instagram.com/p/DXz_iMJNjlV/",
+    "https://www.instagram.com/p/DYg26zgRiGS/",
+    "https://www.instagram.com/p/DU_3YEUEoGG/",
+    "https://www.instagram.com/reel/DYxLMnNRzQ5/?igsh=bXhtY2JlNjhsYzNm",
+    "https://www.instagram.com/reel/DYg26zgRiGS/?igsh=enl3MzA3dnFnNHNv"
+  ],
+  "allow_copyrighted": true,
+  "user_instructions": "Get any content from websites, videos, reels, etc."
+}

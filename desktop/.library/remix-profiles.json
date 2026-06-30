@@ -1,0 +1,12 @@
+[
+  {
+    "id": "f00a2303-ec35-4c21-a57d-17365d5ec51f",
+    "name": "Who's this guy that",
+    "created_at": 1781201606309,
+    "updated_at": 1781201933146,
+    "reel_id": "f00a2303-ec35-4c21-a57d-17365d5ec51f",
+    "source_summary": "Who's this guy that",
+    "prompt_count": 12,
+    "preference_instructions": "REMIX PROFILE: Reuse the saved editing preferences from this prior reel.\nPrior style summary: - reel 1: 15.9s, 21 shots, cuts/sec=1.26, text=90%, SFX=61/min\n- reel 2: 14.8s, 7 shots, cuts/sec=0.41, text=100%, SFX=32/min\n- reel 3: 17.3s, 9 shots, cuts/sec=0.46, text=100%, SFX=62/min\n- reel 4: 12.6s, 8 shots, cuts/sec=0.55, text=88%, SFX=29/min\n- reel 5: 13.7s, 11 shots, cuts/sec=0.73, text=100%, SFX=57/min\n- reel 6: 17.3s, 9 shots, cuts/sec=0.46, text=100%, SFX=62/min\nSubtitle preference: ; center; word_by_word; bordered; text yellow; highlight none.\nSFX override preference: {\"cadence\":\"every_word\",\"type\":\"impulse_tonal\",\"sound\":\"correct (ding)\"}.\nSFX mix preference: volume 0.5, lead_ms 250.\nAudio mix preference: music 0.5, narration 4.\nMotion preference by prior shot count: none:8, zoom_in:1, pan_left:1.\nUser prompt history to honor as preferences:\n- [save_remix_profile] Saved remix profile \"Who's this guy that\".\n- [save_remix_profile] Saved remix profile \"Who's this guy that\".\n- [save_remix_profile] Saved remix profile \"Who's this guy that\".\n- [save_remix_profile] Saved remix profile \"Who's this guy that\".\n- [save_remix_profile] Saved remix profile \"Who's this guy that\".\n- [save_remix_profile] Saved remix profile \"Who's this guy that\".\n- [save_remix_profile] Saved remix profile \"Who's this guy that\".\n- [save_remix_profile] Saved remix profile \"Who's this guy that\".\n- [save_remix_profile] Saved remix profile \"Who's this guy that\".\n- [save_remix_profile] Saved remix profile \"Who's this guy that\".\n- [save_remix_profile] Saved remix profile \"Who's this guy that\".\n- [save_remix_profile] Saved remix profile \"Who's this guy that\".\nApply these preferences to the new target where they fit. Do not copy old subject matter unless the new target asks for it."
+  }
+]

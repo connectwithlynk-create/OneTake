@@ -81,33 +81,21 @@ interface PlannedRecording {
 }
 
 /** Ask the LLM for an ordered scroll timeline tailored to the shot.
- *  Returns sensible defaults if there's no API key — a smooth top→
- *  bottom sweep so the recorder still produces something useful. */
+ *  Returns no segments if there's no API key/sections so recordUrl uses
+ *  its single-style slow default. */
 async function planRecording(
   input: RecordPageInput,
   sections: PageSection[],
   pageText: string,
   durationMs: number,
 ): Promise<PlannedRecording> {
-  // Fallback when there's no model available: pick top-of-page,
-  // middle-ish, bottom — every page is roughly bracketed by those.
+  // Fallback when there's no model available: don't invent generic
+  // section positions. Empty segments let recordUrl run its linear
+  // default.
   const fallback = (): PlannedRecording => {
-    const hold = Math.max(1500, Math.floor(durationMs / 4));
     return {
-      reasoning: 'no LLM available — using a generic top→middle→bottom sweep',
-      segments: [
-        { scroll_to: 0, travel_ms: 0, hold_ms: hold },
-        {
-          scroll_to: 0.5,
-          travel_ms: 1500,
-          hold_ms: hold,
-        },
-        {
-          scroll_to: 1,
-          travel_ms: 1500,
-          hold_ms: Math.max(1000, durationMs - hold * 2 - 3000),
-        },
-      ],
+      reasoning: 'no LLM available — using default gradual scroll',
+      segments: [],
     };
   };
 
@@ -137,13 +125,15 @@ async function planRecording(
     ``,
     `Pick up to ${MAX_SEGMENTS} sections to feature in the recording, in the order they should appear. For each, set:`,
     `- scroll_to: the section's position_fraction (0..1).`,
-    `- travel_ms: time to scroll to that position (0 for the first segment / instant jumps; 800-2000 for smooth cinematic scrolls).`,
+    `- travel_ms: time to scroll to that position (0 only if the first segment is already at the current top; otherwise use gradual movement).`,
     `- hold_ms: how long to dwell on the section (longer for important / dense sections, shorter for transitional ones).`,
     ``,
     `Rules:`,
     `- Total travel_ms + hold_ms across all segments should be roughly ${(durationMs / 1000).toFixed(0)}s minus 2s for tail.`,
     `- Use the section that actually contains the shot's relevant subject FIRST. Footers and ad sections almost always go LAST or are skipped entirely.`,
-    `- If nothing in the section list looks relevant, do a top→middle→bottom sweep.`,
+    `- Never rush through the whole website. Prefer 1-3 relevant nearby sections with slow, readable movement over a top→bottom tour.`,
+    `- Avoid footer/bottom landings unless the spoken beat specifically needs that content.`,
+    `- If nothing in the section list looks relevant, hold near the top and use one gradual partial scroll, not a full-page sweep.`,
     ``,
     `Return strict JSON only:`,
     `{ "reasoning": "<one sentence on why you picked these sections>", "segments": [ { "scroll_to": <0..1>, "travel_ms": <int>, "hold_ms": <int> }, ... ] }`,
@@ -174,8 +164,8 @@ async function planRecording(
     )
       .map((s) => ({
         scroll_to: Math.max(0, Math.min(1, Number(s.scroll_to) || 0)),
-        travel_ms: Math.max(0, Math.round(Number(s.travel_ms) || 0)),
-        hold_ms: Math.max(500, Math.round(Number(s.hold_ms) || 1500)),
+        travel_ms: Math.max(900, Math.round(Number(s.travel_ms) || 1600)),
+        hold_ms: Math.max(900, Math.round(Number(s.hold_ms) || 1800)),
       }))
       .slice(0, MAX_SEGMENTS);
     if (segments.length === 0) return fallback();
@@ -252,7 +242,9 @@ export async function recordPage(
   });
   const rec = await recordUrl(input.candidate_url, {
     durationMs,
-    scroll: 'smooth',
+    // Ignored when scrollSegments is non-empty; 'slow' is the fallback
+    // if every planned segment gets dropped at snap time.
+    scroll: 'slow',
     scrollSegments: plan.segments,
     expectedContent: input.broll_description,
     // Marketing pages render best at 16:9 — that's also what the user
